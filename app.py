@@ -177,7 +177,6 @@ if arquivo_xml and arquivo_dados:
             divergencias_ncm = 0
             divergencias_qtd = 0
 
-            # O XML é a fundação: mantemos a ordem exata da nota fiscal linha a linha (1=1, 2=2, 3=3...)
             for item_x, item_c in zip_longest(itens_xml, itens_csv, fillvalue=None):
                 linha = {}
 
@@ -202,7 +201,6 @@ if arquivo_xml and arquivo_dados:
                     linha['Status_Geral'] = 'PAREADO'
                     total_pareados += 1
 
-                    # Compara EAN limpando zeros à esquerda e notações científicas
                     ean_x_comp = item_x.get('EAN_Comp_NF', '')
                     eantrib_x_comp = item_x.get('EANTrib_Comp_NF', '')
                     ean_win_comp = item_c.get('EAN_Comp_WINTHOR', '')
@@ -650,7 +648,7 @@ if arquivo_xml and arquivo_dados:
                     worksheet.column_dimensions[column_letter].width = max(max_length + 4, 12)
 
                 # ==========================================
-                # 7. BLOQUEIO DA PLANILHA (PERMITIR APENAS FILTROS)
+                # 7. BLOQUEIO DA PLANILHA (PERMITIR FILTROS E ORDENAÇÃO)
                 # ==========================================
                 worksheet.protection.sheet = True
                 worksheet.protection.enableAutoFilter = True
