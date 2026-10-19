@@ -12,20 +12,42 @@ import io
 # 1. FUNÇÕES AUXILIARES
 # ==========================================
 def limpar_numero(valor):
-    if pd.isna(valor): return ""
-    return re.sub(r'[^0-9]', '', str(valor))
+    if pd.isna(valor):
+        return ""
+    val_str = str(valor).strip()
+    # Remove '.0' caso o pandas tenha convertido para float antes de limpar
+    if val_str.endswith('.0'):
+        val_str = val_str[:-2]
+    return re.sub(r'[^0-9]', '', val_str)
+
+def limpar_ean(valor):
+    if pd.isna(valor):
+        return ""
+    val_str = str(valor).strip().upper()
+    if val_str in ('SEM GTIN', 'S/GTIN', 'NONE', 'NAN', ''):
+        return ""
+    if val_str.endswith('.0'):
+        val_str = val_str[:-2]
+    apenas_numeros = re.sub(r'[^0-9]', '', val_str)
+    # Remove zeros à esquerda para igualar códigos UPC/GTIN-14 (00941...) com EAN (941...)
+    return apenas_numeros.lstrip('0')
 
 def converte_float_br(valor):
     if pd.isna(valor) or str(valor).strip() == '':
         return 0.0
     try:
-        return float(str(valor).replace(',', '.'))
+        val_str = str(valor).strip()
+        if '.' in val_str and ',' in val_str:
+            val_str = val_str.replace('.', '').replace(',', '.')
+        else:
+            val_str = val_str.replace(',', '.')
+        return float(val_str)
     except:
         return 0.0
 
 def obter_icms_xml(det_node, ns):
     pICMS = det_node.find('.//ns:pICMS', ns)
-    if pICMS is not None:
+    if pICMS is not None and pICMS.text:
         return float(pICMS.text)
     return 0.0
 
@@ -34,7 +56,7 @@ def obter_icms_xml(det_node, ns):
 # ==========================================
 st.set_page_config(page_title="Auditoria Olho de Deus", layout="wide")
 st.title("Auditoria de Notas")
-st.markdown("Faça o upload do arquivo XML da nota e do arquivo do WinThor (.csv ou .xlsx) para cruzar as informações.")
+st.markdown("Faça o upload do ficheiro XML da nota e do ficheiro do WinThor (.csv ou .xlsx) para cruzar as informações.")
 
 col1, col2 = st.columns(2)
 with col1:
@@ -67,20 +89,35 @@ if arquivo_xml and arquivo_dados:
                     nItem = det.attrib.get('nItem', '')
 
                 desc = prod.find('ns:xProd', ns).text if prod.find('ns:xProd', ns) is not None else ''
-                ean = prod.find('ns:cEAN', ns).text if prod.find('ns:cEAN', ns) is not None else ''
-                ncm = prod.find('ns:NCM', ns).text if prod.find('ns:NCM', ns) is not None else ''
+                ean_raw = prod.find('ns:cEAN', ns).text if prod.find('ns:cEAN', ns) is not None else ''
+                ean_trib_raw = prod.find('ns:cEANTrib', ns).text if prod.find('ns:cEANTrib', ns) is not None else ''
+
+                # Se cEAN for válido, usa ele; caso contrário, tenta usar o cEANTrib
+                ean_exibicao = limpar_numero(ean_raw) if limpar_ean(ean_raw) != '' else limpar_numero(ean_trib_raw)
+                ean_comp = limpar_ean(ean_raw)
+                ean_trib_comp = limpar_ean(ean_trib_raw)
+
+                ncm = limpar_numero(prod.find('ns:NCM', ns).text) if prod.find('ns:NCM', ns) is not None else ''
                 qtd = float(prod.find('ns:qCom', ns).text) if prod.find('ns:qCom', ns) is not None else 0.0
                 vUn = float(prod.find('ns:vUnCom', ns).text) if prod.find('ns:vUnCom', ns) is not None else 0.0
                 vTot = float(prod.find('ns:vProd', ns).text) if prod.find('ns:vProd', ns) is not None else 0.0
                 icms = obter_icms_xml(det, ns)
 
                 pRedBC_node = det.find('.//ns:pRedBC', ns)
-                pRedBC = float(pRedBC_node.text) if pRedBC_node is not None else 0.0
+                pRedBC = float(pRedBC_node.text) if pRedBC_node is not None and pRedBC_node.text else 0.0
 
                 itens_xml.append({
-                    'Linha_NF': nItem, 'Descricao_NF': desc, 'EAN_NF': ean,
-                    'NCM_NF': ncm, 'Qtd_NF': qtd, 'Vl_Unit_NF': vUn,
-                    'Vl_Total_NF': vTot, 'ICMS_NF': icms, 'pRedBC_NF': pRedBC
+                    'Linha_NF': nItem,
+                    'Descricao_NF': desc,
+                    'EAN_NF': ean_exibicao,
+                    'EAN_Comp_NF': ean_comp,
+                    'EANTrib_Comp_NF': ean_trib_comp,
+                    'NCM_NF': ncm,
+                    'Qtd_NF': qtd,
+                    'Vl_Unit_NF': vUn,
+                    'Vl_Total_NF': vTot,
+                    'ICMS_NF': icms,
+                    'pRedBC_NF': pRedBC
                 })
 
             data_simples = datetime.now().strftime('%Y%m%d')
@@ -90,9 +127,9 @@ if arquivo_xml and arquivo_dados:
             # 4. EXTRAÇÃO DA PLANILHA (WINTHOR)
             # ==========================================
             if arquivo_dados.name.lower().endswith('.xlsx'):
-                df_csv = pd.read_excel(arquivo_dados)
+                df_csv = pd.read_excel(arquivo_dados, dtype=str)
             else:
-                df_csv = pd.read_csv(arquivo_dados, sep=';', encoding='latin1')
+                df_csv = pd.read_csv(arquivo_dados, sep=';', encoding='latin1', dtype=str)
 
             df_csv.columns = df_csv.columns.str.strip()
 
@@ -102,11 +139,13 @@ if arquivo_xml and arquivo_dados:
 
             itens_csv = []
             for index, row in df_csv.iterrows():
+                ean_win_raw = row.get('Cód. barra', '')
                 itens_csv.append({
                     'Linha_WINTHOR': index + 1,
-                    'Cod_Produto_WINTHOR': str(row.get('Cód. produto', '')),
-                    'EAN_WINTHOR': str(row.get('Cód. barra', '')),
-                    'Descricao_WINTHOR': str(row.get('Descrição', '')),
+                    'Cod_Produto_WINTHOR': limpar_numero(row.get('Cód. produto', '')),
+                    'EAN_WINTHOR': limpar_numero(ean_win_raw),
+                    'EAN_Comp_WINTHOR': limpar_ean(ean_win_raw),
+                    'Descricao_WINTHOR': str(row.get('Descrição', '')).strip(),
                     'Qtd_WINTHOR': converte_float_br(row.get('Qtde Pré-Entrada', 0.0)),
                     'NCM_WINTHOR': limpar_numero(row.get('NCM', '')),
                     'ICMS_WINTHOR': converte_float_br(row.get('%ICMS', 0.0)),
@@ -139,24 +178,40 @@ if arquivo_xml and arquivo_dados:
                 if item_x:
                     linha.update(item_x)
                 else:
-                    linha.update({'Linha_NF': '-', 'Descricao_NF': '-', 'EAN_NF': '-', 'NCM_NF': '-', 'Qtd_NF': '-', 'Vl_Unit_NF': '-', 'Vl_Total_NF': '-', 'ICMS_NF': '-', 'pRedBC_NF': '-'})
+                    linha.update({
+                        'Linha_NF': '-', 'Descricao_NF': '-', 'EAN_NF': '-', 'NCM_NF': '-',
+                        'Qtd_NF': '-', 'Vl_Unit_NF': '-', 'Vl_Total_NF': '-', 'ICMS_NF': '-', 'pRedBC_NF': '-'
+                    })
 
                 if item_c:
                     linha.update(item_c)
                 else:
-                    linha.update({'Linha_WINTHOR': '-', 'Cod_Produto_WINTHOR': '-', 'EAN_WINTHOR': '-', 'Descricao_WINTHOR': '-', 'Qtd_WINTHOR': '-', 'NCM_WINTHOR': '-', 'ICMS_WINTHOR': '-', '% ICMS red. Whintor': '-', '%Alíq.Ext. ST Guia_Whintor': '-', 'Tipo_Calculo_WINTHOR': '-'})
+                    linha.update({
+                        'Linha_WINTHOR': '-', 'Cod_Produto_WINTHOR': '-', 'EAN_WINTHOR': '-', 'Descricao_WINTHOR': '-',
+                        'Qtd_WINTHOR': '-', 'NCM_WINTHOR': '-', 'ICMS_WINTHOR': '-', '% ICMS red. Whintor': '-',
+                        '%Alíq.Ext. ST Guia_Whintor': '-', 'Tipo_Calculo_WINTHOR': '-'
+                    })
 
                 if item_x and item_c:
-                    linha['Status_Geral'] = 'PAREDO' if 'Status_Geral' not in linha else linha['Status_Geral']
+                    linha['Status_Geral'] = 'PAREADO' if 'Status_Geral' not in linha else linha['Status_Geral']
                     total_pareados += 1
 
-                    linha['Status_EAN'] = 'OK' if str(item_x['EAN_NF']) == str(item_c['EAN_WINTHOR']) else 'DIVERGENTE'
-                    if linha['Status_EAN'] == 'DIVERGENTE':
+                    # Comparação de EAN sem zeros à esquerda (aceitando cEAN ou cEANTrib)
+                    ean_xml_comp = item_x.get('EAN_Comp_NF', '')
+                    eantrib_xml_comp = item_x.get('EANTrib_Comp_NF', '')
+                    ean_win_comp = item_c.get('EAN_Comp_WINTHOR', '')
+
+                    if ean_win_comp != '' and (ean_win_comp == ean_xml_comp or ean_win_comp == eantrib_xml_comp):
+                        linha['Status_EAN'] = 'OK'
+                    elif ean_win_comp == '' and ean_xml_comp == '' and eantrib_xml_comp == '':
+                        linha['Status_EAN'] = 'OK'
+                    else:
+                        linha['Status_EAN'] = 'DIVERGENTE'
                         divergencias_ean += 1
 
-                    icms_xml = item_x['ICMS_NF']
-                    icms_csv = item_c['ICMS_WINTHOR']
-                    st_guia = item_c['%Alíq.Ext. ST Guia_Whintor']
+                    icms_xml = round(item_x['ICMS_NF'], 2)
+                    icms_csv = round(item_c['ICMS_WINTHOR'], 2)
+                    st_guia = round(item_c['%Alíq.Ext. ST Guia_Whintor'], 2)
 
                     if icms_xml == icms_csv or icms_xml == st_guia:
                         linha['Status_ICMS_Aliq'] = 'OK'
@@ -164,8 +219,8 @@ if arquivo_xml and arquivo_dados:
                         linha['Status_ICMS_Aliq'] = 'DIVERGENTE'
                         divergencias_icms += 1
 
-                    pred_xml = item_x['pRedBC_NF']
-                    red_csv = item_c['% ICMS red. Whintor']
+                    pred_xml = round(item_x['pRedBC_NF'], 4)
+                    red_csv = round(item_c['% ICMS red. Whintor'], 4)
                     if pred_xml == red_csv:
                         linha['Status_Red_BC'] = 'OK'
                     else:
@@ -184,18 +239,23 @@ if arquivo_xml and arquivo_dados:
                     if linha['Status_NCM'] == 'DIVERGENTE':
                         divergencias_ncm += 1
 
-                    linha['Status_Qtd'] = 'OK' if item_x['Qtd_NF'] == item_c['Qtd_WINTHOR'] else 'DIVERGENTE'
+                    linha['Status_Qtd'] = 'OK' if round(item_x['Qtd_NF'], 4) == round(item_c['Qtd_WINTHOR'], 4) else 'DIVERGENTE'
                     if linha['Status_Qtd'] == 'DIVERGENTE':
                         divergencias_qtd += 1
 
                     cod_prod = item_c['Cod_Produto_WINTHOR']
 
                     alertas_atuais = []
-                    if linha['Status_EAN'] == 'DIVERGENTE': alertas_atuais.append({"Tipo": "EAN", "Cod. ERP": cod_prod, "Descrição": item_c['Descricao_WINTHOR'], "Detalhe": f"XML: {item_x['EAN_NF']} vs ERP: {item_c['EAN_WINTHOR']}"})
-                    if linha['Status_ICMS_Aliq'] == 'DIVERGENTE': alertas_atuais.append({"Tipo": "ICMS Alíquota", "Cod. ERP": cod_prod, "Descrição": item_c['Descricao_WINTHOR'], "Detalhe": f"XML: {icms_xml}% vs ERP: {icms_csv}% / Guia: {st_guia}%"})
-                    if linha['Status_Red_BC'] == 'DIVERGENTE': alertas_atuais.append({"Tipo": "Redução BC", "Cod. ERP": cod_prod, "Descrição": item_c['Descricao_WINTHOR'], "Detalhe": f"XML: {pred_xml}% vs ERP: {red_csv}%"})
-                    if linha['Status_NCM'] == 'DIVERGENTE': alertas_atuais.append({"Tipo": "NCM", "Cod. ERP": cod_prod, "Descrição": item_c['Descricao_WINTHOR'], "Detalhe": f"XML: {item_x['NCM_NF']} vs ERP: {item_c['NCM_WINTHOR']}"})
-                    if linha['Status_Qtd'] == 'DIVERGENTE': alertas_atuais.append({"Tipo": "Quantidade", "Cod. ERP": cod_prod, "Descrição": item_c['Descricao_WINTHOR'], "Detalhe": f"XML: {item_x['Qtd_NF']} vs ERP: {item_c['Qtd_WINTHOR']}"})
+                    if linha['Status_EAN'] == 'DIVERGENTE':
+                        alertas_atuais.append({"Tipo": "EAN", "Cod. ERP": cod_prod, "Descrição": item_c['Descricao_WINTHOR'], "Detalhe": f"XML: {item_x['EAN_NF']} vs ERP: {item_c['EAN_WINTHOR']}"})
+                    if linha['Status_ICMS_Aliq'] == 'DIVERGENTE':
+                        alertas_atuais.append({"Tipo": "ICMS Alíquota", "Cod. ERP": cod_prod, "Descrição": item_c['Descricao_WINTHOR'], "Detalhe": f"XML: {icms_xml}% vs ERP: {icms_csv}% / Guia: {st_guia}%"})
+                    if linha['Status_Red_BC'] == 'DIVERGENTE':
+                        alertas_atuais.append({"Tipo": "Redução BC", "Cod. ERP": cod_prod, "Descrição": item_c['Descricao_WINTHOR'], "Detalhe": f"XML: {pred_xml}% vs ERP: {red_csv}%"})
+                    if linha['Status_NCM'] == 'DIVERGENTE':
+                        alertas_atuais.append({"Tipo": "NCM", "Cod. ERP": cod_prod, "Descrição": item_c['Descricao_WINTHOR'], "Detalhe": f"XML: {item_x['NCM_NF']} vs ERP: {item_c['NCM_WINTHOR']}"})
+                    if linha['Status_Qtd'] == 'DIVERGENTE':
+                        alertas_atuais.append({"Tipo": "Quantidade", "Cod. ERP": cod_prod, "Descrição": item_c['Descricao_WINTHOR'], "Detalhe": f"XML: {item_x['Qtd_NF']} vs ERP: {item_c['Qtd_WINTHOR']}"})
 
                     if alertas_atuais:
                         contagem_erros_produto[cod_prod] = contagem_erros_produto.get(cod_prod, 0) + len(alertas_atuais)
@@ -204,20 +264,23 @@ if arquivo_xml and arquivo_dados:
                 elif item_x and not item_c:
                     linha['Status_Geral'] = 'SOBRA NF (SEM PAR)'
                     total_sobras_nf += 1
-                    for st in ['Status_EAN', 'Status_ICMS_Aliq', 'Status_Red_BC', 'Tipo_Calculo_ST', 'Status_NCM', 'Status_Qtd']: linha[st] = '-'
+                    for st_col in ['Status_EAN', 'Status_ICMS_Aliq', 'Status_Red_BC', 'Tipo_Calculo_ST', 'Status_NCM', 'Status_Qtd']:
+                        linha[st_col] = '-'
                     alertas_resumo.append({"Tipo": "Sobra NF", "Cod. ERP": "-", "Descrição": item_x['Descricao_NF'], "Detalhe": f"Faturado na linha {item_x['Linha_NF']}, mas ausente do ERP"})
 
                 elif item_c and not item_x:
                     linha['Status_Geral'] = 'SOBRA WINTHOR (SEM PAR)'
                     total_sobras_winthor += 1
-                    for st in ['Status_EAN', 'Status_ICMS_Aliq', 'Status_Red_BC', 'Tipo_Calculo_ST', 'Status_NCM', 'Status_Qtd']: linha[st] = '-'
+                    for st_col in ['Status_EAN', 'Status_ICMS_Aliq', 'Status_Red_BC', 'Tipo_Calculo_ST', 'Status_NCM', 'Status_Qtd']:
+                        linha[st_col] = '-'
                     alertas_resumo.append({"Tipo": "Sobra ERP", "Cod. ERP": item_c['Cod_Produto_WINTHOR'], "Descrição": item_c['Descricao_WINTHOR'], "Detalhe": "Esperado no ERP, mas ausente do XML"})
 
                 dados_relatorio.append(linha)
 
             def obter_prioridade_alerta(alerta):
                 cod = alerta["Cod. ERP"]
-                if cod == "-" or "Sobra" in alerta["Tipo"]: return (1, 0)
+                if cod == "-" or "Sobra" in alerta["Tipo"]:
+                    return (1, 0)
                 num_erros = contagem_erros_produto.get(cod, 0)
                 return (0, -num_erros, hash(cod) % 10000)
 
@@ -320,7 +383,7 @@ if arquivo_xml and arquivo_dados:
                         ws_resumo.cell(row=idx, column=2).fill = fill_accent_resumo
                         ws_resumo.cell(row=idx, column=3).fill = fill_accent_resumo
 
-                ws_resumo["E5"] = "DIVERGÊNCIAS DETECTADAS"
+                ws_resumo["E5"] = "DIVERGÊNCIAS DETETADAS"
                 ws_resumo["F5"] = "TOTAL DE CASOS"
                 ws_resumo["E5"].font = font_th
                 ws_resumo["F5"].font = font_th
@@ -489,8 +552,11 @@ if arquivo_xml and arquivo_dados:
                 font_divergente = Font(color="9C0006", bold=True)
                 font_normal = Font(color="000000", bold=False)
 
-                align_center_cols = ['Linha_NF', 'Linha_WINTHOR', 'EAN_NF', 'EAN_WINTHOR', 'Qtd_NF', 'Qtd_WINTHOR', 'NCM_NF', 'NCM_WINTHOR',
-                                     'ICMS_NF', 'ICMS_WINTHOR', '%Alíq.Ext. ST Guia_Whintor', 'pRedBC_NF', '% ICMS red. Whintor']
+                align_center_cols = [
+                    'Linha_NF', 'Linha_WINTHOR', 'EAN_NF', 'EAN_WINTHOR', 'Qtd_NF', 'Qtd_WINTHOR',
+                    'NCM_NF', 'NCM_WINTHOR', 'ICMS_NF', 'ICMS_WINTHOR', '%Alíq.Ext. ST Guia_Whintor',
+                    'pRedBC_NF', '% ICMS red. Whintor'
+                ]
 
                 status_dependents = {
                     'Status_EAN': ['EAN_NF', 'EAN_WINTHOR'],
@@ -517,12 +583,23 @@ if arquivo_xml and arquivo_dados:
                         current_align = cell.alignment or Alignment()
                         cell.alignment = Alignment(horizontal=current_align.horizontal or 'left', vertical='center', wrap_text=current_align.wrap_text)
 
-                        if col_name in ('Cod_Produto_WINTHOR', 'EAN_NF', 'EAN_WINTHOR', 'NCM_NF', 'NCM_WINTHOR') and str(cell.value).strip() not in ('', '-'):
+                        if col_name == 'Cod_Produto_WINTHOR' and str(cell.value).strip() not in ('', '-'):
                             try:
                                 cell.value = int(float(cell.value))
                                 cell.number_format = '0'
                             except ValueError:
                                 pass
+                        elif col_name in ('NCM_NF', 'NCM_WINTHOR') and str(cell.value).strip() not in ('', '-'):
+                            try:
+                                cell.value = int(float(cell.value))
+                                # Garante 8 dígitos no NCM mesmo se começar com zero
+                                cell.number_format = '00000000'
+                            except ValueError:
+                                pass
+                        elif col_name in ('EAN_NF', 'EAN_WINTHOR') and str(cell.value).strip() not in ('', '-'):
+                            # Mantém os dígitos exatos sem usar int() para não ocultar zeros à esquerda
+                            cell.value = str(cell.value).strip()
+                            cell.number_format = '@'
                         elif isinstance(cell.value, (int, float)) and cell.value != '-':
                             if 'pRedBC' in col_name or 'red. Whintor' in col_name:
                                 cell.number_format = '#,##0.0000'
