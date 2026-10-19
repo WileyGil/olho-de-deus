@@ -447,12 +447,13 @@ if arquivo_xml and arquivo_dados:
                     worksheet.column_dimensions[column_letter].width = max(max_length + 4, 12)
 
                 # ==========================================
-                # 7. BLOQUEIO DA PLANILHA (PERMITIR FILTROS E ORDENAÇÃO)
+                # 7. BLOQUEIO DA PLANILHA (PERMITIR FILTROS E ORDENAÇÃO LIVRES)
                 # ==========================================
                 worksheet.protection.sheet = True
-                worksheet.protection.enableAutoFilter = True
-                worksheet.protection.enableSort = True
-                worksheet.protection.autoFilter = False  # Libera o uso dos filtros suspensos para o usuário
+                worksheet.protection.sort = False      # Permite ordenar (A a Z / Z a A)
+                worksheet.protection.autoFilter = False  # Permite usar os filtros nas colunas
+                worksheet.protection.selectLockedCells = True
+                worksheet.protection.selectUnlockedCells = True
 
             excel_buffer.seek(0)
             
