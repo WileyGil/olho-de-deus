@@ -33,7 +33,7 @@ def obter_icms_xml(det_node, ns):
 # 2. INTERFACE STREAMLIT
 # ==========================================
 st.set_page_config(page_title="Auditoria Olho de Deus", layout="wide")
-st.title("PROJETO OLHO DE DEUS - Auditoria de Compras")
+st.title("Auditoria de Notas")
 st.markdown("Faça o upload do arquivo XML da nota e do arquivo do WinThor (.csv ou .xlsx) para cruzar as informações.")
 
 col1, col2 = st.columns(2)
