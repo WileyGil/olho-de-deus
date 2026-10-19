@@ -1,6 +1,7 @@
 import streamlit as st
 import pandas as pd
 import xml.etree.ElementTree as ET
+from itertools import zip_longest  # <--- ADICIONE ESTA LINHA AQUI
 from openpyxl.styles import PatternFill, Font, Alignment, Border, Side
 from openpyxl.utils import get_column_letter
 import re
