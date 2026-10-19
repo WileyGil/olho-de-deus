@@ -447,18 +447,25 @@ if arquivo_xml and arquivo_dados:
                     worksheet.column_dimensions[column_letter].width = max(max_length + 4, 12)
 
                 # ==========================================
-                # 7. BLOQUEIO DA PLANILHA (PERMITIR ORDENAÇÃO E FILTROS LIVRES)
+                # 7. BLOQUEIO DA PLANILHA (DESBLOQUEAR APENAS CÓDIGOS DE BARRAS E CÓDIGO DO PRODUTO)
                 # ==========================================
                 worksheet.protection.sheet = True
-                worksheet.protection.sort = False          # Libera a ordenação de A a Z / Z a A
-                worksheet.protection.autoFilter = False      # Libera os filtros suspensos
+                worksheet.protection.sort = False          # Libera ordenação (A a Z)
+                worksheet.protection.autoFilter = False      # Libera filtros suspensos
                 worksheet.protection.selectLockedCells = True
                 worksheet.protection.selectUnlockedCells = True
 
-                # Desbloqueia as células de dados para permitir a ordenação de linhas sem bloqueio pelo Excel
-                for row in range(1, len(df_final) + 4):
-                    for col in range(1, len(colunas_ordem) + 1):
-                        worksheet.cell(row=row, column=col).protection = Protection(locked=False)
+                # Colunas específicas a serem desbloqueadas para edição: Cod_Produto_WINTHOR, EAN_NF, EAN_WINTHOR
+                colunas_para_desbloquear = ['Cod_Produto_WINTHOR', 'EAN_NF', 'EAN_WINTHOR']
+                indices_desbloquear = [colunas_ordem.index(c) + 1 for c in colunas_para_desbloquear if c in colunas_ordem]
+
+                for row in range(4, len(df_final) + 4):
+                    for col_idx in range(1, len(colunas_ordem) + 1):
+                        cell = worksheet.cell(row=row, column=col_idx)
+                        if col_idx in indices_desbloquear:
+                            cell.protection = Protection(locked=False)
+                        else:
+                            cell.protection = Protection(locked=True)
 
             excel_buffer.seek(0)
             
