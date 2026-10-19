@@ -2,7 +2,7 @@ import streamlit as st
 import pandas as pd
 import xml.etree.ElementTree as ET
 from itertools import zip_longest
-from openpyxl.styles import PatternFill, Font, Alignment, Border, Side, Protection
+from openpyxl.styles import PatternFill, Font, Alignment, Border, Side
 from openpyxl.utils import get_column_letter
 import re
 from datetime import datetime
@@ -264,6 +264,8 @@ if arquivo_xml and arquivo_dados:
                 worksheet.sheet_view.zoomScale = 80
 
                 worksheet.freeze_panes = 'A4'
+                
+                # ADICIONA O FILTRO NATIVO PARA TODA A TABELA
                 worksheet.auto_filter.ref = f"A3:V{len(df_final) + 3}"
 
                 fill_zebrado = PatternFill(start_color="F9FAFB", end_color="F9FAFB", fill_type="solid")
@@ -445,27 +447,6 @@ if arquivo_xml and arquivo_dados:
                         except:
                             pass
                     worksheet.column_dimensions[column_letter].width = max(max_length + 4, 12)
-
-                # ==========================================
-                # 7. BLOQUEIO DA PLANILHA (PERMITIR FILTROS, ORDENAÇÃO E DESBLOQUEIO DE CÓDIGOS)
-                # ==========================================
-                worksheet.protection.sheet = True
-                worksheet.protection.sort = False          # Libera ordenação de A a Z / Z a A
-                worksheet.protection.autoFilter = False      # Libera os filtros suspensos nas colunas
-                worksheet.protection.selectLockedCells = True
-                worksheet.protection.selectUnlockedCells = True
-
-                # Colunas a serem desbloqueadas para edição livre: Cod_Produto_WINTHOR, EAN_NF, EAN_WINTHOR
-                colunas_para_desbloquear = ['Cod_Produto_WINTHOR', 'EAN_NF', 'EAN_WINTHOR']
-                indices_desbloquear = [colunas_ordem.index(c) + 1 for c in colunas_para_desbloquear if c in colunas_ordem]
-
-                for row in range(4, len(df_final) + 4):
-                    for col_idx in range(1, len(colunas_ordem) + 1):
-                        cell = worksheet.cell(row=row, column=col_idx)
-                        if col_idx in indices_desbloquear:
-                            cell.protection = Protection(locked=False)
-                        else:
-                            cell.protection = Protection(locked=True)
 
             excel_buffer.seek(0)
             
