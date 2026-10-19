@@ -446,21 +446,17 @@ if arquivo_xml and arquivo_dados:
                             pass
                     worksheet.column_dimensions[column_letter].width = max(max_length + 4, 12)
 
-                # ==========================================
-                # 7. BLOQUEIO DA PLANILHA (PERMITIR FILTROS E ORDENAÇÃO LIVRES)
+              # ==========================================
+                # 7. BLOQUEIO DA PLANILHA (LIBERAR FILTROS E ORDENAÇÃO)
                 # ==========================================
                 worksheet.protection.sheet = True
-                worksheet.protection.sort = False      # Permite ordenar (A a Z / Z a A)
-                worksheet.protection.autoFilter = False  # Permite usar os filtros nas colunas
-                worksheet.protection.selectLockedCells = True
-                worksheet.protection.selectUnlockedCells = True
+                worksheet.protection.sort = False          # Permite ordenar de A a Z / Z a A
+                worksheet.protection.autoFilter = False      # Permite usar os filtros nas colunas
+                worksheet.protection.selectLockedCells = True   # Permite clicar nas células bloqueadas
+                worksheet.protection.selectUnlockedCells = True # Permite clicar nas células desbloqueadas
 
-            excel_buffer.seek(0)
-            
-            st.success("Auditoria finalizada com sucesso!")
-            st.download_button(
-                label="📥 Baixar Relatório Executivo (Excel)",
-                data=excel_buffer.getvalue(),
-                file_name=nome_arquivo_saida,
-                mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
-            )
+                # Desbloqueia as células de dados para que o Excel permita a ordenação de linhas livremente
+                for row in range(1, len(df_final) + 4):
+                    for col in range(1, len(colunas_ordem) + 1):
+                        cell = worksheet.cell(row=row, column=col)
+                        cell.protection = openpyxl.styles.protection.Protection(locked=False)
