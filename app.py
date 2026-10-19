@@ -1,4 +1,7 @@
-import streamlit as st
+# -*- coding: utf-8 -*-
+"""VERSÃO FINAL PREMIUM COMPLETA - CORREÇÃO DE COMPATIBILIDADE E INTEGRIDADE
+"""
+
 import pandas as pd
 import xml.etree.ElementTree as ET
 from itertools import zip_longest
@@ -6,7 +9,7 @@ from openpyxl.styles import PatternFill, Font, Alignment, Border, Side
 from openpyxl.utils import get_column_letter
 import re
 from datetime import datetime
-import io
+from google.colab import files
 
 # ==========================================
 # 1. FUNÇÕES AUXILIARES
@@ -30,227 +33,567 @@ def obter_icms_xml(det_node, ns):
     return 0.0
 
 # ==========================================
-# 2. INTERFACE STREAMLIT
+# 2. CONFIGURAÇÕES INICIAIS E UPLOAD
 # ==========================================
-st.set_page_config(page_title="Auditoria Olho de Deus", layout="wide")
-st.title("PROJETO OLHO DE DEUS - Auditoria de Compras")
-st.markdown("Faça o upload do arquivo XML da nota e do arquivo do WinThor (.csv ou .xlsx) para cruzar as informações.")
+print("Faça o upload do arquivo XML e do arquivo de dados do WinThor (.csv ou .xlsx):")
+uploaded = files.upload()
 
-col1, col2 = st.columns(2)
-with col1:
-    arquivo_xml = st.file_uploader("Upload do XML (Fornecedor)", type=["xml"])
-with col2:
-    arquivo_dados = st.file_uploader("Upload do Relatório WinThor", type=["csv", "xlsx"])
+arquivo_xml = next((f for f in uploaded.keys() if f.lower().endswith('.xml')), None)
+arquivo_dados = next((f for f in uploaded.keys() if f.lower().endswith('.csv') or f.lower().endswith('.xlsx')), None)
 
-if arquivo_xml is not None and arquivo_dados is not None:
-    if st.button("Processar Auditoria"):
-        with st.spinner("Analisando e cruzando dados..."):
-            # ==========================================
-            # 3. EXTRAÇÃO DO XML (NF)
-            # ==========================================
-            ns = {'ns': 'http://www.portalfiscal.inf.br/nfe'}
-            tree = ET.parse(arquivo_xml)
-            root = tree.getroot()
+if not arquivo_xml or not arquivo_dados:
+    raise ValueError("ERRO: Você precisa enviar pelo menos um arquivo .xml e um arquivo de dados (.csv ou .xlsx)!")
 
-            numero_nf = "DESCONHECIDO"
-            nNF_node = root.find('.//ns:ide/ns:nNF', ns)
-            if nNF_node is not None:
-                numero_nf = nNF_node.text
+print(f"\nArquivos carregados com sucesso!\nNF: {arquivo_xml}\nWINTHOR: {arquivo_dados}")
+print("Iniciando o processamento...")
 
-            itens_xml = []
-            for det in root.findall('.//ns:det', ns):
-                prod = det.find('ns:prod', ns)
-                try:
-                    nItem = int(det.attrib.get('nItem', '0'))
-                except:
-                    nItem = det.attrib.get('nItem', '')
+# ==========================================
+# 3. EXTRAÇÃO DO XML (NF)
+# ==========================================
+ns = {'ns': 'http://www.portalfiscal.inf.br/nfe'}
+tree = ET.parse(arquivo_xml)
+root = tree.getroot()
 
-                desc = prod.find('ns:xProd', ns).text if prod.find('ns:xProd', ns) is not None else ''
-                ean = prod.find('ns:cEAN', ns).text if prod.find('ns:cEAN', ns) is not None else ''
-                ncm = prod.find('ns:NCM', ns).text if prod.find('ns:NCM', ns) is not None else ''
-                qtd = float(prod.find('ns:qCom', ns).text) if prod.find('ns:qCom', ns) is not None else 0.0
-                vUn = float(prod.find('ns:vUnCom', ns).text) if prod.find('ns:vUnCom', ns) is not None else 0.0
-                vTot = float(prod.find('ns:vProd', ns).text) if prod.find('ns:vProd', ns) is not None else 0.0
-                icms = obter_icms_xml(det, ns)
+numero_nf = "DESCONHECIDO"
+nNF_node = root.find('.//ns:ide/ns:nNF', ns)
+if nNF_node is not None:
+    numero_nf = nNF_node.text
 
-                pRedBC_node = det.find('.//ns:pRedBC', ns)
-                pRedBC = float(pRedBC_node.text) if pRedBC_node is not None else 0.0
+itens_xml = []
+for det in root.findall('.//ns:det', ns):
+    prod = det.find('ns:prod', ns)
 
-                itens_xml.append({
-                    'Linha_NF': nItem, 'Descricao_NF': desc, 'EAN_NF': ean,
-                    'NCM_NF': ncm, 'Qtd_NF': qtd, 'Vl_Unit_NF': vUn,
-                    'Vl_Total_NF': vTot, 'ICMS_NF': icms, 'pRedBC_NF': pRedBC
-                })
+    try:
+        nItem = int(det.attrib.get('nItem', '0'))
+    except:
+        nItem = det.attrib.get('nItem', '')
 
-            data_simples = datetime.now().strftime('%Y%m%d')
-            nome_arquivo_saida = f'relatorio_NF_{numero_nf}_{data_simples}.xlsx'
+    desc = prod.find('ns:xProd', ns).text if prod.find('ns:xProd', ns) is not None else ''
+    ean = prod.find('ns:cEAN', ns).text if prod.find('ns:cEAN', ns) is not None else ''
+    ncm = prod.find('ns:NCM', ns).text if prod.find('ns:NCM', ns) is not None else ''
+    qtd = float(prod.find('ns:qCom', ns).text) if prod.find('ns:qCom', ns) is not None else 0.0
+    vUn = float(prod.find('ns:vUnCom', ns).text) if prod.find('ns:vUnCom', ns) is not None else 0.0
+    vTot = float(prod.find('ns:vProd', ns).text) if prod.find('ns:vProd', ns) is not None else 0.0
+    icms = obter_icms_xml(det, ns)
 
-            # ==========================================
-            # 4. EXTRAÇÃO DA PLANILHA (WINTHOR)
-            # ==========================================
-            if arquivo_dados.name.lower().endswith('.xlsx'):
-                df_csv = pd.read_excel(arquivo_dados)
+    pRedBC_node = det.find('.//ns:pRedBC', ns)
+    pRedBC = float(pRedBC_node.text) if pRedBC_node is not None else 0.0
+
+    itens_xml.append({
+        'Linha_NF': nItem, 'Descricao_NF': desc, 'EAN_NF': ean,
+        'NCM_NF': ncm, 'Qtd_NF': qtd, 'Vl_Unit_NF': vUn,
+        'Vl_Total_NF': vTot, 'ICMS_NF': icms, 'pRedBC_NF': pRedBC
+    })
+
+data_simples = datetime.now().strftime('%Y%m%d')
+nome_arquivo_saida = f'relatorio_NF_{numero_nf}_{data_simples}.xlsx'
+
+# ==========================================
+# 4. EXTRAÇÃO DA PLANILHA (WINTHOR - CSV OU XLSX)
+# ==========================================
+if arquivo_dados.lower().endswith('.xlsx'):
+    df_csv = pd.read_excel(arquivo_dados)
+else:
+    df_csv = pd.read_csv(arquivo_dados, sep=';', encoding='latin1')
+
+df_csv.columns = df_csv.columns.str.strip()
+
+col_tipo_calc = next((c for c in df_csv.columns if 'tipo' in c.lower() and ('cálculo' in c.lower() or 'calculo' in c.lower())), None)
+if not col_tipo_calc:
+    col_tipo_calc = df_csv.columns[-2]
+
+itens_csv = []
+for index, row in df_csv.iterrows():
+    itens_csv.append({
+        'Linha_WINTHOR': index + 1,
+        'Cod_Produto_WINTHOR': str(row.get('Cód. produto', '')),
+        'EAN_WINTHOR': str(row.get('Cód. barra', '')),
+        'Descricao_WINTHOR': str(row.get('Descrição', '')),
+        'Qtd_WINTHOR': converte_float_br(row.get('Qtde Pré-Entrada', 0.0)),
+        'NCM_WINTHOR': limpar_numero(row.get('NCM', '')),
+        'ICMS_WINTHOR': converte_float_br(row.get('%ICMS', 0.0)),
+        '% ICMS red. Whintor': converte_float_br(row.get('% ICMS red.', 0.0)),
+        '%Alíq.Ext. ST Guia_Whintor': converte_float_br(row.get('%Alíq.Ext.ST Guia', 0.0)),
+        'Tipo_Calculo_WINTHOR': str(row.get(col_tipo_calc, '')).strip()
+    })
+
+# ==========================================
+# 5. CRUZAMENTO E LÓGICA DE AUDITORIA
+# ==========================================
+dados_relatorio = []
+alertas_resumo = []
+
+contagem_erros_produto = {}
+
+total_pareados = 0
+total_sobras_nf = 0
+total_sobras_winthor = 0
+
+divergencias_ean = 0
+divergencias_icms = 0
+divergencias_red = 0
+divergencias_ncm = 0
+divergencias_qtd = 0
+
+for item_x, item_c in zip_longest(itens_xml, itens_csv, fillvalue=None):
+    linha = {}
+
+    if item_x:
+        linha.update(item_x)
+    else:
+        linha.update({'Linha_NF': '-', 'Descricao_NF': '-', 'EAN_NF': '-', 'NCM_NF': '-', 'Qtd_NF': '-', 'Vl_Unit_NF': '-', 'Vl_Total_NF': '-', 'ICMS_NF': '-', 'pRedBC_NF': '-'})
+
+    if item_c:
+        linha.update(item_c)
+    else:
+        linha.update({'Linha_WINTHOR': '-', 'Cod_Produto_WINTHOR': '-', 'EAN_WINTHOR': '-', 'Descricao_WINTHOR': '-', 'Qtd_WINTHOR': '-', 'NCM_WINTHOR': '-', 'ICMS_WINTHOR': '-', '% ICMS red. Whintor': '-', '%Alíq.Ext. ST Guia_Whintor': '-', 'Tipo_Calculo_WINTHOR': '-'})
+
+    if item_x and item_c:
+        linha['Status_Geral'] = 'PAREDO' if 'Status_Geral' not in linha else linha['Status_Geral']
+        total_pareados += 1
+
+        linha['Status_EAN'] = 'OK' if str(item_x['EAN_NF']) == str(item_c['EAN_WINTHOR']) else 'DIVERGENTE'
+        if linha['Status_EAN'] == 'DIVERGENTE':
+            divergencias_ean += 1
+
+        icms_xml = item_x['ICMS_NF']
+        icms_csv = item_c['ICMS_WINTHOR']
+        st_guia = item_c['%Alíq.Ext. ST Guia_Whintor']
+
+        if icms_xml == icms_csv or icms_xml == st_guia:
+            linha['Status_ICMS_Aliq'] = 'OK'
+        else:
+            linha['Status_ICMS_Aliq'] = 'DIVERGENTE'
+            divergencias_icms += 1
+
+        pred_xml = item_x['pRedBC_NF']
+        red_csv = item_c['% ICMS red. Whintor']
+        if pred_xml == red_csv:
+            linha['Status_Red_BC'] = 'OK'
+        else:
+            linha['Status_Red_BC'] = 'DIVERGENTE'
+            divergencias_red += 1
+
+        tipo_calc = str(item_c.get('Tipo_Calculo_WINTHOR', '')).strip().upper()
+        if tipo_calc == 'N':
+            linha['Tipo_Calculo_ST'] = 'NOTA FISCAL'
+        elif tipo_calc == 'G':
+            linha['Tipo_Calculo_ST'] = 'GUIA'
+        else:
+            linha['Tipo_Calculo_ST'] = item_c['Tipo_Calculo_WINTHOR']
+
+        linha['Status_NCM'] = 'OK' if str(item_x['NCM_NF']) == str(item_c['NCM_WINTHOR']) else 'DIVERGENTE'
+        if linha['Status_NCM'] == 'DIVERGENTE':
+            divergencias_ncm += 1
+
+        linha['Status_Qtd'] = 'OK' if item_x['Qtd_NF'] == item_c['Qtd_WINTHOR'] else 'DIVERGENTE'
+        if linha['Status_Qtd'] == 'DIVERGENTE':
+            divergencias_qtd += 1
+
+        cod_prod = item_c['Cod_Produto_WINTHOR']
+
+        alertas_atuais = []
+        if linha['Status_EAN'] == 'DIVERGENTE':
+            alertas_atuais.append({"Tipo": "EAN", "Cod. ERP": cod_prod, "Descrição": item_c['Descricao_WINTHOR'], "Detalhe": f"XML: {item_x['EAN_NF']} vs ERP: {item_c['EAN_WINTHOR']}"})
+        if linha['Status_ICMS_Aliq'] == 'DIVERGENTE':
+            alertas_atuais.append({"Tipo": "ICMS Alíquota", "Cod. ERP": cod_prod, "Descrição": item_c['Descricao_WINTHOR'], "Detalhe": f"XML: {icms_xml}% vs ERP: {icms_csv}% / Guia: {st_guia}%"})
+        if linha['Status_Red_BC'] == 'DIVERGENTE':
+            alertas_atuais.append({"Tipo": "Redução BC", "Cod. ERP": cod_prod, "Descrição": item_c['Descricao_WINTHOR'], "Detalhe": f"XML: {pred_xml}% vs ERP: {red_csv}%"})
+        if linha['Status_NCM'] == 'DIVERGENTE':
+            alertas_atuais.append({"Tipo": "NCM", "Cod. ERP": cod_prod, "Descrição": item_c['Descricao_WINTHOR'], "Detalhe": f"XML: {item_x['NCM_NF']} vs ERP: {item_c['NCM_WINTHOR']}"})
+        if linha['Status_Qtd'] == 'DIVERGENTE':
+            alertas_atuais.append({"Tipo": "Quantidade", "Cod. ERP": cod_prod, "Descrição": item_c['Descricao_WINTHOR'], "Detalhe": f"XML: {item_x['Qtd_NF']} vs ERP: {item_c['Qtd_WINTHOR']}"})
+
+        if alertas_atuais:
+            contagem_erros_produto[cod_prod] = contagem_erros_produto.get(cod_prod, 0) + len(alertas_atuais)
+            alertas_resumo.extend(alertas_atuais)
+
+    elif item_x and not item_c:
+        linha['Status_Geral'] = 'SOBRA NF (SEM PAR)'
+        total_sobras_nf += 1
+        for st in ['Status_EAN', 'Status_ICMS_Aliq', 'Status_Red_BC', 'Tipo_Calculo_ST', 'Status_NCM', 'Status_Qtd']:
+            linha[st] = '-'
+        alertas_resumo.append({"Tipo": "Sobra NF", "Cod. ERP": "-", "Descrição": item_x['Descricao_NF'], "Detalhe": f"Faturado na linha {item_x['Linha_NF']}, mas ausente do ERP"})
+
+    elif item_c and not item_x:
+        linha['Status_Geral'] = 'SOBRA WINTHOR (SEM PAR)'
+        total_sobras_winthor += 1
+        for st in ['Status_EAN', 'Status_ICMS_Aliq', 'Status_Red_BC', 'Tipo_Calculo_ST', 'Status_NCM', 'Status_Qtd']:
+            linha[st] = '-'
+        alertas_resumo.append({"Tipo": "Sobra ERP", "Cod. ERP": item_c['Cod_Produto_WINTHOR'], "Descrição": item_c['Descricao_WINTHOR'], "Detalhe": "Esperado no ERP, mas ausente do XML"})
+
+    dados_relatorio.append(linha)
+
+def obter_prioridade_alerta(alerta):
+    cod = alerta["Cod. ERP"]
+    if cod == "-" or "Sobra" in alerta["Tipo"]:
+        return (1, 0)
+    num_erros = contagem_erros_produto.get(cod, 0)
+    return (0, -num_erros, hash(cod) % 10000)
+
+alertas_resumo.sort(key=obter_prioridade_alerta)
+
+# ==========================================
+# 6. CRIANDO EXCEL COM FORMATO EXECUTIVO
+# ==========================================
+df_final = pd.DataFrame(dados_relatorio)
+colunas_ordem = [
+    'Linha_NF', 'Linha_WINTHOR',
+    'Cod_Produto_WINTHOR', 'EAN_NF', 'EAN_WINTHOR', 'Status_EAN',
+    'Descricao_NF', 'Descricao_WINTHOR',
+    'Qtd_NF', 'Qtd_WINTHOR', 'Status_Qtd',
+    'NCM_NF', 'NCM_WINTHOR', 'Status_NCM',
+    'ICMS_NF', 'ICMS_WINTHOR', '%Alíq.Ext. ST Guia_Whintor', 'Status_ICMS_Aliq',
+    'pRedBC_NF', '% ICMS red. Whintor', 'Status_Red_BC',
+    'Tipo_Calculo_ST'
+]
+df_final = df_final[colunas_ordem]
+
+# Criação robusta da pasta de trabalho para evitar corrupção de arquivo
+with pd.ExcelWriter(nome_arquivo_saida, engine='openpyxl') as writer:
+    # Escreve a planilha de dados
+    df_final.to_excel(writer, sheet_name='Comparativo_ICMS_e_EAN', index=False, startrow=2)
+    
+    workbook = writer.book
+    ws_resumo = workbook.create_sheet(title='Resumo_Analitico', index=0)
+    
+    ws_resumo.sheet_view.showGridLines = False
+    ws_resumo.sheet_view.zoomScale = 80
+
+    fill_header_resumo = PatternFill(start_color="2F5597", end_color="2F5597", fill_type="solid")
+    fill_accent_resumo = PatternFill(start_color="F2F2F2", end_color="F2F2F2", fill_type="solid")
+    fill_total_alerta = PatternFill(start_color="FFF2CC", end_color="FFF2CC", fill_type="solid")
+
+    high_contrast_colors = [
+        "DCE6F1", "E2EFDA", "FFF2CC", "FCE4D6", "E1D5E7",
+        "D5E8D4", "FFE6CC", "F8CECC", "E8F8F5", "FADBD8"
+    ]
+
+    produtos_repetidos = [cod for cod, count in contagem_erros_produto.items() if count > 1 and cod != "-"]
+    mapa_cores_produtos = {
+        cod: PatternFill(start_color=high_contrast_colors[i % len(high_contrast_colors)], end_color=high_contrast_colors[i % len(high_contrast_colors)], fill_type="solid")
+        for i, cod in enumerate(produtos_repetidos)
+    }
+
+    font_title = Font(bold=True, size=15, color="1F4E78")
+    font_sub = Font(bold=True, size=12, color="595959")
+    font_th = Font(bold=True, size=10, color="FFFFFF")
+    font_td_bold = Font(bold=True, size=10, color="000000")
+    font_td = Font(bold=False, size=10, color="333333")
+    font_grupo_negrito = Font(bold=True, size=10, color="1F4E78")
+
+    border_thin = Border(
+        left=Side(style='thin', color='D9D9D9'),
+        right=Side(style='thin', color='D9D9D9'),
+        top=Side(style='thin', color='D9D9D9'),
+        bottom=Side(style='thin', color='D9D9D9')
+    )
+
+    borda_branca = Border(
+        left=Side(style='thin', color='FFFFFF'),
+        right=Side(style='thin', color='FFFFFF'),
+        top=Side(style='thin', color='FFFFFF'),
+        bottom=Side(style='thin', color='FFFFFF')
+    )
+    borda_divisoria_direita = Border(right=Side(style='medium', color='D9D9D9'))
+
+    color_destaque_xml = "1F4E78"
+    color_neutro_geral = "E0E2E5"
+
+    fill_cab_xml = PatternFill(start_color=color_destaque_xml, end_color=color_destaque_xml, fill_type="solid")
+    fill_cab_neutro = PatternFill(start_color=color_neutro_geral, end_color=color_neutro_geral, fill_type="solid")
+
+    # 1. TÍTULO PRINCIPAL
+    ws_resumo["B2"] = "AUDITORIA DE NOTAS"
+    ws_resumo["B2"].font = font_title
+    ws_resumo["B3"] = f"Relatório consolidado referente à Nota Fiscal Nº: {numero_nf}"
+    ws_resumo["B3"].font = font_sub
+
+    # 2. TABELA 1: VOLUMETRIA GERAL DE ITENS
+    ws_resumo["B5"] = "MÉTRICA"
+    ws_resumo["C5"] = "QUANTIDADE DE ITENS"
+    ws_resumo["B5"].font = font_th
+    ws_resumo["C5"].font = font_th
+    ws_resumo["B5"].fill = fill_header_resumo
+    ws_resumo["C5"].fill = fill_header_resumo
+    ws_resumo["B5"].alignment = Alignment(horizontal='left')
+    ws_resumo["C5"].alignment = Alignment(horizontal='right')
+
+    metricas = [
+        ("Total de Itens na Nota (XML)", len(itens_xml)),
+        ("Total de Itens no WinThor (ERP)", len(itens_csv)),
+        ("Itens Pareados com Sucesso", total_pareados),
+        ("Itens Sobrando no XML (Sem correspondente no ERP)", total_sobras_nf),
+        ("Itens Sobrando no ERP (Sem correspondente no XML)", total_sobras_winthor)
+    ]
+
+    for idx, (m_name, m_val) in enumerate(metricas, start=6):
+        ws_resumo.cell(row=idx, column=2, value=m_name).font = font_td
+        ws_resumo.cell(row=idx, column=3, value=m_val).font = font_td_bold
+        ws_resumo.cell(row=idx, column=2).border = border_thin
+        ws_resumo.cell(row=idx, column=3).border = border_thin
+        ws_resumo.cell(row=idx, column=3).alignment = Alignment(horizontal='right')
+        if idx % 2 == 1:
+            ws_resumo.cell(row=idx, column=2).fill = fill_accent_resumo
+            ws_resumo.cell(row=idx, column=3).fill = fill_accent_resumo
+
+    # 3. TABELA 2: BALANÇO DE DIVERGÊNCIAS DETECTADAS
+    ws_resumo["E5"] = "DIVERGÊNCIAS DETECTADAS"
+    ws_resumo["F5"] = "TOTAL DE CASOS"
+    ws_resumo["E5"].font = font_th
+    ws_resumo["F5"].font = font_th
+    ws_resumo["E5"].fill = fill_header_resumo
+    ws_resumo["F5"].fill = fill_header_resumo
+    ws_resumo["E5"].alignment = Alignment(horizontal='left')
+    ws_resumo["F5"].alignment = Alignment(horizontal='right')
+
+    divergencias = [
+        ("Código de Barras (EAN)", divergencias_ean),
+        ("Alíquota de ICMS", divergencias_icms),
+        ("Redução de Base de Cálculo", divergencias_red),
+        ("NCM", divergencias_ncm),
+        ("Quantidade de Peças", divergencias_qtd)
+    ]
+
+    for idx, (div_name, div_val) in enumerate(divergencias, start=6):
+        ws_resumo.cell(row=idx, column=5, value=div_name).font = font_td
+        cell_val = ws_resumo.cell(row=idx, column=6, value=div_val)
+        cell_val.font = font_td_bold
+        ws_resumo.cell(row=idx, column=5).border = border_thin
+        cell_val.border = border_thin
+        cell_val.alignment = Alignment(horizontal='right')
+
+        if div_val > 0:
+            cell_val.fill = fill_total_alerta
+            cell_val.font = Font(bold=True, color="900000")
+
+        if idx % 2 == 1:
+            ws_resumo.cell(row=idx, column=5).fill = fill_accent_resumo
+            if div_val == 0:
+                cell_val.fill = fill_accent_resumo
+
+    # 4. TABELA 3: LISTAGEM DETALHADA DE ALERTAS
+    ws_resumo["B12"] = "FILTRO DE ALERTAS E DIVERGÊNCIAS ENCONTRADAS"
+    ws_resumo["B12"].font = Font(bold=True, size=12, color="2F5597")
+
+    colunas_alertas = ["Tipo Divergência", "Cód. Produto", "Descrição do Item no ERP", "Detalhamento Técnico"]
+    for col_idx, col_title in enumerate(colunas_alertas, start=2):
+        cell = ws_resumo.cell(row=13, column=col_idx, value=col_title)
+        cell.font = font_th
+        cell.fill = fill_header_resumo
+        cell.alignment = Alignment(horizontal='center' if col_idx != 4 else 'left')
+
+    row_alerta_start = 14
+    if len(alertas_resumo) == 0:
+        ws_resumo.cell(row=row_alerta_start, column=2, value="Nenhuma inconsistência ou divergência encontrada. Processo 100% OK!").font = Font(italic=True, color="006100")
+        ws_resumo.merge_cells(start_row=row_alerta_start, start_column=2, end_row=row_alerta_start, end_column=5)
+    else:
+        for a_idx, alerta in enumerate(alertas_resumo):
+            r_num = row_alerta_start + a_idx
+            ws_resumo.cell(row=r_num, column=2, value=alerta["Tipo"]).alignment = Alignment(horizontal='center')
+
+            cod_erp_val = alerta["Cod. ERP"]
+            cell_cod = ws_resumo.cell(row=r_num, column=3)
+            try:
+                cell_cod.value = int(float(cod_erp_val))
+                cell_cod.number_format = '0'
+            except ValueError:
+                cell_cod.value = cod_erp_val
+
+            cell_cod.alignment = Alignment(horizontal='center')
+
+            ws_resumo.cell(row=r_num, column=4, value=alerta["Descrição"]).alignment = Alignment(horizontal='left')
+            ws_resumo.cell(row=r_num, column=5, value=alerta["Detalhe"]).alignment = Alignment(horizontal='left')
+
+            cod_erp = alerta["Cod. ERP"]
+            cor_grupo = mapa_cores_produtos.get(cod_erp, None)
+
+            for col_idx in range(2, 6):
+                curr_cell = ws_resumo.cell(row=r_num, column=col_idx)
+                curr_cell.border = border_thin
+
+                if cor_grupo:
+                    curr_cell.fill = cor_grupo
+                    curr_cell.font = font_grupo_negrito
+                else:
+                    curr_cell.font = font_td
+                    if r_num % 2 == 1:
+                        curr_cell.fill = fill_accent_resumo
+
+    ws_resumo.column_dimensions['A'].width = 3
+    ws_resumo.column_dimensions['B'].width = 35
+    ws_resumo.column_dimensions['C'].width = 22
+    ws_resumo.column_dimensions['D'].width = 45
+    ws_resumo.column_dimensions['E'].width = 65
+    ws_resumo.column_dimensions['F'].width = 15
+
+    # ==========================================
+    # CONFIGURAÇÃO DE DESIGN DA PLANILHA PRINCIPAL
+    # ==========================================
+    worksheet = workbook['Comparativo_ICMS_e_EAN']
+    worksheet.sheet_view.showGridLines = False
+    worksheet.sheet_view.zoomScale = 80
+
+    worksheet.freeze_panes = 'A4'
+    worksheet.auto_filter.ref = f"A3:V{len(df_final) + 3}"
+
+    fill_zebrado = PatternFill(start_color="F9FAFB", end_color="F9FAFB", fill_type="solid")
+    fill_cab_status_divergente = PatternFill(start_color="9C0006", end_color="9C0006", fill_type="solid")
+    fill_cab_status_convergente = PatternFill(start_color="006100", end_color="006100", fill_type="solid")
+
+    font_super_header_xml = Font(bold=True, size=11, color="FFFFFF")
+    font_super_header_erp = Font(bold=True, size=11, color="333333")
+    font_header_default_xml = Font(bold=True, size=10, color="FFFFFF")
+    font_header_default_erp = Font(bold=True, size=10, color="333333")
+    font_header_status = Font(bold=True, size=10, color="FFFFFF")
+
+    super_grupos = [
+        ("IDENTIFICAÇÃO", 1, 2, fill_cab_neutro, font_super_header_erp),
+        ("CÓDIGO E CÓDIGO DE BARRAS (EAN) [XML]", 3, 6, fill_cab_xml, font_super_header_xml),
+        ("DESCRIÇÕES COMPARATIVAS", 7, 8, fill_cab_neutro, font_super_header_erp),
+        ("QUANTIDADES [XML]", 9, 11, fill_cab_xml, font_super_header_xml),
+        ("CLASSIFICAÇÃO FISCAL (NCM) [XML]", 12, 14, fill_cab_xml, font_super_header_xml),
+        ("ALÍQUOTAS DE ICMS [XML]", 15, 18, fill_cab_xml, font_super_header_xml),
+        ("REDUÇÃO DE BASE DE CÁLCULO [XML]", 19, 21, fill_cab_xml, font_super_header_xml),
+        ("TIPO CÁLCULO ST", 22, 22, fill_cab_neutro, font_super_header_erp)
+    ]
+
+    for label, col_start, col_end, fill_obj, font_obj in super_grupos:
+        worksheet.merge_cells(start_row=1, start_column=col_start, end_row=2, end_column=col_end)
+        cell = worksheet.cell(row=1, column=col_start)
+        cell.value = label
+        cell.font = font_obj
+        cell.alignment = Alignment(horizontal='center', vertical='center', wrap_text=True)
+
+        for r in (1, 2):
+            for c in range(col_start, col_end + 1):
+                cell_target = worksheet.cell(row=r, column=c)
+                cell_target.fill = fill_obj
+                cell_target.border = borda_branca
+                if c == col_end and col_end != 22:
+                    cell_target.border = borda_divisoria_direita
+
+    worksheet.row_dimensions[1].height = 18
+    worksheet.row_dimensions[2].height = 18
+    worksheet.row_dimensions[3].height = 25
+
+    status_columns = ['Status_EAN', 'Status_Qtd', 'Status_NCM', 'Status_ICMS_Aliq', 'Status_Red_BC']
+    status_has_divergence = {}
+    for sc in status_columns:
+        status_has_divergence[sc] = (df_final[sc] == 'DIVERGENTE').any() if sc in df_final.columns else False
+
+    headers = colunas_ordem
+    for col_idx, col_name in enumerate(headers, 1):
+        cell = worksheet.cell(row=3, column=col_idx)
+        cell.value = col_name
+        cell.alignment = Alignment(horizontal='center', vertical='center', wrap_text=True)
+
+        default_border = borda_divisoria_direita if col_idx in (2, 6, 8, 11, 14, 18, 21, 22) else borda_branca
+        cell.border = default_border
+
+        if col_name in status_has_divergence:
+            if status_has_divergence[col_name]:
+                cell.fill = fill_cab_status_divergente
+                cell.font = font_header_status
             else:
-                df_csv = pd.read_csv(arquivo_dados, sep=';', encoding='latin1')
+                cell.fill = fill_cab_status_convergente
+                cell.font = font_header_status
+        elif 'NF' in col_name or col_name in ('EAN_NF', 'Qtd_NF', 'NCM_NF', 'ICMS_NF', 'pRedBC_NF'):
+            cell.fill = fill_cab_xml
+            cell.font = font_header_default_xml
+        else:
+            cell.fill = fill_cab_neutro
+            cell.font = font_header_default_erp
 
-            df_csv.columns = df_csv.columns.str.strip()
-            col_tipo_calc = next((c for c in df_csv.columns if 'tipo' in c.lower() and ('cálculo' in c.lower() or 'calculo' in c.lower())), None)
-            if not col_tipo_calc:
-                col_tipo_calc = df_csv.columns[-2]
+    # Formatação de Células de Dados
+    fill_cinza = PatternFill(start_color="D9D9D9", end_color="D9D9D9", fill_type="solid")
+    fill_vermelho_claro = PatternFill(start_color="FFC7CE", end_color="FFC7CE", fill_type="solid")
+    fill_verde_oliva_claro = PatternFill(start_color="E2EFDA", end_color="E2EFDA", fill_type="solid")
 
-            itens_csv = []
-            for index, row in df_csv.iterrows():
-                itens_csv.append({
-                    'Linha_WINTHOR': index + 1,
-                    'Cod_Produto_WINTHOR': str(row.get('Cód. produto', '')),
-                    'EAN_WINTHOR': str(row.get('Cód. barra', '')),
-                    'Descricao_WINTHOR': str(row.get('Descrição', '')),
-                    'Qtd_WINTHOR': converte_float_br(row.get('Qtde Pré-Entrada', 0.0)),
-                    'NCM_WINTHOR': limpar_numero(row.get('NCM', '')),
-                    'ICMS_WINTHOR': converte_float_br(row.get('%ICMS', 0.0)),
-                    '% ICMS red. Whintor': converte_float_br(row.get('% ICMS red.', 0.0)),
-                    '%Alíq.Ext. ST Guia_Whintor': converte_float_br(row.get('%Alíq.Ext.ST Guia', 0.0)),
-                    'Tipo_Calculo_WINTHOR': str(row.get(col_tipo_calc, '')).strip()
-                })
+    font_divergente = Font(color="9C0006", bold=True)
+    font_normal = Font(color="000000", bold=False)
 
-            # ==========================================
-            # 5. CRUZAMENTO E LÓGICA DE AUDITORIA
-            # ==========================================
-            dados_relatorio = []
-            alertas_resumo = []
-            contagem_erros_produto = {}
-            total_pareados = 0
-            total_sobras_nf = 0
-            total_sobras_winthor = 0
-            divergencias_ean = 0
-            divergencias_icms = 0
-            divergencias_red = 0
-            divergencias_ncm = 0
-            divergencias_qtd = 0
+    align_center_cols = ['Linha_NF', 'Linha_WINTHOR', 'EAN_NF', 'EAN_WINTHOR', 'Qtd_NF', 'Qtd_WINTHOR', 'NCM_NF', 'NCM_WINTHOR',
+                         'ICMS_NF', 'ICMS_WINTHOR', '%Alíq.Ext. ST Guia_Whintor', 'pRedBC_NF', '% ICMS red. Whintor']
 
-            for item_x, item_c in zip_longest(itens_xml, itens_csv, fillvalue=None):
-                linha = {}
-                if item_x:
-                    linha.update(item_x)
-                else:
-                    linha.update({'Linha_NF': '-', 'Descricao_NF': '-', 'EAN_NF': '-', 'NCM_NF': '-', 'Qtd_NF': '-', 'Vl_Unit_NF': '-', 'Vl_Total_NF': '-', 'ICMS_NF': '-', 'pRedBC_NF': '-'})
+    status_dependents = {
+        'Status_EAN': ['EAN_NF', 'EAN_WINTHOR'],
+        'Status_Qtd': ['Qtd_NF', 'Qtd_WINTHOR'],
+        'Status_NCM': ['NCM_NF', 'NCM_WINTHOR'],
+        'Status_ICMS_Aliq': ['ICMS_NF', 'ICMS_WINTHOR', '%Alíq.Ext. ST Guia_Whintor'],
+        'Status_Red_BC': ['pRedBC_NF', '% ICMS red. Whintor']
+    }
 
-                if item_c:
-                    linha.update(item_c)
-                else:
-                    linha.update({'Linha_WINTHOR': '-', 'Cod_Produto_WINTHOR': '-', 'EAN_WINTHOR': '-', 'Descricao_WINTHOR': '-', 'Qtd_WINTHOR': '-', 'NCM_WINTHOR': '-', 'ICMS_WINTHOR': '-', '% ICMS red. Whintor': '-', '%Alíq.Ext. ST Guia_Whintor': '-', 'Tipo_Calculo_WINTHOR': '-'})
+    for row in range(4, len(df_final) + 4):
+        linha_dict = dados_relatorio[row-4]
+        is_even = (row % 2 == 0)
 
-                if item_x and item_c:
-                    linha['Status_Geral'] = 'PAREDO'
-                    total_pareados += 1
-                    linha['Status_EAN'] = 'OK' if str(item_x['EAN_NF']) == str(item_c['EAN_WINTHOR']) else 'DIVERGENTE'
-                    if linha['Status_EAN'] == 'DIVERGENTE': divergencias_ean += 1
+        for col_idx in range(1, len(headers) + 1):
+            cell = worksheet.cell(row=row, column=col_idx)
 
-                    icms_xml = item_x['ICMS_NF']
-                    icms_csv = item_c['ICMS_WINTHOR']
-                    st_guia = item_c['%Alíq.Ext. ST Guia_Whintor']
+            if is_even:
+                cell.fill = fill_zebrado
 
-                    if icms_xml == icms_csv or icms_xml == st_guia:
-                        linha['Status_ICMS_Aliq'] = 'OK'
-                    else:
-                        linha['Status_ICMS_Aliq'] = 'DIVERGENTE'
-                        divergencias_icms += 1
+            default_border = borda_divisoria_direita if col_idx in (2, 6, 8, 11, 14, 18, 21, 22) else borda_branca
+            cell.border = default_border
+            col_name = headers[col_idx - 1]
 
-                    pred_xml = item_x['pRedBC_NF']
-                    red_csv = item_c['% ICMS red. Whintor']
-                    if pred_xml == red_csv:
-                        linha['Status_Red_BC'] = 'OK'
-                    else:
-                        linha['Status_Red_BC'] = 'DIVERGENTE'
-                        divergencias_red += 1
+            current_align = cell.alignment or Alignment()
+            cell.alignment = Alignment(horizontal=current_align.horizontal or 'left', vertical='center', wrap_text=current_align.wrap_text)
 
-                    tipo_calc = str(item_c.get('Tipo_Calculo_WINTHOR', '')).strip().upper()
-                    if tipo_calc == 'N': linha['Tipo_Calculo_ST'] = 'NOTA FISCAL'
-                    elif tipo_calc == 'G': linha['Tipo_Calculo_ST'] = 'GUIA'
-                    else: linha['Tipo_Calculo_ST'] = item_c['Tipo_Calculo_WINTHOR']
+            if col_name in ('Cod_Produto_WINTHOR', 'EAN_NF', 'EAN_WINTHOR', 'NCM_NF', 'NCM_WINTHOR') and str(cell.value).strip() not in ('', '-'):
+                try:
+                    cell.value = int(float(cell.value))
+                    cell.number_format = '0'
+                except ValueError:
+                    pass
+            elif isinstance(cell.value, (int, float)) and cell.value != '-':
+                if 'pRedBC' in col_name or 'red. Whintor' in col_name:
+                    cell.number_format = '#,##0.0000'
+                elif 'Qtd' in col_name or 'ICMS' in col_name or 'Whintor' in col_name:
+                    cell.number_format = '#,##0.00'
 
-                    linha['Status_NCM'] = 'OK' if str(item_x['NCM_NF']) == str(item_c['NCM_WINTHOR']) else 'DIVERGENTE'
-                    if linha['Status_NCM'] == 'DIVERGENTE': divergencias_ncm += 1
+            if col_name == 'Cod_Produto_WINTHOR':
+                cell.alignment = Alignment(horizontal='right', vertical='center')
+            elif col_name in align_center_cols or 'Status' in col_name:
+                cell.alignment = Alignment(horizontal='center', vertical='center')
 
-                    linha['Status_Qtd'] = 'OK' if item_x['Qtd_NF'] == item_c['Qtd_WINTHOR'] else 'DIVERGENTE'
-                    if linha['Status_Qtd'] == 'DIVERGENTE': divergencias_qtd += 1
+        if 'SOBRA' in str(linha_dict.get('Status_Geral', '')):
+            for col_idx in range(1, len(headers) + 1):
+                worksheet.cell(row=row, column=col_idx).fill = fill_cinza
+            continue
 
-                    cod_prod = item_c['Cod_Produto_WINTHOR']
-                    alertas_atuais = []
-                    if linha['Status_EAN'] == 'DIVERGENTE': alertas_atuais.append({"Tipo": "EAN", "Cod. ERP": cod_prod, "Descrição": item_c['Descricao_WINTHOR'], "Detalhe": f"XML: {item_x['EAN_NF']} vs ERP: {item_c['EAN_WINTHOR']}"})
-                    if linha['Status_ICMS_Aliq'] == 'DIVERGENTE': alertas_atuais.append({"Tipo": "ICMS Alíquota", "Cod. ERP": cod_prod, "Descrição": item_c['Descricao_WINTHOR'], "Detalhe": f"XML: {icms_xml}% vs ERP: {icms_csv}% / Guia: {st_guia}%"})
-                    if linha['Status_Red_BC'] == 'DIVERGENTE': alertas_atuais.append({"Tipo": "Redução BC", "Cod. ERP": cod_prod, "Descrição": item_c['Descricao_WINTHOR'], "Detalhe": f"XML: {pred_xml}% vs ERP: {red_csv}%"})
-                    if linha['Status_NCM'] == 'DIVERGENTE': alertas_atuais.append({"Tipo": "NCM", "Cod. ERP": cod_prod, "Descrição": item_c['Descricao_WINTHOR'], "Detalhe": f"XML: {item_x['NCM_NF']} vs ERP: {item_c['NCM_WINTHOR']}"})
-                    if linha['Status_Qtd'] == 'DIVERGENTE': alertas_atuais.append({"Tipo": "Quantidade", "Cod. ERP": cod_prod, "Descrição": item_c['Descricao_WINTHOR'], "Detalhe": f"XML: {item_x['Qtd_NF']} vs ERP: {item_c['Qtd_WINTHOR']}"})
+        for col_status, colunas_dados in status_dependents.items():
+            if col_status in headers:
+                idx_status = headers.index(col_status) + 1
+                cell_status = worksheet.cell(row=row, column=idx_status)
+                val_status = cell_status.value
 
-                    if alertas_atuais:
-                        contagem_erros_produto[cod_prod] = contagem_erros_produto.get(cod_prod, 0) + len(alertas_atuais)
-                        alertas_resumo.extend(alertas_atuais)
+                if val_status == 'DIVERGENTE':
+                    cell_status.fill = fill_vermelho_claro
+                    for col_afetada in colunas_dados:
+                        if col_afetada in headers:
+                            cell_dado = worksheet.cell(row=row, column=headers.index(col_afetada) + 1)
+                            cell_dado.font = font_divergente
+                elif val_status == 'OK':
+                    cell_status.fill = fill_verde_oliva_claro
+                    for col_afetada in colunas_dados:
+                        if col_afetada in headers:
+                            cell_dado = worksheet.cell(row=row, column=headers.index(col_afetada) + 1)
+                            cell_dado.font = font_normal
 
-                elif item_x and not item_c:
-                    linha['Status_Geral'] = 'SOBRA NF (SEM PAR)'
-                    total_sobras_nf += 1
-                    for st in ['Status_EAN', 'Status_ICMS_Aliq', 'Status_Red_BC', 'Tipo_Calculo_ST', 'Status_NCM', 'Status_Qtd']: linha[st] = '-'
-                    alertas_resumo.append({"Tipo": "Sobra NF", "Cod. ERP": "-", "Descrição": item_x['Descricao_NF'], "Detalhe": f"Faturado na linha {item_x['Linha_NF']}, mas ausente do ERP"})
+    # Ajustar largura das colunas dinamicamente (+4 folga)
+    for col in worksheet.columns:
+        max_length = 0
+        column_letter = get_column_letter(col[0].column)
+        for cell in col:
+            try:
+                if cell.value is not None:
+                    if len(str(cell.value)) > max_length:
+                        max_length = len(str(cell.value))
+            except:
+                pass
+        worksheet.column_dimensions[column_letter].width = max(max_length + 4, 12)
 
-                elif item_c and not item_x:
-                    linha['Status_Geral'] = 'SOBRA WINTHOR (SEM PAR)'
-                    total_sobras_winthor += 1
-                    for st in ['Status_EAN', 'Status_ICMS_Aliq', 'Status_Red_BC', 'Tipo_Calculo_ST', 'Status_NCM', 'Status_Qtd']: linha[st] = '-'
-                    alertas_resumo.append({"Tipo": "Sobra ERP", "Cod. ERP": item_c['Cod_Produto_WINTHOR'], "Descrição": item_c['Descricao_WINTHOR'], "Detalhe": "Esperado no ERP, mas ausente do XML"})
-
-                dados_relatorio.append(linha)
-
-            def obter_prioridade_alerta(alerta):
-                cod = alerta["Cod. ERP"]
-                if cod == "-" or "Sobra" in alerta["Tipo"]: return (1, 0)
-                num_erros = contagem_erros_produto.get(cod, 0)
-                return (0, -num_erros, hash(cod) % 10000)
-
-            alertas_resumo.sort(key=obter_prioridade_alerta)
-
-            # ==========================================
-            # 6. CRIANDO EXCEL NA MEMÓRIA (BUFFER)
-            # ==========================================
-            df_final = pd.DataFrame(dados_relatorio)
-            colunas_ordem = [
-                'Linha_NF', 'Linha_WINTHOR', 'Cod_Produto_WINTHOR', 'EAN_NF', 'EAN_WINTHOR', 'Status_EAN',
-                'Descricao_NF', 'Descricao_WINTHOR', 'Qtd_NF', 'Qtd_WINTHOR', 'Status_Qtd',
-                'NCM_NF', 'NCM_WINTHOR', 'Status_NCM', 'ICMS_NF', 'ICMS_WINTHOR', '%Alíq.Ext. ST Guia_Whintor', 'Status_ICMS_Aliq',
-                'pRedBC_NF', '% ICMS red. Whintor', 'Status_Red_BC', 'Tipo_Calculo_ST'
-            ]
-            df_final = df_final[colunas_ordem]
-
-            excel_buffer = io.BytesIO()
-            with pd.ExcelWriter(excel_buffer, engine='openpyxl') as writer:
-                df_final.to_excel(writer, sheet_name='Comparativo_ICMS_e_EAN', index=False, startrow=2)
-                workbook = writer.book
-                
-                # Resumo Analítico
-                ws_resumo = workbook.create_sheet(title='Resumo_Analitico', index=0)
-                ws_resumo.sheet_view.showGridLines = False
-                ws_resumo["B2"] = "PROJETO OLHO DE DEUS - AUDITORIA DE COMPRAS"
-                ws_resumo["B2"].font = Font(bold=True, size=15, color="1F4E78")
-                ws_resumo["B3"] = f"Relatório consolidado referente à Nota Fiscal Nº: {numero_nf}"
-                
-                # Métricas
-                ws_resumo["B5"] = "MÉTRICA"
-                ws_resumo["C5"] = "QUANTIDADE DE ITENS"
-                metricas = [
-                    ("Total de Itens na Nota (XML)", len(itens_xml)), ("Total de Itens no WinThor (ERP)", len(itens_csv)),
-                    ("Itens Pareados com Sucesso", total_pareados), ("Itens Sobrando no XML", total_sobras_nf),
-                    ("Itens Sobrando no ERP", total_sobras_winthor)
-                ]
-                for idx, (m_name, m_val) in enumerate(metricas, start=6):
-                    ws_resumo.cell(row=idx, column=2, value=m_name)
-                    ws_resumo.cell(row=idx, column=3, value=m_val)
-
-            excel_buffer.seek(0)
-            
-            st.success("Auditoria finalizada com sucesso!")
-            st.download_button(
-                label="📥 Baixar Relatório Executivo (Excel)",
-                data=excel_buffer,
-                file_name=nome_arquivo_saida,
-                mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
-            )
+print(f"Sucesso! O arquivo '{nome_arquivo_saida}' foi gerado com visual premium refinado!")
+files.download(nome_arquivo_saida)
