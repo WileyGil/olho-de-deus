@@ -1,7 +1,6 @@
 import streamlit as st
 import pandas as pd
 import xml.etree.ElementTree as ET
-from itertools import zip_longest
 from openpyxl.styles import PatternFill, Font, Alignment, Border, Side
 from openpyxl.utils import get_column_letter
 import re
@@ -28,7 +27,6 @@ def limpar_ean(valor):
     if val_str.endswith('.0'):
         val_str = val_str[:-2]
     
-    # Tratamento caso venha notação científica do Excel
     if 'E+' in val_str or 'E-' in val_str:
         try:
             val_limpo = val_str.replace(',', '.')
@@ -63,7 +61,7 @@ def obter_icms_xml(det_node, ns):
 # ==========================================
 st.set_page_config(page_title="Auditoria Olho de Deus", layout="wide")
 st.title("Auditoria de Notas")
-st.markdown("Faça o upload do arquivo XML da nota e do arquivo do WinThor (.csv ou .xlsx) para cruzar as informações com base absoluta na ordem do XML.")
+st.markdown("Faça o upload do arquivo XML da nota e do arquivo do WinThor (.csv ou .xlsx) para cruzar as informações com base absoluta no XML.")
 
 col1, col2 = st.columns(2)
 with col1:
@@ -177,7 +175,6 @@ if arquivo_xml and arquivo_dados:
             divergencias_ncm = 0
             divergencias_qtd = 0
 
-            # O XML é a fundação: mantemos a ordem exata da nota fiscal linha a linha (1=1, 2=2, 3=3...)
             for item_x, item_c in zip_longest(itens_xml, itens_csv, fillvalue=None):
                 linha = {}
 
@@ -202,7 +199,6 @@ if arquivo_xml and arquivo_dados:
                     linha['Status_Geral'] = 'PAREADO'
                     total_pareados += 1
 
-                    # Compara EAN limpando zeros à esquerda e notações científicas
                     ean_x_comp = item_x.get('EAN_Comp_NF', '')
                     eantrib_x_comp = item_x.get('EANTrib_Comp_NF', '')
                     ean_win_comp = item_c.get('EAN_Comp_WINTHOR', '')
@@ -248,6 +244,21 @@ if arquivo_xml and arquivo_dados:
                     if linha['Status_Qtd'] == 'DIVERGENTE':
                         divergencias_qtd += 1
 
+                    # Diagnóstico detalhado e cirúrgico da divergência
+                    diagnosticos = []
+                    if linha['Status_EAN'] == 'DIVERGENTE':
+                        diagnosticos.append(f"EAN (XML: {item_x['EAN_NF']} ≠ ERP: {item_c['EAN_WINTHOR']})")
+                    if linha['Status_ICMS_Aliq'] == 'DIVERGENTE':
+                        diagnosticos.append(f"ICMS (XML: {icms_xml}% ≠ ERP: {icms_csv}%)")
+                    if linha['Status_Red_BC'] == 'DIVERGENTE':
+                        diagnosticos.append(f"Red.BC (XML: {pred_xml}% ≠ ERP: {red_csv}%)")
+                    if linha['Status_NCM'] == 'DIVERGENTE':
+                        diagnosticos.append(f"NCM (XML: {item_x['NCM_NF']} ≠ ERP: {item_c['NCM_WINTHOR']})")
+                    if linha['Status_Qtd'] == 'DIVERGENTE':
+                        diagnosticos.append(f"Qtd (XML: {item_x['Qtd_NF']} ≠ ERP: {item_c['Qtd_WINTHOR']})")
+
+                    linha['Diagnostico_Divergencia'] = " | ".join(diagnosticos) if diagnosticos else "TUDO OK (1 = 1)"
+
                     cod_prod = item_c['Cod_Produto_WINTHOR']
                     alertas_atuais = []
                     if linha['Status_EAN'] == 'DIVERGENTE':
@@ -270,6 +281,7 @@ if arquivo_xml and arquivo_dados:
                     total_sobras_nf += 1
                     for st_col in ['Status_EAN', 'Status_ICMS_Aliq', 'Status_Red_BC', 'Tipo_Calculo_ST', 'Status_NCM', 'Status_Qtd']:
                         linha[st_col] = '-'
+                    linha['Diagnostico_Divergencia'] = "SOBRA NO XML (Ausente no ERP)"
                     alertas_resumo.append({"Tipo": "Sobra NF", "Cod. ERP": "-", "Descrição": item_x['Descricao_NF'], "Detalhe": f"Faturado na linha {item_x['Linha_NF']}, mas ausente do ERP"})
 
                 elif item_c and not item_x:
@@ -277,6 +289,7 @@ if arquivo_xml and arquivo_dados:
                     total_sobras_winthor += 1
                     for st_col in ['Status_EAN', 'Status_ICMS_Aliq', 'Status_Red_BC', 'Tipo_Calculo_ST', 'Status_NCM', 'Status_Qtd']:
                         linha[st_col] = '-'
+                    linha['Diagnostico_Divergencia'] = "SOBRA NO ERP (Ausente no XML)"
                     alertas_resumo.append({"Tipo": "Sobra ERP", "Cod. ERP": item_c['Cod_Produto_WINTHOR'], "Descrição": item_c['Descricao_WINTHOR'], "Detalhe": "Esperado no ERP, mas ausente do XML"})
 
                 dados_relatorio.append(linha)
@@ -302,7 +315,7 @@ if arquivo_xml and arquivo_dados:
                 'NCM_NF', 'NCM_WINTHOR', 'Status_NCM',
                 'ICMS_NF', 'ICMS_WINTHOR', '%Alíq.Ext. ST Guia_Whintor', 'Status_ICMS_Aliq',
                 'pRedBC_NF', '% ICMS red. Whintor', 'Status_Red_BC',
-                'Tipo_Calculo_ST'
+                'Tipo_Calculo_ST', 'Diagnostico_Divergencia'
             ]
             df_final = df_final[colunas_ordem]
 
@@ -479,7 +492,7 @@ if arquivo_xml and arquivo_dados:
                 worksheet.sheet_view.zoomScale = 80
 
                 worksheet.freeze_panes = 'A4'
-                worksheet.auto_filter.ref = f"A3:V{len(df_final) + 3}"
+                worksheet.auto_filter.ref = f"A3:W{len(df_final) + 3}"
 
                 fill_zebrado = PatternFill(start_color="F9FAFB", end_color="F9FAFB", fill_type="solid")
                 fill_cab_status_divergente = PatternFill(start_color="9C0006", end_color="9C0006", fill_type="solid")
@@ -499,7 +512,8 @@ if arquivo_xml and arquivo_dados:
                     ("CLASSIFICAÇÃO FISCAL (NCM) [XML]", 12, 14, fill_cab_xml, font_super_header_xml),
                     ("ALÍQUOTAS DE ICMS [XML]", 15, 18, fill_cab_xml, font_super_header_xml),
                     ("REDUÇÃO DE BASE DE CÁLCULO [XML]", 19, 21, fill_cab_xml, font_super_header_xml),
-                    ("TIPO CÁLCULO ST", 22, 22, fill_cab_neutro, font_super_header_erp)
+                    ("TIPO CÁLCULO ST", 22, 22, fill_cab_neutro, font_super_header_erp),
+                    ("DIAGNÓSTICO", 23, 23, fill_cab_neutro, font_super_header_erp)
                 ]
 
                 for label, col_start, col_end, fill_obj, font_obj in super_grupos:
@@ -514,7 +528,7 @@ if arquivo_xml and arquivo_dados:
                             cell_target = worksheet.cell(row=r, column=c)
                             cell_target.fill = fill_obj
                             cell_target.border = borda_branca
-                            if c == col_end and col_end != 22:
+                            if c == col_end and col_end != 23:
                                 cell_target.border = borda_divisoria_direita
 
                 worksheet.row_dimensions[1].height = 18
@@ -532,7 +546,7 @@ if arquivo_xml and arquivo_dados:
                     cell.value = col_name
                     cell.alignment = Alignment(horizontal='center', vertical='center', wrap_text=True)
 
-                    default_border = borda_divisoria_direita if col_idx in (2, 6, 8, 11, 14, 18, 21, 22) else borda_branca
+                    default_border = borda_divisoria_direita if col_idx in (2, 6, 8, 11, 14, 18, 21, 22, 23) else borda_branca
                     cell.border = default_border
 
                     if col_name in status_has_divergence:
@@ -580,7 +594,7 @@ if arquivo_xml and arquivo_dados:
                         if is_even:
                             cell.fill = fill_zebrado
 
-                        default_border = borda_divisoria_direita if col_idx in (2, 6, 8, 11, 14, 18, 21, 22) else borda_branca
+                        default_border = borda_divisoria_direita if col_idx in (2, 6, 8, 11, 14, 18, 21, 22, 23) else borda_branca
                         cell.border = default_border
                         col_name = headers[col_idx - 1]
 
@@ -612,6 +626,12 @@ if arquivo_xml and arquivo_dados:
                             cell.alignment = Alignment(horizontal='right', vertical='center')
                         elif col_name in align_center_cols or 'Status' in col_name:
                             cell.alignment = Alignment(horizontal='center', vertical='center')
+                        elif col_name == 'Diagnostico_Divergencia':
+                            cell.alignment = Alignment(horizontal='left', vertical='center')
+                            if "TUDO OK" in str(cell.value):
+                                cell.font = Font(color="006100", bold=True)
+                            else:
+                                cell.font = Font(color="9C0006", bold=True)
 
                     if 'SOBRA' in str(linha_dict.get('Status_Geral', '')):
                         for col_idx in range(1, len(headers) + 1):
