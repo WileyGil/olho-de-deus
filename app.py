@@ -63,7 +63,7 @@ def obter_icms_xml(det_node, ns):
 # ==========================================
 st.set_page_config(page_title="Auditoria Olho de Deus", layout="wide")
 st.title("Auditoria de Notas")
-st.markdown("Faça o upload do arquivo XML da nota e do arquivo do WinThor (.csv ou .xlsx) para cruzar as informações com base absoluta na ordem do XML.")
+st.markdown("Faça o upload do arquivo XML da nota e do arquivo du WinThor (.csv ou .xlsx) para cruzar as informações com base absoluta na ordem do XML.")
 
 col1, col2 = st.columns(2)
 with col1:
@@ -452,6 +452,7 @@ if arquivo_xml and arquivo_dados:
                 worksheet.protection.sheet = True
                 worksheet.protection.enableAutoFilter = True
                 worksheet.protection.enableSort = True
+                worksheet.protection.autoFilter = False  # Libera o uso dos botões de filtro na planilha protegida
 
             excel_buffer.seek(0)
             
