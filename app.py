@@ -447,15 +447,15 @@ if arquivo_xml and arquivo_dados:
                     worksheet.column_dimensions[column_letter].width = max(max_length + 4, 12)
 
                 # ==========================================
-                # 7. BLOQUEIO DA PLANILHA (DESBLOQUEAR APENAS CÓDIGOS DE BARRAS E CÓDIGO DO PRODUTO)
+                # 7. BLOQUEIO DA PLANILHA (PERMITIR FILTROS, ORDENAÇÃO E DESBLOQUEIO DE CÓDIGOS)
                 # ==========================================
                 worksheet.protection.sheet = True
-                worksheet.protection.sort = False          # Libera ordenação (A a Z)
-                worksheet.protection.autoFilter = False      # Libera filtros suspensos
+                worksheet.protection.sort = False          # Libera ordenação de A a Z / Z a A
+                worksheet.protection.autoFilter = False      # Libera os filtros suspensos nas colunas
                 worksheet.protection.selectLockedCells = True
                 worksheet.protection.selectUnlockedCells = True
 
-                # Colunas específicas a serem desbloqueadas para edição: Cod_Produto_WINTHOR, EAN_NF, EAN_WINTHOR
+                # Colunas a serem desbloqueadas para edição livre: Cod_Produto_WINTHOR, EAN_NF, EAN_WINTHOR
                 colunas_para_desbloquear = ['Cod_Produto_WINTHOR', 'EAN_NF', 'EAN_WINTHOR']
                 indices_desbloquear = [colunas_ordem.index(c) + 1 for c in colunas_para_desbloquear if c in colunas_ordem]
 
