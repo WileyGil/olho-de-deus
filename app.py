@@ -320,7 +320,6 @@ if arquivo_xml and arquivo_dados:
                 workbook = writer.book
                 worksheet = workbook['Comparativo_ICMS_e_EAN']
                 
-                # Oculta as linhas de grade padrão do Excel
                 worksheet.sheet_view.showGridLines = False
                 worksheet.sheet_view.zoomScale = 80
 
@@ -328,7 +327,7 @@ if arquivo_xml and arquivo_dados:
                 worksheet.auto_filter.ref = f"A3:W{len(df_final) + 3}"
 
                 # ==========================================
-                # VISUAL LIMPO (SEM LINHAS DE GRADE, APENAS ZEBRADO)
+                # VISUAL LIMPO COM LINHAS VERTICAIS APENas NAS DIVISÕES DE BLOCOS
                 # ==========================================
                 COLOR_BLOCO_DARK = "1B2631"    # Azul Chumbo Escuro (Super Cabeçalhos)
                 COLOR_XML_SOLID = "212F3D"     # Tom Sólido para Colunas XML
@@ -353,8 +352,12 @@ if arquivo_xml and arquivo_dados:
                 font_divergente = Font(color="9C0006", bold=True)
                 font_normal = Font(color="000000", bold=False)
 
-                # Sem bordas nas células de dados (visual totalmente limpo)
-                borda_vazia = Border(left=Side(style=None), right=Side(style=None), top=Side(style=None), bottom=Side(style=None))
+                # Bordas: Células normais sem linhas verticais internas, apenas divisória vertical marcante no fim de cada bloco geral
+                borda_padrao = Border(left=Side(style=None), right=Side(style=None), top=Side(style=None), bottom=Side(style=None))
+                borda_fim_bloco = Border(left=Side(style=None), right=Side(style='medium', color='1B2631'), top=Side(style=None), bottom=Side(style=None))
+
+                # Colunas exatas onde cada bloco geral termina (última coluna de cada grupo)
+                colunas_fim_bloco = [2, 6, 8, 11, 14, 19, 22, 23]
 
                 # Definição dos Super Grupos (Linhas 1 e 2)
                 super_grupos = [
@@ -379,7 +382,7 @@ if arquivo_xml and arquivo_dados:
                         for c in range(col_start, col_end + 1):
                             cell_target = worksheet.cell(row=r, column=c)
                             cell_target.fill = fill_obj
-                            cell_target.border = borda_vazia
+                            cell_target.border = borda_fim_bloco if c in colunas_fim_bloco else borda_padrao
 
                 worksheet.row_dimensions[1].height = 18
                 worksheet.row_dimensions[2].height = 18
@@ -402,7 +405,8 @@ if arquivo_xml and arquivo_dados:
                     cell = worksheet.cell(row=3, column=col_idx)
                     cell.value = col_name
                     cell.alignment = Alignment(horizontal='center', vertical='center', wrap_text=True)
-                    cell.border = borda_vazia
+
+                    cell.border = borda_fim_bloco if col_idx in colunas_fim_bloco else borda_padrao
 
                     if col_name in status_has_divergence:
                         if status_has_divergence[col_name]:
@@ -436,11 +440,10 @@ if arquivo_xml and arquivo_dados:
                     for col_idx in range(1, len(headers) + 1):
                         cell = worksheet.cell(row=row, column=col_idx)
 
-                        # Mantém o zebrado dinâmico (cor sim, cor não) sem linhas de grade
                         if is_even:
                             cell.fill = fill_zebrado
 
-                        cell.border = borda_vazia
+                        cell.border = borda_fim_bloco if col_idx in colunas_fim_bloco else borda_padrao
                         col_name = headers[col_idx - 1]
 
                         current_align = cell.alignment or Alignment()
