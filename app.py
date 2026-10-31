@@ -328,7 +328,7 @@ if arquivo_xml and arquivo_dados:
                 worksheet.auto_filter.ref = f"A3:W{len(df_final) + 3}"
 
                 # ==========================================
-                # VISUAL LIMPO COM ZEBRADO DINÂMICO (FORMATAÇÃO CONDICIONAL)
+                # VISUAL LIMPO COM ZEBRADO DINÂMICO PRESERVANDO AS CÉLULAS DE STATUS
                 # ==========================================
                 COLOR_BLOCO_DARK = "1B2631"    # Azul Chumbo Escuro (Super Cabeçalhos)
                 COLOR_XML_SOLID = "212F3D"     # Tom Sólido para Colunas XML
@@ -492,9 +492,16 @@ if arquivo_xml and arquivo_dados:
                                         cell_dado = worksheet.cell(row=row, column=headers.index(col_afetada) + 1)
                                         cell_dado.font = font_normal
 
-                # APLICAÇÃO DA FORMATAÇÃO CONDICIONAL PARA O ZEBRADO DINÂMICO AO CLASSIFICAR/FILTRAR
-                rule = FormulaRule(formula=['MOD(ROW(),2)=0'], stopIfTrue=True, fill=fill_zebrado)
-                worksheet.conditional_formatting.add(f'A4:W{len(df_final) + 3}', rule)
+                # APLICAÇÃO DA FORMATAÇÃO CONDICIONAL DO ZEBRADO APENAS NAS COLUNAS QUE NÃO SÃO DE STATUS
+                # Isso preserva as cores verde/vermelho das células de status perfeitamente!
+                letras_nao_status = []
+                for idx, col_name in enumerate(headers, 1):
+                    if not col_name.startswith('Status'):
+                        letras_nao_status.append(get_column_letter(idx))
+
+                for l_col in letras_nao_status:
+                    rule = FormulaRule(formula=[f'MOD(ROW(),2)=0'], stopIfTrue=True, fill=fill_zebrado)
+                    worksheet.conditional_formatting.add(f'{l_col}4:{l_col}{len(df_final) + 3}', rule)
 
                 for col in worksheet.columns:
                     max_length = 0
