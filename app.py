@@ -207,6 +207,25 @@ if arquivo_xml and arquivo_dados:
                     else:
                         linha['Status_ICMS_Aliq'] = 'DIVERGENTE'
 
+                    # CÁLCULO E VALIDAÇÃO DE BASE REDUZIDA (EX: 18% COM RED 33,33% = 12,0006%)
+                    pred_xml = round(item_x['pRedBC_NF'], 4)
+                    red_csv = round(item_c['% ICMS red. Whintor'], 4)
+
+                    if pred_xml > 0:
+                        carga_efetiva_xml = round(item_x['ICMS_NF'] * (1.0 - (item_x['pRedBC_NF'] / 100.0)), 4)
+                    else:
+                        carga_efetiva_xml = 0.0
+
+                    # Aceita o cálculo exato (12.0006), arredondamento em 2 casas (12.00) ou percentual direto
+                    if (
+                        carga_efetiva_xml == red_csv
+                        or round(carga_efetiva_xml, 2) == round(red_csv, 2)
+                        or pred_xml == red_csv
+                    ):
+                        linha['Status_Red_BC'] = 'OK'
+                    else:
+                        linha['Status_Red_BC'] = 'DIVERGENTE'
+
                     tipo_calc = str(item_c.get('Tipo_Calculo_WINTHOR', '')).strip().upper()
                     if tipo_calc == 'N':
                         linha['Tipo_Calculo_ST'] = 'NOTA FISCAL'
@@ -220,12 +239,12 @@ if arquivo_xml and arquivo_dados:
 
                 elif item_x and not item_c:
                     linha['Status_Geral'] = 'SOBRA NF (SEM PAR)'
-                    for st_col in ['Status_EAN', 'Status_ICMS_Aliq', 'Tipo_Calculo_ST', 'Status_NCM', 'Status_Qtd']:
+                    for st_col in ['Status_EAN', 'Status_ICMS_Aliq', 'Status_Red_BC', 'Tipo_Calculo_ST', 'Status_NCM', 'Status_Qtd']:
                         linha[st_col] = '-'
 
                 elif item_c and not item_x:
                     linha['Status_Geral'] = 'SOBRA WINTHOR (SEM PAR)'
-                    for st_col in ['Status_EAN', 'Status_ICMS_Aliq', 'Tipo_Calculo_ST', 'Status_NCM', 'Status_Qtd']:
+                    for st_col in ['Status_EAN', 'Status_ICMS_Aliq', 'Status_Red_BC', 'Tipo_Calculo_ST', 'Status_NCM', 'Status_Qtd']:
                         linha[st_col] = '-'
 
                 dados_relatorio.append(linha)
@@ -241,7 +260,7 @@ if arquivo_xml and arquivo_dados:
                 'Qtd_NF', 'Qtd_WINTHOR', 'Status_Qtd',
                 'NCM_NF', 'NCM_WINTHOR', 'Status_NCM',
                 'ICMS_NF', 'ICMS_WINTHOR', '%Alíq.Ext. ST Guia_Whintor', 'Status_ICMS_Aliq',
-                'pRedBC_NF', '% ICMS red. Whintor',
+                'pRedBC_NF', '% ICMS red. Whintor', 'Status_Red_BC',
                 'Tipo_Calculo_ST'
             ]
             df_final = df_final[colunas_ordem]
@@ -259,7 +278,7 @@ if arquivo_xml and arquivo_dados:
                 worksheet.freeze_panes = 'A4'
                 
                 # ADICIONA O FILTRO NATIVO PARA TODA A TABELA
-                worksheet.auto_filter.ref = f"A3:U{len(df_final) + 3}"
+                worksheet.auto_filter.ref = f"A3:V{len(df_final) + 3}"
 
                 fill_zebrado = PatternFill(start_color="F9FAFB", end_color="F9FAFB", fill_type="solid")
                 fill_cab_status_divergente = PatternFill(start_color="9C0006", end_color="9C0006", fill_type="solid")
@@ -290,8 +309,8 @@ if arquivo_xml and arquivo_dados:
                     ("QUANTIDADES [XML]", 9, 11, fill_cab_xml, font_super_header_xml),
                     ("CLASSIFICAÇÃO FISCAL (NCM) [XML]", 12, 14, fill_cab_xml, font_super_header_xml),
                     ("ALÍQUOTAS DE ICMS [XML]", 15, 18, fill_cab_xml, font_super_header_xml),
-                    ("REDUÇÃO DE BASE DE CÁLCULO [XML]", 19, 20, fill_cab_xml, font_super_header_xml),
-                    ("TIPO CÁLCULO ST", 21, 21, fill_cab_neutro, font_super_header_erp)
+                    ("REDUÇÃO DE BASE DE CÁLCULO [XML]", 19, 21, fill_cab_xml, font_super_header_xml),
+                    ("TIPO CÁLCULO ST", 22, 22, fill_cab_neutro, font_super_header_erp)
                 ]
 
                 for label, col_start, col_end, fill_obj, font_obj in super_grupos:
@@ -306,14 +325,14 @@ if arquivo_xml and arquivo_dados:
                             cell_target = worksheet.cell(row=r, column=c)
                             cell_target.fill = fill_obj
                             cell_target.border = borda_branca
-                            if c == col_end and col_end != 21:
+                            if c == col_end and col_end != 22:
                                 cell_target.border = borda_divisoria_direita
 
                 worksheet.row_dimensions[1].height = 18
                 worksheet.row_dimensions[2].height = 18
                 worksheet.row_dimensions[3].height = 25
 
-                status_columns = ['Status_EAN', 'Status_Qtd', 'Status_NCM', 'Status_ICMS_Aliq']
+                status_columns = ['Status_EAN', 'Status_Qtd', 'Status_NCM', 'Status_ICMS_Aliq', 'Status_Red_BC']
                 status_has_divergence = {}
                 for sc in status_columns:
                     status_has_divergence[sc] = (df_final[sc] == 'DIVERGENTE').any() if sc in df_final.columns else False
@@ -324,7 +343,7 @@ if arquivo_xml and arquivo_dados:
                     cell.value = col_name
                     cell.alignment = Alignment(horizontal='center', vertical='center', wrap_text=True)
 
-                    default_border = borda_divisoria_direita if col_idx in (2, 6, 8, 11, 14, 18, 20, 21) else borda_branca
+                    default_border = borda_divisoria_direita if col_idx in (2, 6, 8, 11, 14, 18, 21, 22) else borda_branca
                     cell.border = default_border
 
                     if col_name in status_has_divergence:
@@ -358,7 +377,8 @@ if arquivo_xml and arquivo_dados:
                     'Status_EAN': ['EAN_NF', 'EAN_WINTHOR'],
                     'Status_Qtd': ['Qtd_NF', 'Qtd_WINTHOR'],
                     'Status_NCM': ['NCM_NF', 'NCM_WINTHOR'],
-                    'Status_ICMS_Aliq': ['ICMS_NF', 'ICMS_WINTHOR', '%Alíq.Ext. ST Guia_Whintor']
+                    'Status_ICMS_Aliq': ['ICMS_NF', 'ICMS_WINTHOR', '%Alíq.Ext. ST Guia_Whintor'],
+                    'Status_Red_BC': ['pRedBC_NF', '% ICMS red. Whintor']
                 }
 
                 for row in range(4, len(df_final) + 4):
@@ -371,7 +391,7 @@ if arquivo_xml and arquivo_dados:
                         if is_even:
                             cell.fill = fill_zebrado
 
-                        default_border = borda_divisoria_direita if col_idx in (2, 6, 8, 11, 14, 18, 20, 21) else borda_branca
+                        default_border = borda_divisoria_direita if col_idx in (2, 6, 8, 11, 14, 18, 21, 22) else borda_branca
                         cell.border = default_border
                         col_name = headers[col_idx - 1]
 
