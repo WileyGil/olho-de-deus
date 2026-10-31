@@ -28,7 +28,6 @@ def limpar_ean(valor):
     if val_str.endswith('.0'):
         val_str = val_str[:-2]
     
-    # Tratamento contra notação científica do Excel ou ERP
     if 'E+' in val_str or 'E-' in val_str:
         try:
             val_limpo = val_str.replace(',', '.')
@@ -67,7 +66,6 @@ def obter_descricao_origem(orig_cod):
     return tabela_origem.get(str(orig_cod).strip(), f"{orig_cod} - Desconhecida")
 
 def extrair_fator_embalagem(uCom):
-    """Extrai o multiplicador de displays/caixas (Ex: DPx20 -> 20, CX12 -> 12)"""
     if not uCom:
         return 1.0
     match = re.search(r'(?:DP|CX|PC|UN)x?(\d+)', str(uCom), re.IGNORECASE)
@@ -163,8 +161,8 @@ if arquivo_xml and arquivo_dados:
                     'EAN_Comp_NF': ean_comp,
                     'EANTrib_Comp_NF': ean_trib_comp,
                     'NCM_NF': ncm,
-                    'Qtd_NF': qCom_xml,          # Exibe o valor original da nota
-                    '_Fator_Embalagem': fator,   # Armazena o fator extraído
+                    'Qtd_NF': qCom_xml,
+                    '_Fator_Embalagem': fator,
                     'Vl_Unit_NF': vUn,
                     'Vl_Total_NF': vTot,
                     'Origem_XML': origem_desc,
@@ -277,9 +275,6 @@ if arquivo_xml and arquivo_dados:
 
                     linha['Status_NCM'] = 'OK' if str(item_x['NCM_NF']) == str(item_c['NCM_WINTHOR']) else 'DIVERGENTE'
                     
-                    # CONVERSÃO INTELIGENTE BLINDADA:
-                    # Se a quantidade do WinThor for igual ao XML puro, usa ela. 
-                    # Se não, testa se a conversão com o fator bate.
                     qtd_xml_pura = item_x['Qtd_NF']
                     qtd_win = item_c['Qtd_WINTHOR']
                     fator = item_x['_Fator_Embalagem']
@@ -329,40 +324,54 @@ if arquivo_xml and arquivo_dados:
                 worksheet.sheet_view.zoomScale = 80
 
                 worksheet.freeze_panes = 'A4'
-                
                 worksheet.auto_filter.ref = f"A3:W{len(df_final) + 3}"
 
-                fill_zebrado = PatternFill(start_color="F9FAFB", end_color="F9FAFB", fill_type="solid")
-                fill_cab_status_divergente = PatternFill(start_color="9C0006", end_color="9C0006", fill_type="solid")
-                fill_cab_status_convergente = PatternFill(start_color="006100", end_color="006100", fill_type="solid")
+                # PALETA DE CORES MODERNA E DISTINTA POR GRUPOS (HEX CORES)
+                # Cores de Fundo para os Grupos (Super Cabeçalhos e Cabeçalhos)
+                COLOR_NEUTRO_CINZA = "EAECEE"  # Identificação
+                COLOR_AZUL_CORP = "2E86C1"     # EAN / Código
+                COLOR_CINZA_DESC = "D5D8DC"    # Descrições
+                COLOR_TEAL_QTD = "117A65"      # Quantidades (Verde Água Escuro)
+                COLOR_AZUL_NCM = "2874A6"      # NCM
+                COLOR_ROXO_ICMS = "7D3C98"     # ICMS & Alíquotas
+                COLOR_LARANJA_RED = "B9770E"   # Redução de Base (Âmbar/Laranja Escuro)
+                COLOR_PRETO_ST = "34495E"      # Tipo Cálculo ST
 
-                font_super_header_xml = Font(bold=True, size=11, color="FFFFFF")
-                font_super_header_erp = Font(bold=True, size=11, color="333333")
-                font_header_default_xml = Font(bold=True, size=10, color="FFFFFF")
-                font_header_default_erp = Font(bold=True, size=10, color="333333")
+                fill_neutro = PatternFill(start_color=COLOR_NEUTRO_CINZA, end_color=COLOR_NEUTRO_CINZA, fill_type="solid")
+                fill_ean = PatternFill(start_color=COLOR_AZUL_CORP, end_color=COLOR_AZUL_CORP, fill_type="solid")
+                fill_desc = PatternFill(start_color=COLOR_CINZA_DESC, end_color=COLOR_CINZA_DESC, fill_type="solid")
+                fill_qtd = PatternFill(start_color=COLOR_TEAL_QTD, end_color=COLOR_TEAL_QTD, fill_type="solid")
+                fill_ncm = PatternFill(start_color=COLOR_AZUL_NCM, end_color=COLOR_AZUL_NCM, fill_type="solid")
+                fill_icms = PatternFill(start_color=COLOR_ROXO_ICMS, end_color=COLOR_ROXO_ICMS, fill_type="solid")
+                fill_red = PatternFill(start_color=COLOR_LARANJA_RED, end_color=COLOR_LARANJA_RED, fill_type="solid")
+                fill_st = PatternFill(start_color=COLOR_PRETO_ST, end_color=COLOR_PRETO_ST, fill_type="solid")
+
+                font_super_white = Font(bold=True, size=11, color="FFFFFF")
+                font_super_dark = Font(bold=True, size=11, color="2C3E50")
+                font_header_white = Font(bold=True, size=10, color="FFFFFF")
+                font_header_dark = Font(bold=True, size=10, color="2C3E50")
                 font_header_status = Font(bold=True, size=10, color="FFFFFF")
 
-                color_destaque_xml = "1F4E78"
-                color_neutro_geral = "E0E2E5"
-
-                fill_cab_xml = PatternFill(start_color=color_destaque_xml, end_color=color_destaque_xml, fill_type="solid")
-                fill_cab_neutro = PatternFill(start_color=color_neutro_geral, end_color=color_neutro_geral, fill_type="solid")
+                fill_zebrado = PatternFill(start_color="F8F9F9", end_color="F8F9F9", fill_type="solid")
+                fill_cab_status_divergente = PatternFill(start_color="9C0006", end_color="9C0006", fill_type="solid")
+                fill_cab_status_convergente = PatternFill(start_color="006100", end_color="006100", fill_type="solid")
 
                 borda_branca = Border(
                     left=Side(style='thin', color='FFFFFF'), right=Side(style='thin', color='FFFFFF'),
                     top=Side(style='thin', color='FFFFFF'), bottom=Side(style='thin', color='FFFFFF')
                 )
-                borda_divisoria_direita = Border(right=Side(style='medium', color='D9D9D9'))
+                borda_divisoria_direita = Border(right=Side(style='medium', color='BDC3C7'))
 
+                # Definição dos Grupos: (Nome, Coluna Inicial, Coluna Final, Fill, Font Super)
                 super_grupos = [
-                    ("IDENTIFICAÇÃO", 1, 2, fill_cab_neutro, font_super_header_erp),
-                    ("CÓDIGO E CÓDIGO DE BARRAS (EAN) [XML]", 3, 6, fill_cab_xml, font_super_header_xml),
-                    ("DESCRIÇÕES COMPARATIVAS", 7, 8, fill_cab_neutro, font_super_header_erp),
-                    ("QUANTIDADES [XML]", 9, 11, fill_cab_xml, font_super_header_xml),
-                    ("CLASSIFICAÇÃO FISCAL (NCM) [XML]", 12, 14, fill_cab_xml, font_super_header_xml),
-                    ("ALÍQUOTAS DE ICMS [XML]", 15, 19, fill_cab_xml, font_super_header_xml),
-                    ("REDUÇÃO DE BASE DE CÁLCULO [XML]", 20, 22, fill_cab_xml, font_super_header_xml),
-                    ("TIPO CÁLCULO ST", 23, 23, fill_cab_neutro, font_super_header_erp)
+                    ("IDENTIFICAÇÃO", 1, 2, fill_neutro, font_super_dark),
+                    ("CÓDIGO E CÓDIGO DE BARRAS (EAN)", 3, 6, fill_ean, font_super_white),
+                    ("DESCRIÇÕES COMPARATIVAS", 7, 8, fill_desc, font_super_dark),
+                    ("QUANTIDADES", 9, 11, fill_qtd, font_super_white),
+                    ("CLASSIFICAÇÃO FISCAL (NCM)", 12, 14, fill_ncm, font_super_white),
+                    ("ALÍQUOTAS DE ICMS E ORIGEM", 15, 19, fill_icms, font_super_white),
+                    ("REDUÇÃO DE BASE DE CÁLCULO", 20, 22, fill_red, font_super_white),
+                    ("TIPO CÁLCULO ST", 23, 23, fill_st, font_super_white)
                 ]
 
                 for label, col_start, col_end, fill_obj, font_obj in super_grupos:
@@ -390,6 +399,18 @@ if arquivo_xml and arquivo_dados:
                     status_has_divergence[sc] = (df_final[sc] == 'DIVERGENTE').any() if sc in df_final.columns else False
 
                 headers = colunas_ordem
+                
+                # Mapeamento de cor de fundo dos cabeçalhos da linha 3 conforme o grupo
+                def obter_fill_cabecalho(col_idx):
+                    if col_idx in (1, 2): return fill_neutro, font_header_dark
+                    elif 3 <= col_idx <= 6: return fill_ean, font_header_white
+                    elif 7 <= col_idx <= 8: return fill_desc, font_header_dark
+                    elif 9 <= col_idx <= 11: return fill_qtd, font_header_white
+                    elif 12 <= col_idx <= 14: return fill_ncm, font_header_white
+                    elif 15 <= col_idx <= 19: return fill_icms, font_header_white
+                    elif 20 <= col_idx <= 22: return fill_red, font_header_white
+                    else: return fill_st, font_header_white
+
                 for col_idx, col_name in enumerate(headers, 1):
                     cell = worksheet.cell(row=3, column=col_idx)
                     cell.value = col_name
@@ -405,12 +426,10 @@ if arquivo_xml and arquivo_dados:
                         else:
                             cell.fill = fill_cab_status_convergente
                             cell.font = font_header_status
-                    elif 'NF' in col_name or col_name in ('EAN_NF', 'Qtd_NF', 'NCM_NF', 'Origem_XML', 'ICMS_NF', 'pRedBC_NF'):
-                        cell.fill = fill_cab_xml
-                        cell.font = font_header_default_xml
                     else:
-                        cell.fill = fill_cab_neutro
-                        cell.font = font_header_default_erp
+                        f_obj, fn_obj = obter_fill_cabecalho(col_idx)
+                        cell.fill = f_obj
+                        cell.font = fn_obj
 
                 fill_cinza = PatternFill(start_color="D9D9D9", end_color="D9D9D9", fill_type="solid")
                 fill_vermelho_claro = PatternFill(start_color="FFC7CE", end_color="FFC7CE", fill_type="solid")
