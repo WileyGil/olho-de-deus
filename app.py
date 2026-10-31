@@ -84,21 +84,65 @@ def extrair_fator_embalagem(uCom):
     return 1.0
 
 # ==========================================
-# 2. INTERFACE STREAMLIT
+# 2. INTERFACE STREAMLIT (REESTILIZADA)
 # ==========================================
-st.set_page_config(page_title="Auditoria de Notas", layout="wide")
-st.title("Auditoria de Notas")
-st.markdown("Faça o upload do arquivo XML da nota e do arquivo do WinThor (.csv ou .xlsx) para cruzar as informações com base absoluta na ordem do XML.")
+st.set_page_config(page_title="Auditoria de Notas", page_icon="📊", layout="wide")
 
-col1, col2 = st.columns(2)
-with col1:
-    arquivo_xml = st.file_uploader("Upload do XML (Fornecedor)", type=["xml"])
-with col2:
-    arquivo_dados = st.file_uploader("Upload do Relatório WinThor", type=["csv", "xlsx"])
+# Estilização CSS personalizada para dar um ar corporativo refinado
+st.markdown("""
+    <style>
+        .main-header {
+            font-size: 2.2rem;
+            font-weight: 700;
+            color: #F8F9F9;
+            margin-bottom: 0px;
+        }
+        .sub-header {
+            font-size: 1rem;
+            color: #BDC3C7;
+            margin-bottom: 25px;
+        }
+        .card-container {
+            background-color: #151922;
+            padding: 20px;
+            border-radius: 10px;
+            border: 1px solid #2A303C;
+            margin-bottom: 20px;
+        }
+    </style>
+""", unsafe_allow_html=True)
 
+# Cabeçalho Principal Organizado
+st.markdown('<p class="main-header">📊 Auditoria de Notas Fiscais</p>', unsafe_allow_html=True)
+st.markdown('<p class="sub-header">Cruzamento inteligente de dados entre XML (Fornecedor) e Relatórios WinThor (ERP) com base absoluta na ordem dos itens.</p>', unsafe_allow_html=True)
+
+# Container Principal para os Uploads
+with st.container():
+    st.markdown('<div class="card-container">', unsafe_allow_html=True)
+    col1, col2 = st.columns(2, gap="medium")
+    with col1:
+        st.markdown("##### 📁 Documento Fiscal (XML)")
+        arquivo_xml = st.file_uploader("Selecione o arquivo XML da nota", type=["xml"], label_visibility="collapsed")
+    with col2:
+        st.markdown("##### 📁 Relatório ERP (WinThor)")
+        arquivo_dados = st.file_uploader("Selecione o relatório (.csv ou .xlsx)", type=["csv", "xlsx"], label_visibility="collapsed")
+    st.markdown('</div>', unsafe_allow_html=True)
+
+# Processamento condicional apenas se ambos os arquivos estiverem presentes
 if arquivo_xml and arquivo_dados:
-    if st.button("Processar Auditoria"):
-        with st.spinner("Analisando com base fixa no XML..."):
+    st.markdown("---")
+    
+    # Status visual de prontidão
+    col_stat1, col_stat2, col_btn = st.columns([1, 1, 2])
+    with col_stat1:
+        st.success("✅ XML Carregado")
+    with col_stat2:
+        st.success("✅ WinThor Carregado")
+    with col_btn:
+        processar = st.button("🚀 Processar Auditoria e Gerar Relatório", use_container_width=True)
+
+    if processar:
+        with st.spinner("Analisando itens e cruzando tributações com base no XML..."):
             # ==========================================
             # 3. EXTRAÇÃO DO XML (NF - O CENTRO DE TUDO)
             # ==========================================
@@ -516,10 +560,11 @@ if arquivo_xml and arquivo_dados:
 
             excel_buffer.seek(0)
             
-            st.success("Auditoria finalizada com sucesso!")
+            st.success("Auditoria gerada com sucesso! Pronto para download.")
             st.download_button(
                 label="📥 Baixar Relatório Executivo (Excel)",
                 data=excel_buffer.getvalue(),
                 file_name=nome_arquivo_saida,
-                mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
+                mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+                use_container_width=True
             )
