@@ -88,7 +88,6 @@ def extrair_fator_embalagem(uCom):
 # ==========================================
 st.set_page_config(page_title="Auditoria de Notas | Dashboard", page_icon="📊", layout="wide")
 
-# CSS Customizado com foco em compactação e responsividade para telas menores
 st.markdown("""
     <style>
         .stApp {
@@ -99,7 +98,6 @@ st.markdown("""
             padding-top: 1.5rem;
             padding-bottom: 2rem;
         }
-        /* Top bar compacta */
         .dashboard-header {
             background: linear-gradient(135deg, #1B2631 0%, #2C3E50 100%);
             padding: 16px 20px;
@@ -120,7 +118,6 @@ st.markdown("""
             margin-top: 3px;
             margin-bottom: 0;
         }
-        /* Cards Compactos */
         .card-panel {
             background-color: #FFFFFF;
             border: 1px solid #E5E7E9;
@@ -138,7 +135,6 @@ st.markdown("""
     </style>
 """, unsafe_allow_html=True)
 
-# Cabeçalho Compacto
 st.markdown("""
     <div class="dashboard-header">
         <p class="dashboard-title">📊 Painel de Auditoria de Notas Fiscais</p>
@@ -146,7 +142,6 @@ st.markdown("""
     </div>
 """, unsafe_allow_html=True)
 
-# Layout de Uploads Compacto
 col_up1, col_up2 = st.columns(2, gap="medium")
 
 with col_up1:
@@ -161,22 +156,28 @@ with col_up2:
     arquivo_dados = st.file_uploader("Upload WinThor", type=["csv", "xlsx"], label_visibility="collapsed")
     st.markdown('</div>', unsafe_allow_html=True)
 
-# Seção de Seleção de Blocos (Compacta em duas linhas)
+# Seção de Seleção de Blocos com a opção "Marcar/Desmarcar Todos"
 st.markdown('<div class="card-panel">', unsafe_allow_html=True)
-st.markdown('<p class="card-title">⚙️ Seleção de Blocos para Exportação</p>', unsafe_allow_html=True)
+top_col1, top_col2 = st.columns([4, 1])
+with top_col1:
+    st.markdown('<p class="card-title" style="margin-bottom:0;">⚙️ Seleção de Blocos para Exportação</p>', unsafe_allow_html=True)
+with top_col2:
+    selecionar_todos = st.checkbox("Selecionar Todos", value=True)
+
+st.write("")
 b_col1, b_col2, b_col3, b_col4 = st.columns(4)
 with b_col1:
-    inc_ident = st.checkbox("Identificação", value=True)
-    inc_qtd = st.checkbox("Quantidades", value=True)
+    inc_ident = st.checkbox("Identificação", value=selecionar_todos)
+    inc_qtd = st.checkbox("Quantidades", value=selecionar_todos)
 with b_col2:
-    inc_ean = st.checkbox("Código & EAN", value=True)
-    inc_ncm = st.checkbox("NCM (Fiscal)", value=True)
+    inc_ean = st.checkbox("Código & EAN", value=selecionar_todos)
+    inc_ncm = st.checkbox("NCM (Fiscal)", value=selecionar_todos)
 with b_col3:
-    inc_desc = st.checkbox("Descrições", value=True)
-    inc_icms = st.checkbox("ICMS & Origem", value=True)
+    inc_desc = st.checkbox("Descrições", value=selecionar_todos)
+    inc_icms = st.checkbox("ICMS & Origem", value=selecionar_todos)
 with b_col4:
-    inc_red = st.checkbox("Redução Base", value=True)
-    inc_st = st.checkbox("Cálculo ST", value=True)
+    inc_red = st.checkbox("Redução Base", value=selecionar_todos)
+    inc_st = st.checkbox("Cálculo ST", value=selecionar_todos)
 st.markdown('</div>', unsafe_allow_html=True)
 
 if arquivo_xml and arquivo_dados:
@@ -298,9 +299,6 @@ if arquivo_xml and arquivo_dados:
             # 5. CRUZAMENTO BASEADO ESTRITAMENTE NA ORDEM DO XML
             # ==========================================
             dados_relatorio = []
-            total_itens = max(len(itens_xml), len(itens_csv))
-            qtd_divergentes = 0
-            qtd_ok = 0
 
             for item_x, item_c in zip_longest(itens_xml, itens_csv, fillvalue=None):
                 linha = {}
@@ -322,7 +320,6 @@ if arquivo_xml and arquivo_dados:
                         '%Alíq.Ext. ST Guia_Whintor': '-', 'Tipo_Calculo_WINTHOR': '-'
                     })
 
-                tem_divergencia = False
                 if item_x and item_c:
                     linha['Status_Geral'] = 'PAREADO'
 
@@ -336,7 +333,6 @@ if arquivo_xml and arquivo_dados:
                         linha['Status_EAN'] = 'OK'
                     else:
                         linha['Status_EAN'] = 'DIVERGENTE'
-                        tem_divergencia = True
 
                     icms_xml = round(item_x['ICMS_NF'], 2)
                     icms_csv = round(item_c['ICMS_WINTHOR'], 2)
@@ -345,7 +341,6 @@ if arquivo_xml and arquivo_dados:
                         linha['Status_ICMS_Aliq'] = 'OK'
                     else:
                         linha['Status_ICMS_Aliq'] = 'DIVERGENTE'
-                        tem_divergencia = True
 
                     pred_xml = round(item_x['pRedBC_NF'], 4)
                     red_csv = round(item_c['% ICMS red. Whintor'], 4)
@@ -359,7 +354,6 @@ if arquivo_xml and arquivo_dados:
                         linha['Status_Red_BC'] = 'OK'
                     else:
                         linha['Status_Red_BC'] = 'DIVERGENTE'
-                        tem_divergencia = True
 
                     tipo_calc = str(item_c.get('Tipo_Calculo_WINTHOR', '')).strip().upper()
                     if tipo_calc == 'N':
@@ -370,8 +364,6 @@ if arquivo_xml and arquivo_dados:
                         linha['Tipo_Calculo_ST'] = item_c['Tipo_Calculo_WINTHOR']
 
                     linha['Status_NCM'] = 'OK' if str(item_x['NCM_NF']) == str(item_c['NCM_WINTHOR']) else 'DIVERGENTE'
-                    if linha['Status_NCM'] == 'DIVERGENTE':
-                        tem_divergencia = True
                     
                     qtd_xml_pura = item_x['Qtd_NF']
                     qtd_win = item_c['Qtd_WINTHOR']
@@ -382,34 +374,13 @@ if arquivo_xml and arquivo_dados:
                         linha['Status_Qtd'] = 'OK'
                     else:
                         linha['Status_Qtd'] = 'DIVERGENTE'
-                        tem_divergencia = True
 
                 else:
-                    tem_divergencia = True
                     linha['Status_Geral'] = 'SOBRA'
                     for st_col in ['Status_EAN', 'Status_ICMS_Aliq', 'Status_Red_BC', 'Tipo_Calculo_ST', 'Status_NCM', 'Status_Qtd']:
                         linha[st_col] = '-'
 
-                if tem_divergencia:
-                    qtd_divergentes += 1
-                else:
-                    qtd_ok += 1
-
                 dados_relatorio.append(linha)
-
-            # ==========================================
-            # EXIBIÇÃO DOS CARDS DE MÉTRICAS (KPIs)
-            # ==========================================
-            st.markdown("### 📈 Resumo da Auditoria")
-            kpi1, kpi2, kpi3, kpi4 = st.columns(4)
-            with kpi1:
-                st.metric("Número da Nota", numero_nf)
-            with kpi2:
-                st.metric("Total de Itens", total_itens)
-            with kpi3:
-                st.metric("Itens Conformes (OK)", qtd_ok, delta="OK")
-            with kpi4:
-                st.metric("Itens com Divergências", qtd_divergentes, delta="-Divergentes" if qtd_divergentes > 0 else "0", delta_color="inverse")
 
             # ==========================================
             # FILTRAGEM DE COLUNAS CONFORME OS BLOCOS SELECIONADOS
