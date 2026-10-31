@@ -89,7 +89,7 @@ def extrair_fator_embalagem(uCom):
 # ==========================================
 st.set_page_config(page_title="Auditoria Olho de Deus", layout="wide")
 st.title("Auditoria de Notas")
-st.markdown("Faça o upload do arquivo XML da nota e do arquivoതിനുള്ള WinThor (.csv ou .xlsx) para cruzar as informações com base absoluta na ordem do XML.")
+st.markdown("Faça o upload do arquivo XML da nota e do arquivo do WinThor (.csv ou .xlsx) para cruzar as informações com base absoluta na ordem do XML.")
 
 col1, col2 = st.columns(2)
 with col1:
@@ -134,7 +134,6 @@ if arquivo_xml and arquivo_dados:
                 uCom = prod.find('ns:uCom', ns).text if prod.find('ns:uCom', ns) is not None else 'UN'
                 qCom_xml = float(prod.find('ns:qCom', ns).text) if prod.find('ns:qCom', ns) is not None else 0.0
                 
-                # Fator para conferência interna
                 fator = extrair_fator_embalagem(uCom)
 
                 vUn = float(prod.find('ns:vUnCom', ns).text) if prod.find('ns:vUnCom', ns) is not None else 0.0
@@ -164,8 +163,8 @@ if arquivo_xml and arquivo_dados:
                     'EAN_Comp_NF': ean_comp,
                     'EANTrib_Comp_NF': ean_trib_comp,
                     'NCM_NF': ncm,
-                    'Qtd_NF': qCom_xml,          # Exibe o valor original da nota (ex: 1)
-                    '_Fator_Embalagem': fator,   # Usado internamente para validação
+                    'Qtd_NF': qCom_xml,          # Exibe o valor original da nota
+                    '_Fator_Embalagem': fator,   # Armazena o fator extraído
                     'Vl_Unit_NF': vUn,
                     'Vl_Total_NF': vTot,
                     'Origem_XML': origem_desc,
@@ -278,9 +277,18 @@ if arquivo_xml and arquivo_dados:
 
                     linha['Status_NCM'] = 'OK' if str(item_x['NCM_NF']) == str(item_c['NCM_WINTHOR']) else 'DIVERGENTE'
                     
-                    # CONVERSÃO INTELIGENTE APLICADA APENAS NO STATUS DE QUANTIDADE
-                    qtd_xml_convertida = item_x['Qtd_NF'] * item_x['_Fator_Embalagem']
-                    linha['Status_Qtd'] = 'OK' if round(qtd_xml_convertida, 4) == round(item_c['Qtd_WINTHOR'], 4) else 'DIVERGENTE'
+                    # CONVERSÃO INTELIGENTE BLINDADA:
+                    # Se a quantidade do WinThor for igual ao XML puro, usa ela. 
+                    # Se não, testa se a conversão com o fator bate.
+                    qtd_xml_pura = item_x['Qtd_NF']
+                    qtd_win = item_c['Qtd_WINTHOR']
+                    fator = item_x['_Fator_Embalagem']
+                    qtd_xml_convertida = qtd_xml_pura * fator
+
+                    if round(qtd_xml_pura, 4) == round(qtd_win, 4) or round(qtd_xml_convertida, 4) == round(qtd_win, 4):
+                        linha['Status_Qtd'] = 'OK'
+                    else:
+                        linha['Status_Qtd'] = 'DIVERGENTE'
 
                 elif item_x and not item_c:
                     linha['Status_Geral'] = 'SOBRA NF (SEM PAR)'
