@@ -52,11 +52,19 @@ def converte_float_br(valor):
     except:
         return 0.0
 
-def obter_icms_xml(det_node, ns):
-    pICMS = det_node.find('.//ns:pICMS', ns)
-    if pICMS is not None and pICMS.text:
-        return float(pICMS.text)
-    return 0.0
+def obter_descricao_origem(orig_cod):
+    tabela_origem = {
+        '0': '0 - Nacional',
+        '1': '1 - Estrangeira (Imp. Direta)',
+        '2': '2 - Estrangeira (Mercado Interno)',
+        '3': '3 - Nacional (Imp. > 40% e <= 70%)',
+        '4': '4 - Nacional (Processo Produtivo Básico)',
+        '5': '5 - Nacional (Imp. <= 40%)',
+        '6': '6 - Estrangeira (Sem Similar Nacional)',
+        '7': '7 - Estrangeira (Mercado Interno, Sem Similar)',
+        '8': '8 - Nacional (Imp. > 70%)'
+    }
+    return tabela_origem.get(str(orig_cod).strip(), f"{orig_cod} - Desconhecida")
 
 # ==========================================
 # 2. INTERFACE STREAMLIT
@@ -107,10 +115,21 @@ if arquivo_xml and arquivo_dados:
                 qtd = float(prod.find('ns:qCom', ns).text) if prod.find('ns:qCom', ns) is not None else 0.0
                 vUn = float(prod.find('ns:vUnCom', ns).text) if prod.find('ns:vUnCom', ns) is not None else 0.0
                 vTot = float(prod.find('ns:vProd', ns).text) if prod.find('ns:vProd', ns) is not None else 0.0
-                icms = obter_icms_xml(det, ns)
-
-                orig_node = det.find('.//ns:orig', ns)
-                origem = orig_node.text if orig_node is not None else ''
+                
+                # Extração correta de pICMS e Origem de dentro do grupo ICMS
+                icms_node = det.find('.//ns:ICMS', ns)
+                icms = 0.0
+                origem_desc = '0 - Nacional'
+                
+                if icms_node is not None and len(icms_node) > 0:
+                    sub_icms = icms_node[0]
+                    pICMS_node = sub_icms.find('ns:pICMS', ns)
+                    if pICMS_node is not None and pICMS_node.text:
+                        icms = float(pICMS_node.text)
+                        
+                    orig_node = sub_icms.find('ns:orig', ns)
+                    if orig_node is not None and orig_node.text:
+                        origem_desc = obter_descricao_origem(orig_node.text)
 
                 pRedBC_node = det.find('.//ns:pRedBC', ns)
                 pRedBC = float(pRedBC_node.text) if pRedBC_node is not None and pRedBC_node.text else 0.0
@@ -126,7 +145,7 @@ if arquivo_xml and arquivo_dados:
                     'Vl_Unit_NF': vUn,
                     'Vl_Total_NF': vTot,
                     'ICMS_NF': icms,
-                    'Origem_XML': origem,
+                    'Origem_XML': origem_desc,
                     'pRedBC_NF': pRedBC
                 })
 
