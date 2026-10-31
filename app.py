@@ -327,50 +327,29 @@ if arquivo_xml and arquivo_dados:
                 worksheet.auto_filter.ref = f"A3:W{len(df_final) + 3}"
 
                 # ==========================================
-                # PALETA CORPORATIVA PROFISSIONAL COM DISTINÇÃO XML vs CSV
+                # PADRÃO VISUAL PROFISSIONAL IDÊNTICO AO DA SUA IMAGEM
                 # ==========================================
                 
-                # Tons Base por Bloco (Super Cabeçalhos - Linhas 1 e 2)
-                FILL_BLOCO_GERAL = PatternFill(start_color="34495E", end_color="34495E", fill_type="solid")     # Cinza Chumbo
-                FILL_BLOCO_EAN = PatternFill(start_color="1B4F72", end_color="1B4F72", fill_type="solid")       # Azul Petróleo Escuro
-                FILL_BLOCO_DESC = PatternFill(start_color="5D6D7E", end_color="5D6D7E", fill_type="solid")     # Cinza Ardosia
-                FILL_BLOCO_QTD = PatternFill(start_color="2E86C1", end_color="2E86C1", fill_type="solid")      # Azul Aço
-                FILL_BLOCO_NCM = PatternFill(start_color="154360", end_color="154360", fill_type="solid")      # Azul Naval
-                FILL_BLOCO_ICMS = PatternFill(start_color="212F3D", end_color="212F3D", fill_type="solid")     # Azul Índigo Escuro
-                FILL_BLOCO_RED = PatternFill(start_color="273746", end_color="273746", fill_type="solid")      # Cinza Antracite
-
-                # Tons Específicos para a Linha 3 (Cabeçalhos de Colunas):
-                # XML = Tom sólido principal | WinThor/ERP ou Status = Tom mais suave/claro da mesma família
-                FILL_XML_SOLIDO = PatternFill(start_color="1B4F72", end_color="1B4F72", fill_type="solid")
-                FILL_CSV_SUAVE = PatternFill(start_color="85C1E9", end_color="85C1E9", fill_type="solid")        # Azul claro elegante para WinThor
+                # Cores Base idênticas ao modelo da imagem (Azul Escuro Profundo e Cinza Metálico Suave)
+                COLOR_BLOCO_DARK = "1B2631"    # Azul Chumbo Escuro (Super Cabeçalhos)
+                COLOR_XML_SOLID = "212F3D"     # Tom Sólido para Colunas XML
+                COLOR_WIN_SOFT = "7F8C8D"      # Cinza Metálico Suave idêntico à imagem para Colunas WinThor
                 
-                FILL_XML_QTD = PatternFill(start_color="2E86C1", end_color="2E86C1", fill_type="solid")
-                FILL_CSV_QTD = PatternFill(start_color="AED6F1", end_color="AED6F1", fill_type="solid")
+                fill_bloco = PatternFill(start_color=COLOR_BLOCO_DARK, end_color=COLOR_BLOCO_DARK, fill_type="solid")
+                fill_xml = PatternFill(start_color=COLOR_XML_SOLID, end_color=COLOR_XML_SOLID, fill_type="solid")
+                fill_win = PatternFill(start_color=COLOR_WIN_SOFT, end_color=COLOR_WIN_SOFT, fill_type="solid")
 
-                FILL_XML_NCM = PatternFill(start_color="154360", end_color="154360", fill_type="solid")
-                FILL_CSV_NCM = PatternFill(start_color="7FB3D5", end_color="7FB3D5", fill_type="solid")
+                fill_zebrado = PatternFill(start_color="F8F9F9", end_color="F8F9F9", fill_type="solid")
+                fill_cinza_sobra = PatternFill(start_color="EAEDED", end_color="EAEDED", fill_type="solid")
 
-                FILL_XML_ICMS = PatternFill(start_color="212F3D", end_color="212F3D", fill_type="solid")
-                FILL_CSV_ICMS = PatternFill(start_color="85929E", end_color="85929E", fill_type="solid")
-
-                FILL_XML_RED = PatternFill(start_color="273746", end_color="273746", fill_type="solid")
-                FILL_CSV_RED = PatternFill(start_color="95A5A6", end_color="95A5A6", fill_type="solid")
-
-                FILL_GERAL_CAB = PatternFill(start_color="34495E", end_color="34495E", fill_type="solid")
-                FILL_GERAL_SUAVE = PatternFill(start_color="ABB2B9", end_color="ABB2B9", fill_type="solid")
-
-                FILL_ZEBRADO = PatternFill(start_color="F8F9F9", end_color="F8F9F9", fill_type="solid")
-                FILL_CINZA_SOBRA = PatternFill(start_color="EAEDED", end_color="EAEDED", fill_type="solid")
-
-                # Cores de Status
-                FILL_STATUS_DIVERGENTE = PatternFill(start_color="9C0006", end_color="9C0006", fill_type="solid")
-                FILL_STATUS_CONVERGENTE = PatternFill(start_color="196F3D", end_color="196F3D", fill_type="solid")
-                FILL_CEL_DIVERGENTE = PatternFill(start_color="FADBD8", end_color="FADBD8", fill_type="solid")
-                FILL_CEL_CONVERGENTE = PatternFill(start_color="D4EFDF", end_color="D4EFDF", fill_type="solid")
+                # Status
+                fill_status_divergente = PatternFill(start_color="9C0006", end_color="9C0006", fill_type="solid")
+                fill_status_convergente = PatternFill(start_color="196F3D", end_color="196F3D", fill_type="solid")
+                fill_cel_divergente = PatternFill(start_color="FADBD8", end_color="FADBD8", fill_type="solid")
+                fill_cel_convergente = PatternFill(start_color="D4EFDF", end_color="D4EFDF", fill_type="solid")
 
                 font_super_white = Font(bold=True, size=11, color="FFFFFF")
                 font_header_white = Font(bold=True, size=10, color="FFFFFF")
-                font_header_dark = Font(bold=True, size=10, color="2C3E50")
                 font_header_status = Font(bold=True, size=10, color="FFFFFF")
                 font_divergente = Font(color="9C0006", bold=True)
                 font_normal = Font(color="000000", bold=False)
@@ -381,16 +360,16 @@ if arquivo_xml and arquivo_dados:
                 )
                 borda_divisoria_direita = Border(right=Side(style='medium', color='BDC3C7'))
 
-                # Definição dos Super Grupos (Linhas 1 e 2) - TODOS preenchidos de forma profissional
+                # Definição dos Super Grupos (Linhas 1 e 2)
                 super_grupos = [
-                    ("IDENTIFICAÇÃO", 1, 2, FILL_BLOCO_GERAL, font_super_white),
-                    ("CÓDIGO E CÓDIGO DE BARRAS (EAN)", 3, 6, FILL_BLOCO_EAN, font_super_white),
-                    ("DESCRIÇÕES COMPARATIVAS", 7, 8, FILL_BLOCO_DESC, font_super_white),
-                    ("QUANTIDADES", 9, 11, FILL_BLOCO_QTD, font_super_white),
-                    ("CLASSIFICAÇÃO FISCAL (NCM)", 12, 14, FILL_BLOCO_NCM, font_super_white),
-                    ("ALÍQUOTAS DE ICMS E ORIGEM", 15, 19, FILL_BLOCO_ICMS, font_super_white),
-                    ("REDUÇÃO DE BASE DE CÁLCULO", 20, 22, FILL_BLOCO_RED, font_super_white),
-                    ("TIPO CÁLCULO ST", 23, 23, FILL_BLOCO_GERAL, font_super_white)
+                    ("IDENTIFICAÇÃO", 1, 2, fill_bloco, font_super_white),
+                    ("CÓDIGO E CÓDIGO DE BARRAS (EAN)", 3, 6, fill_bloco, font_super_white),
+                    ("DESCRIÇÕES COMPARATIVAS", 7, 8, fill_bloco, font_super_white),
+                    ("QUANTIDADES", 9, 11, fill_bloco, font_super_white),
+                    ("CLASSIFICAÇÃO FISCAL (NCM)", 12, 14, fill_bloco, font_super_white),
+                    ("ALÍQUOTAS DE ICMS E ORIGEM", 15, 19, fill_bloco, font_super_white),
+                    ("REDUÇÃO DE BASE DE CÁLCULO", 20, 22, fill_bloco, font_super_white),
+                    ("TIPO CÁLCULO ST", 23, 23, fill_bloco, font_super_white)
                 ]
 
                 for label, col_start, col_end, fill_obj, font_obj in super_grupos:
@@ -419,26 +398,12 @@ if arquivo_xml and arquivo_dados:
 
                 headers = colunas_ordem
                 
-                # Mapeamento detalhado da Linha 3 (Cabeçalhos): Distingue XML (tom forte) de WinThor/Status (tom suave)
-                def obter_fill_cabecalho(col_idx):
-                    if col_idx in (1, 2): return FILL_GERAL_CAB, font_header_white
-                    elif col_idx in (3, 4): return FILL_XML_SOLIDO, font_header_white     # EAN NF
-                    elif col_idx == 5: return FILL_CSV_SUAVE, font_header_dark             # EAN WinThor
-                    elif col_idx == 6: return FILL_CSV_SUAVE, font_header_dark             # Status EAN
-                    elif col_idx in (7, 8): return FILL_BLOCO_DESC, font_header_white      # Descrições
-                    elif col_idx == 9: return FILL_XML_QTD, font_header_white              # Qtd NF
-                    elif col_idx == 10: return FILL_CSV_QTD, font_header_dark              # Qtd WinThor
-                    elif col_idx == 11: return FILL_CSV_QTD, font_header_dark              # Status Qtd
-                    elif col_idx == 12: return FILL_XML_NCM, font_header_white             # NCM NF
-                    elif col_idx == 13: return FILL_CSV_NCM, font_header_dark              # NCM WinThor
-                    elif col_idx == 14: return FILL_CSV_NCM, font_header_dark              # Status NCM
-                    elif col_idx in (15, 16): return FILL_XML_ICMS, font_header_white      # Origem / ICMS NF
-                    elif col_idx == 17: return FILL_CSV_ICMS, font_header_white            # ICMS WinThor
-                    elif col_idx == 18: return FILL_CSV_ICMS, font_header_white            # ST Guia
-                    elif col_idx == 19: return FILL_CSV_ICMS, font_header_white            # Status ICMS
-                    elif col_idx in (20, 21): return FILL_XML_RED, font_header_white       # Redução NF / WinThor
-                    elif col_idx == 22: return FILL_CSV_RED, font_header_white             # Status Redução
-                    else: return FILL_GERAL_CAB, font_header_white                         # Tipo Cálculo ST
+                # Regra exata baseada na imagem: XML em tom escuro sólido, WinThor/CSV e Status em tom metálico suave
+                def obter_fill_cabecalho(col_idx, col_name):
+                    if 'WINTHOR' in col_name or 'Whintor' in col_name or 'Status' in col_name:
+                        return fill_win
+                    else:
+                        return fill_xml
 
                 for col_idx, col_name in enumerate(headers, 1):
                     cell = worksheet.cell(row=3, column=col_idx)
@@ -450,15 +415,14 @@ if arquivo_xml and arquivo_dados:
 
                     if col_name in status_has_divergence:
                         if status_has_divergence[col_name]:
-                            cell.fill = FILL_STATUS_DIVERGENTE
+                            cell.fill = fill_status_divergente
                             cell.font = font_header_status
                         else:
-                            cell.fill = FILL_STATUS_CONVERGENTE
+                            cell.fill = fill_status_convergente
                             cell.font = font_header_status
                     else:
-                        f_obj, fn_obj = obter_fill_cabecalho(col_idx)
-                        cell.fill = f_obj
-                        cell.font = fn_obj
+                        cell.fill = obter_fill_cabecalho(col_idx, col_name)
+                        cell.font = font_header_white
 
                 align_center_cols = [
                     'Linha_NF', 'Linha_WINTHOR', 'EAN_NF', 'EAN_WINTHOR', 'Qtd_NF', 'Qtd_WINTHOR',
@@ -482,7 +446,7 @@ if arquivo_xml and arquivo_dados:
                         cell = worksheet.cell(row=row, column=col_idx)
 
                         if is_even:
-                            cell.fill = FILL_ZEBRADO
+                            cell.fill = fill_zebrado
 
                         default_border = borda_divisoria_direita if col_idx in (2, 6, 8, 11, 14, 19, 22, 23) else borda_branca
                         cell.border = default_border
@@ -519,7 +483,7 @@ if arquivo_xml and arquivo_dados:
 
                     if 'SOBRA' in str(linha_dict.get('Status_Geral', '')):
                         for col_idx in range(1, len(headers) + 1):
-                            worksheet.cell(row=row, column=col_idx).fill = FILL_CINZA_SOBRA
+                            worksheet.cell(row=row, column=col_idx).fill = fill_cinza_sobra
                         continue
 
                     for col_status, colunas_dados in status_dependents.items():
@@ -529,13 +493,13 @@ if arquivo_xml and arquivo_dados:
                             val_status = cell_status.value
 
                             if val_status == 'DIVERGENTE':
-                                cell_status.fill = FILL_CEL_DIVERGENTE
+                                cell_status.fill = fill_cel_divergente
                                 for col_afetada in colunas_dados:
                                     if col_afetada in headers:
                                         cell_dado = worksheet.cell(row=row, column=headers.index(col_afetada) + 1)
                                         cell_dado.font = font_divergente
                             elif val_status == 'OK':
-                                cell_status.fill = FILL_CEL_CONVERGENTE
+                                cell_status.fill = fill_cel_convergente
                                 for col_afetada in colunas_dados:
                                     if col_afetada in headers:
                                         cell_dado = worksheet.cell(row=row, column=headers.index(col_afetada) + 1)
