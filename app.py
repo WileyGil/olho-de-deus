@@ -84,91 +84,108 @@ def extrair_fator_embalagem(uCom):
     return 1.0
 
 # ==========================================
-# 2. INTERFACE STREAMLIT (DESIGN EXECUTIVO)
+# 2. INTERFACE STREAMLIT (DASHBOARD EXECUTIVO)
 # ==========================================
-st.set_page_config(page_title="Auditoria de Notas", page_icon="🛡️", layout="wide")
+st.set_page_config(page_title="Auditoria de Notas | Dashboard", page_icon="📊", layout="wide")
 
-# CSS Customizado para refinamento visual corporativo (Clean & Pro)
+# Estilização CSS inspirada no padrão de dashboards corporativos (Clean, moderno e profissional)
 st.markdown("""
     <style>
-        /* Fundo geral da aplicação */
         .stApp {
-            background-color: #0E1117;
-            color: #E6EDF3;
+            background-color: #F4F6F9;
+            color: #2C3E50;
         }
-        /* Cabeçalho principal */
-        .app-title {
-            font-size: 2.2rem;
-            font-weight: 700;
+        /* Top bar corporativa */
+        .dashboard-header {
+            background: linear-gradient(135deg, #1B2631 0%, #2C3E50 100%);
+            padding: 24px 30px;
+            border-radius: 10px;
             color: #FFFFFF;
-            letter-spacing: -0.5px;
-            margin-bottom: 0px;
+            margin-bottom: 25px;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.08);
         }
-        .app-subtitle {
-            font-size: 1rem;
-            color: #8B949E;
-            margin-bottom: 30px;
+        .dashboard-title {
+            font-size: 1.8rem;
+            font-weight: 700;
+            margin: 0;
+            color: #FFFFFF;
         }
-        /* Blocos de Cartão / Container */
-        .css-1r6slb0, div[data-testid="stVerticalBlock"] > div[style*="flex-direction: column;"] > div[data-testid="stVerticalBlock"] {
-            background-color: #161B22;
+        .dashboard-subtitle {
+            font-size: 0.95rem;
+            color: #BDC3C7;
+            margin-top: 5px;
+            margin-bottom: 0;
         }
-        .upload-card {
-            background-color: #161B22;
-            border: 1px solid #30363D;
-            padding: 24px;
-            border-radius: 12px;
-            box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+        /* Cards Estilizados */
+        .card-panel {
+            background-color: #FFFFFF;
+            border: 1px solid #E5E7E9;
+            padding: 20px 24px;
+            border-radius: 10px;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.04);
+            margin-bottom: 20px;
         }
-        /* Estilização de títulos de seção */
-        .section-title {
-            font-size: 1.1rem;
+        .card-title {
+            font-size: 1.05rem;
             font-weight: 600;
-            color: #C9D1D9;
-            margin-bottom: 8px;
+            color: #34495E;
+            margin-bottom: 12px;
         }
     </style>
 """, unsafe_allow_html=True)
 
-# Título e Descrição Executiva
-st.markdown('<p class="app-title">🛡️ Sistema de Auditoria de Notas Fiscais</p>', unsafe_allow_html=True)
-st.markdown('<p class="app-subtitle">Plataforma corporativa de cruzamento e validação fiscal entre XML de fornecedores e relatórios ERP WinThor.</p>', unsafe_allow_html=True)
+# Cabeçalho Principal Estilo Dashboard
+st.markdown("""
+    <div class="dashboard-header">
+        <p class="dashboard-title">📊 Painel de Auditoria de Notas Fiscais</p>
+        <p class="dashboard-subtitle">Cruzamento automatizado e validação tributária entre XML de fornecedores e relatórios ERP WinThor.</p>
+    </div>
+""", unsafe_allow_html=True)
 
-# Layout de Cartões para os Uploads
-col1, col2 = st.columns(2, gap="large")
+# Layout de Cartões para Uploads e Configurações
+col_up1, col_up2 = st.columns(2, gap="large")
 
-with col1:
-    st.markdown('<div class="upload-card">', unsafe_allow_html=True)
-    st.markdown('<p class="section-title">📂 1. Documento Fiscal (XML)</p>', unsafe_allow_html=True)
-    st.markdown('<span style="font-size: 0.85rem; color: #8B949E;">Carregue o arquivo XML emitido pelo fornecedor.</span>', unsafe_allow_html=True)
-    st.write("")
+with col_up1:
+    st.markdown('<div class="card-panel">', unsafe_allow_html=True)
+    st.markdown('<p class="card-title">📂 1. Nota Fiscal Eletrônica (XML)</p>', unsafe_allow_html=True)
     arquivo_xml = st.file_uploader("Upload XML", type=["xml"], label_visibility="collapsed")
     st.markdown('</div>', unsafe_allow_html=True)
 
-with col2:
-    st.markdown('<div class="upload-card">', unsafe_allow_html=True)
-    st.markdown('<p class="section-title">📊 2. Relatório de Entrada (WinThor)</p>', unsafe_allow_html=True)
-    st.markdown('<span style="font-size: 0.85rem; color: #8B949E;">Carregue a planilha exportada (.csv ou .xlsx).</span>', unsafe_allow_html=True)
-    st.write("")
+with col_up2:
+    st.markdown('<div class="card-panel">', unsafe_allow_html=True)
+    st.markdown('<p class="card-title">📊 2. Relatório de Pré-Entrada (WinThor)</p>', unsafe_allow_html=True)
     arquivo_dados = st.file_uploader("Upload WinThor", type=["csv", "xlsx"], label_visibility="collapsed")
     st.markdown('</div>', unsafe_allow_html=True)
 
-# Processamento condicional apenas se ambos os arquivos estiverem presentes
+# Seção de Seleção de Blocos Gerais para o Relatório
+st.markdown('<div class="card-panel">', unsafe_allow_html=True)
+st.markdown('<p class="card-title">⚙️ Seleção de Blocos para Exportação no Relatório</p>', unsafe_allow_html=True)
+b_col1, b_col2, b_col3, b_col4 = st.columns(4)
+with b_col1:
+    inc_ident = st.checkbox("Identificação", value=True)
+    inc_ean = st.checkbox("Código & EAN", value=True)
+with b_col2:
+    inc_desc = st.checkbox("Descrições", value=True)
+    inc_qtd = st.checkbox("Quantidades", value=True)
+with b_col3:
+    inc_ncm = st.checkbox("NCM (Fiscal)", value=True)
+    inc_icms = st.checkbox("ICMS & Origem", value=True)
+with b_col4:
+    inc_red = st.checkbox("Redução de Base", value=True)
+    inc_st = st.checkbox("Tipo Cálculo ST", value=True)
+st.markdown('</div>', unsafe_allow_html=True)
+
 if arquivo_xml and arquivo_dados:
-    st.write("")
-    st.write("")
+    st.markdown("---")
     
-    # Barra de Status e Ação Executiva
-    status_col1, status_col2, action_col = st.columns([1, 1, 2], gap="medium")
-    with status_col1:
-        st.info("📌 XML Pronto para Leitura")
-    with status_col2:
-        st.info("📌 WinThor Vinculado")
-    with action_col:
-        processar = st.button("⚡ Executar Auditoria Completa", use_container_width=True, type="primary")
+    col_run1, col_run2 = st.columns([3, 1])
+    with col_run1:
+        st.success("✅ Arquivos carregados e prontos para processamento cruzado.")
+    with col_run2:
+        processar = st.button("🚀 Processar Auditoria", use_container_width=True, type="primary")
 
     if processar:
-        with st.spinner("Processando auditoria item a item com base absoluta no XML..."):
+        with st.spinner("Analisando itens e cruzando tributações com base absoluta no XML..."):
             # ==========================================
             # 3. EXTRAÇÃO DO XML (NF - O CENTRO DE TUDO)
             # ==========================================
@@ -279,6 +296,9 @@ if arquivo_xml and arquivo_dados:
             # 5. CRUZAMENTO BASEADO ESTRITAMENTE NA ORDEM DO XML
             # ==========================================
             dados_relatorio = []
+            total_itens = max(len(itens_xml), len(itens_csv))
+            qtd_divergentes = 0
+            qtd_ok = 0
 
             for item_x, item_c in zip_longest(itens_xml, itens_csv, fillvalue=None):
                 linha = {}
@@ -300,6 +320,7 @@ if arquivo_xml and arquivo_dados:
                         '%Alíq.Ext. ST Guia_Whintor': '-', 'Tipo_Calculo_WINTHOR': '-'
                     })
 
+                tem_divergencia = False
                 if item_x and item_c:
                     linha['Status_Geral'] = 'PAREADO'
 
@@ -313,6 +334,7 @@ if arquivo_xml and arquivo_dados:
                         linha['Status_EAN'] = 'OK'
                     else:
                         linha['Status_EAN'] = 'DIVERGENTE'
+                        tem_divergencia = True
 
                     icms_xml = round(item_x['ICMS_NF'], 2)
                     icms_csv = round(item_c['ICMS_WINTHOR'], 2)
@@ -321,10 +343,10 @@ if arquivo_xml and arquivo_dados:
                         linha['Status_ICMS_Aliq'] = 'OK'
                     else:
                         linha['Status_ICMS_Aliq'] = 'DIVERGENTE'
+                        tem_divergencia = True
 
                     pred_xml = round(item_x['pRedBC_NF'], 4)
                     red_csv = round(item_c['% ICMS red. Whintor'], 4)
-
                     carga_efetiva_xml = round(item_x['ICMS_NF'] * (1.0 - (item_x['pRedBC_NF'] / 100.0)), 4)
 
                     if (
@@ -335,6 +357,7 @@ if arquivo_xml and arquivo_dados:
                         linha['Status_Red_BC'] = 'OK'
                     else:
                         linha['Status_Red_BC'] = 'DIVERGENTE'
+                        tem_divergencia = True
 
                     tipo_calc = str(item_c.get('Tipo_Calculo_WINTHOR', '')).strip().upper()
                     if tipo_calc == 'N':
@@ -345,6 +368,8 @@ if arquivo_xml and arquivo_dados:
                         linha['Tipo_Calculo_ST'] = item_c['Tipo_Calculo_WINTHOR']
 
                     linha['Status_NCM'] = 'OK' if str(item_x['NCM_NF']) == str(item_c['NCM_WINTHOR']) else 'DIVERGENTE'
+                    if linha['Status_NCM'] == 'DIVERGENTE':
+                        tem_divergencia = True
                     
                     qtd_xml_pura = item_x['Qtd_NF']
                     qtd_win = item_c['Qtd_WINTHOR']
@@ -355,35 +380,68 @@ if arquivo_xml and arquivo_dados:
                         linha['Status_Qtd'] = 'OK'
                     else:
                         linha['Status_Qtd'] = 'DIVERGENTE'
+                        tem_divergencia = True
 
-                elif item_x and not item_c:
-                    linha['Status_Geral'] = 'SOBRA NF (SEM PAR)'
+                else:
+                    tem_divergencia = True
+                    linha['Status_Geral'] = 'SOBRA'
                     for st_col in ['Status_EAN', 'Status_ICMS_Aliq', 'Status_Red_BC', 'Tipo_Calculo_ST', 'Status_NCM', 'Status_Qtd']:
                         linha[st_col] = '-'
 
-                elif item_c and not item_x:
-                    linha['Status_Geral'] = 'SOBRA WINTHOR (SEM PAR)'
-                    for st_col in ['Status_EAN', 'Status_ICMS_Aliq', 'Status_Red_BC', 'Tipo_Calculo_ST', 'Status_NCM', 'Status_Qtd']:
-                        linha[st_col] = '-'
+                if tem_divergencia:
+                    qtd_divergentes += 1
+                else:
+                    qtd_ok += 1
 
                 dados_relatorio.append(linha)
 
             # ==========================================
+            # EXIBIÇÃO DOS CARDS DE MÉTRICAS (KPIs)
+            # ==========================================
+            st.markdown("### 📈 Resumo da Auditoria")
+            kpi1, kpi2, kpi3, kpi4 = st.columns(4)
+            with kpi1:
+                st.metric("Número da Nota", numero_nf)
+            with kpi2:
+                st.metric("Total de Itens", total_itens)
+            with kpi3:
+                st.metric("Itens Conformes (OK)", qtd_ok, delta="OK")
+            with kpi4:
+                st.metric("Itens com Divergências", qtd_divergentes, delta="-Divergentes" if qtd_divergentes > 0 else "0", delta_color="inverse")
+
+            # ==========================================
+            # FILTRAGEM DE COLUNAS CONFORME OS BLOCOS SELECIONADOS
+            # ==========================================
+            mapa_colunas_blocos = {
+                'Identificação': ['Linha_NF', 'Linha_WINTHOR'],
+                'Código & EAN': ['Cod_Produto_WINTHOR', 'EAN_NF', 'EAN_WINTHOR', 'Status_EAN'],
+                'Descrições': ['Descricao_NF', 'Descricao_WINTHOR'],
+                'Quantidades': ['Qtd_NF', 'Qtd_WINTHOR', 'Status_Qtd'],
+                'NCM (Fiscal)': ['NCM_NF', 'NCM_WINTHOR', 'Status_NCM'],
+                'ICMS & Origem': ['Origem_XML', 'ICMS_NF', 'ICMS_WINTHOR', '%Alíq.Ext. ST Guia_Whintor', 'Status_ICMS_Aliq'],
+                'Redução de Base': ['pRedBC_NF', '% ICMS red. Whintor', 'Status_Red_BC'],
+                'Tipo Cálculo ST': ['Tipo_Calculo_ST']
+            }
+
+            colunas_selecionadas = []
+            if inc_ident: colunas_selecionadas.extend(mapa_colunas_blocos['Identificação'])
+            if inc_ean: colunas_selecionadas.extend(mapa_colunas_blocos['Código & EAN'])
+            if inc_desc: colunas_selecionadas.extend(mapa_colunas_blocos['Descrições'])
+            if inc_qtd: colunas_selecionadas.extend(mapa_colunas_blocos['Quantidades'])
+            if inc_ncm: colunas_selecionadas.extend(mapa_colunas_blocos['NCM (Fiscal)'])
+            if inc_icms: colunas_selecionadas.extend(mapa_colunas_blocos['ICMS & Origem'])
+            if inc_red: colunas_selecionadas.extend(mapa_colunas_blocos['Redução de Base'])
+            if inc_st: colunas_selecionadas.extend(mapa_colunas_blocos['Tipo Cálculo ST'])
+
+            if not colunas_selecionadas:
+                colunas_selecionadas = ['Linha_NF'] # Fallback de segurança
+
+            df_final = pd.DataFrame(dados_relatorio)
+            df_final = df_final[[c for c in colunas_selecionadas if c in df_final.columns]]
+
+            # ==========================================
             # 6. CRIANDO EXCEL NA MEMÓRIA (BUFFER)
             # ==========================================
-            df_final = pd.DataFrame(dados_relatorio)
-            colunas_ordem = [
-                'Linha_NF', 'Linha_WINTHOR',
-                'Cod_Produto_WINTHOR', 'EAN_NF', 'EAN_WINTHOR', 'Status_EAN',
-                'Descricao_NF', 'Descricao_WINTHOR',
-                'Qtd_NF', 'Qtd_WINTHOR', 'Status_Qtd',
-                'NCM_NF', 'NCM_WINTHOR', 'Status_NCM',
-                'Origem_XML', 'ICMS_NF', 'ICMS_WINTHOR', '%Alíq.Ext. ST Guia_Whintor', 'Status_ICMS_Aliq',
-                'pRedBC_NF', '% ICMS red. Whintor', 'Status_Red_BC',
-                'Tipo_Calculo_ST'
-            ]
-            df_final = df_final[colunas_ordem]
-
             excel_buffer = io.BytesIO()
             with pd.ExcelWriter(excel_buffer, engine='openpyxl') as writer:
                 df_final.to_excel(writer, sheet_name='Comparativo_ICMS_e_EAN', index=False, startrow=2)
@@ -395,14 +453,11 @@ if arquivo_xml and arquivo_dados:
                 worksheet.sheet_view.zoomScale = 80
 
                 worksheet.freeze_panes = 'A4'
-                worksheet.auto_filter.ref = f"A3:W{len(df_final) + 3}"
+                worksheet.auto_filter.ref = f"A3:{get_column_letter(len(df_final.columns))}{len(df_final) + 3}"
 
-                # ==========================================
-                # VISUAL LIMPO COM ZEBRADO DINÂMICO PRESERVANDO AS CÉLULAS DE STATUS
-                # ==========================================
-                COLOR_BLOCO_DARK = "1B2631"    # Azul Chumbo Escuro (Super Cabeçalhos)
-                COLOR_XML_SOLID = "212F3D"     # Tom Sólido para Colunas XML
-                COLOR_WIN_SOFT = "7F8C8D"      # Cinza Metálico Suave para Colunas WinThor
+                COLOR_BLOCO_DARK = "1B2631"
+                COLOR_XML_SOLID = "212F3D"
+                COLOR_WIN_SOFT = "7F8C8D"
                 
                 fill_bloco = PatternFill(start_color=COLOR_BLOCO_DARK, end_color=COLOR_BLOCO_DARK, fill_type="solid")
                 fill_xml = PatternFill(start_color=COLOR_XML_SOLID, end_color=COLOR_XML_SOLID, fill_type="solid")
@@ -411,7 +466,6 @@ if arquivo_xml and arquivo_dados:
                 fill_zebrado = PatternFill(start_color="F2F4F4", end_color="F2F4F4", fill_type="solid")
                 fill_cinza_sobra = PatternFill(start_color="EAEDED", end_color="EAEDED", fill_type="solid")
 
-                # Status
                 fill_status_divergente = PatternFill(start_color="9C0006", end_color="9C0006", fill_type="solid")
                 fill_status_convergente = PatternFill(start_color="196F3D", end_color="196F3D", fill_type="solid")
                 fill_cel_divergente = PatternFill(start_color="FADBD8", end_color="FADBD8", fill_type="solid")
@@ -426,56 +480,70 @@ if arquivo_xml and arquivo_dados:
                 borda_padrao = Border(left=Side(style=None), right=Side(style=None), top=Side(style=None), bottom=Side(style=None))
                 borda_fim_bloco = Border(left=Side(style=None), right=Side(style='medium', color='1B2631'), top=Side(style=None), bottom=Side(style=None))
 
-                colunas_fim_bloco = [2, 6, 8, 11, 14, 19, 22, 23]
+                headers = list(df_final.columns)
 
-                # Definição dos Super Grupos (Linhas 1 e 2)
-                super_grupos = [
-                    ("IDENTIFICAÇÃO", 1, 2, fill_bloco, font_super_white),
-                    ("CÓDIGO E CÓDIGO DE BARRAS (EAN)", 3, 6, fill_bloco, font_super_white),
-                    ("DESCRIÇÕES COMPARATIVAS", 7, 8, fill_bloco, font_super_white),
-                    ("QUANTIDADES", 9, 11, fill_bloco, font_super_white),
-                    ("CLASSIFICAÇÃO FISCAL (NCM)", 12, 14, fill_bloco, font_super_white),
-                    ("ALÍQUOTAS DE ICMS E ORIGEM", 15, 19, fill_bloco, font_super_white),
-                    ("REDUÇÃO DE BASE DE CÁLCULO", 20, 22, fill_bloco, font_super_white),
-                    ("TIPO CÁLCULO ST", 23, 23, fill_bloco, font_super_white)
-                ]
+                # Mapeamento dinâmico dos super grupos com base nas colunas ativas
+                super_grupos_def = []
+                if inc_ident: super_grupos_def.append(("IDENTIFICAÇÃO", ['Linha_NF', 'Linha_WINTHOR']))
+                if inc_ean: super_grupos_def.append(("CÓDIGO E EAN", ['Cod_Produto_WINTHOR', 'EAN_NF', 'EAN_WINTHOR', 'Status_EAN']))
+                if inc_desc: super_grupos_def.append(("DESCRIÇÕES", ['Descricao_NF', 'Descricao_WINTHOR']))
+                if inc_qtd: super_grupos_def.append(("QUANTIDADES", ['Qtd_NF', 'Qtd_WINTHOR', 'Status_Qtd']))
+                if inc_ncm: super_grupos_def.append(("CLASSIFICAÇÃO FISCAL (NCM)", ['NCM_NF', 'NCM_WINTHOR', 'Status_NCM']))
+                if inc_icms: super_grupos_def.append(("ALÍQUOTAS DE ICMS E ORIGEM", ['Origem_XML', 'ICMS_NF', 'ICMS_WINTHOR', '%Alíq.Ext. ST Guia_Whintor', 'Status_ICMS_Aliq']))
+                if inc_red: super_grupos_def.append(("REDUÇÃO DE BASE", ['pRedBC_NF', '% ICMS red. Whintor', 'Status_Red_BC']))
+                if inc_st: super_grupos_def.append(("TIPO CÁLCULO ST", ['Tipo_Calculo_ST']))
 
-                for label, col_start, col_end, fill_obj, font_obj in super_grupos:
-                    worksheet.merge_cells(start_row=1, start_column=col_start, end_row=2, end_column=col_end)
-                    cell = worksheet.cell(row=1, column=col_start)
+                curr_col_idx = 1
+                for label, cols in super_grupos_def:
+                    cols_in_df = [c for c in cols if c in headers]
+                    if not cols_in_df:
+                        continue
+                    start_c = curr_col_idx
+                    end_c = curr_col_idx + len(cols_in_df) - 1
+                    curr_col_idx += len(cols_in_df)
+
+                    worksheet.merge_cells(start_row=1, start_column=start_c, end_row=2, end_column=end_c)
+                    cell = worksheet.cell(row=1, column=start_c)
                     cell.value = label
-                    cell.font = font_obj
+                    cell.font = font_super_white
                     cell.alignment = Alignment(horizontal='center', vertical='center', wrap_text=True)
 
                     for r in (1, 2):
-                        for c in range(col_start, col_end + 1):
+                        for c in range(start_c, end_c + 1):
                             cell_target = worksheet.cell(row=r, column=c)
-                            cell_target.fill = fill_obj
-                            cell_target.border = borda_fim_bloco if c in colunas_fim_bloco else borda_padrao
+                            cell_target.fill = fill_bloco
+                            cell_target.border = borda_fim_bloco if c == end_c else borda_padrao
 
                 worksheet.row_dimensions[1].height = 18
                 worksheet.row_dimensions[2].height = 18
                 worksheet.row_dimensions[3].height = 25
 
                 status_columns = ['Status_EAN', 'Status_Qtd', 'Status_NCM', 'Status_ICMS_Aliq', 'Status_Red_BC']
-                status_has_divergence = {}
-                for sc in status_columns:
-                    status_has_divergence[sc] = (df_final[sc] == 'DIVERGENTE').any() if sc in df_final.columns else False
+                status_has_divergence = {sc: (df_final[sc] == 'DIVERGENTE').any() if sc in df_final.columns else False for sc in status_columns}
 
-                headers = colunas_ordem
-                
-                def obter_fill_cabecalho(col_idx, col_name):
+                def obter_fill_cabecalho(col_name):
                     if 'WINTHOR' in col_name or 'Whintor' in col_name or 'Status' in col_name:
                         return fill_win
                     else:
                         return fill_xml
 
-                for col_idx, col_name in enumerate(headers, 1):
-                    cell = worksheet.cell(row=3, column=col_idx)
+                for idx, col_name in enumerate(headers, 1):
+                    cell = worksheet.cell(row=3, column=idx)
                     cell.value = col_name
                     cell.alignment = Alignment(horizontal='center', vertical='center', wrap_text=True)
 
-                    cell.border = borda_fim_bloco if col_idx in colunas_fim_bloco else borda_padrao
+                    # Verifica se é a última coluna de algum bloco visível
+                    is_fim_bloco = False
+                    running_c = 0
+                    for _, cols in super_grupos_def:
+                        c_in = [c for c in cols if c in headers]
+                        if c_in:
+                            running_c += len(c_in)
+                            if idx == running_c:
+                                is_fim_bloco = True
+                                break
+
+                    cell.border = borda_fim_bloco if is_fim_bloco else borda_padrao
 
                     if col_name in status_has_divergence:
                         if status_has_divergence[col_name]:
@@ -485,7 +553,7 @@ if arquivo_xml and arquivo_dados:
                             cell.fill = fill_status_convergente
                             cell.font = font_header_status
                     else:
-                        cell.fill = obter_fill_cabecalho(col_idx, col_name)
+                        cell.fill = obter_fill_cabecalho(col_name)
                         cell.font = font_header_white
 
                 align_center_cols = [
@@ -506,9 +574,20 @@ if arquivo_xml and arquivo_dados:
                     linha_dict = dados_relatorio[row-4]
                     for col_idx in range(1, len(headers) + 1):
                         cell = worksheet.cell(row=row, column=col_idx)
-                        cell.border = borda_fim_bloco if col_idx in colunas_fim_bloco else borda_padrao
+                        
+                        # Verifica fim de bloco para borda
+                        is_fim_bloco = False
+                        running_c = 0
+                        for _, cols in super_grupos_def:
+                            c_in = [c for c in cols if c in headers]
+                            if c_in:
+                                running_c += len(c_in)
+                                if col_idx == running_c:
+                                    is_fim_bloco = True
+                                    break
+                        cell.border = borda_fim_bloco if is_fim_bloco else borda_padrao
+                        
                         col_name = headers[col_idx - 1]
-
                         current_align = cell.alignment or Alignment()
                         cell.alignment = Alignment(horizontal=current_align.horizontal or 'left', vertical='center', wrap_text=current_align.wrap_text)
 
@@ -562,12 +641,8 @@ if arquivo_xml and arquivo_dados:
                                         cell_dado = worksheet.cell(row=row, column=headers.index(col_afetada) + 1)
                                         cell_dado.font = font_normal
 
-                # APLICAÇÃO DA FORMATAÇÃO CONDICIONAL DO ZEBRADO APENAS NAS COLUNAS QUE NÃO SÃO DE STATUS
-                letras_nao_status = []
-                for idx, col_name in enumerate(headers, 1):
-                    if not col_name.startswith('Status'):
-                        letras_nao_status.append(get_column_letter(idx))
-
+                # Formatação condicional para o zebrado dinâmico
+                letras_nao_status = [get_column_letter(idx) for idx, col_name in enumerate(headers, 1) if not col_name.startswith('Status')]
                 for l_col in letras_nao_status:
                     rule = FormulaRule(formula=[f'MOD(ROW(),2)=0'], stopIfTrue=True, fill=fill_zebrado)
                     worksheet.conditional_formatting.add(f'{l_col}4:{l_col}{len(df_final) + 3}', rule)
@@ -586,7 +661,8 @@ if arquivo_xml and arquivo_dados:
 
             excel_buffer.seek(0)
             
-            st.success("Auditoria gerada com sucesso! Pronto para download.")
+            st.markdown("---")
+            st.success("✨ Relatório gerado com sucesso com base nas suas preferências!")
             st.download_button(
                 label="📥 Baixar Relatório Executivo em Excel",
                 data=excel_buffer.getvalue(),
