@@ -320,6 +320,7 @@ if arquivo_xml and arquivo_dados:
                 workbook = writer.book
                 worksheet = workbook['Comparativo_ICMS_e_EAN']
                 
+                # Oculta as linhas de grade padrão do Excel de fundo
                 worksheet.sheet_view.showGridLines = False
                 worksheet.sheet_view.zoomScale = 80
 
@@ -327,7 +328,7 @@ if arquivo_xml and arquivo_dados:
                 worksheet.auto_filter.ref = f"A3:W{len(df_final) + 3}"
 
                 # ==========================================
-                # PADRÃO VISUAL PROFISSIONAL COM LINHAS MAIS VISÍVEIS (TOM AUMENTADO)
+                # PADRÃO VISUAL COM LINHAS APENAS HORIZONTAIS MAIS ESCURAS E ZEBRADO DINÂMICO
                 # ==========================================
                 COLOR_BLOCO_DARK = "1B2631"    # Azul Chumbo Escuro (Super Cabeçalhos)
                 COLOR_XML_SOLID = "212F3D"     # Tom Sólido para Colunas XML
@@ -337,7 +338,7 @@ if arquivo_xml and arquivo_dados:
                 fill_xml = PatternFill(start_color=COLOR_XML_SOLID, end_color=COLOR_XML_SOLID, fill_type="solid")
                 fill_win = PatternFill(start_color=COLOR_WIN_SOFT, end_color=COLOR_WIN_SOFT, fill_type="solid")
 
-                fill_zebrado = PatternFill(start_color="F8F9F9", end_color="F8F9F9", fill_type="solid")
+                fill_zebrado = PatternFill(start_color="F2F4F4", end_color="F2F4F4", fill_type="solid")
                 fill_cinza_sobra = PatternFill(start_color="EAEDED", end_color="EAEDED", fill_type="solid")
 
                 # Status
@@ -352,14 +353,14 @@ if arquivo_xml and arquivo_dados:
                 font_divergente = Font(color="9C0006", bold=True)
                 font_normal = Font(color="000000", bold=False)
 
-                # Linhas horizontais e verticais com tom mais firme e visível (Cinza Médio Corporativo: #A6ACAF)
-                borda_grade = Border(
-                    left=Side(style='thin', color='A6ACAF'), right=Side(style='thin', color='A6ACAF'),
-                    top=Side(style='thin', color='A6ACAF'), bottom=Side(style='thin', color='A6ACAF')
+                # Linhas apenas na HORIZONTAL com tom mais escuro e visível (#5D6D7E), sem grades verticais poluentes
+                borda_horizontal = Border(
+                    left=Side(style=None), right=Side(style=None),
+                    top=Side(style='thin', color='5D6D7E'), bottom=Side(style='thin', color='5D6D7E')
                 )
                 borda_divisoria_direita = Border(
-                    left=Side(style='thin', color='A6ACAF'), right=Side(style='medium', color='5D6D7E'),
-                    top=Side(style='thin', color='A6ACAF'), bottom=Side(style='thin', color='A6ACAF')
+                    left=Side(style=None), right=Side(style='medium', color='212F3D'),
+                    top=Side(style='thin', color='5D6D7E'), bottom=Side(style='thin', color='5D6D7E')
                 )
 
                 # Definição dos Super Grupos (Linhas 1 e 2)
@@ -385,7 +386,7 @@ if arquivo_xml and arquivo_dados:
                         for c in range(col_start, col_end + 1):
                             cell_target = worksheet.cell(row=r, column=c)
                             cell_target.fill = fill_obj
-                            cell_target.border = borda_grade
+                            cell_target.border = borda_horizontal
                             if c == col_end and col_end != 23:
                                 cell_target.border = borda_divisoria_direita
 
@@ -411,7 +412,7 @@ if arquivo_xml and arquivo_dados:
                     cell.value = col_name
                     cell.alignment = Alignment(horizontal='center', vertical='center', wrap_text=True)
 
-                    default_border = borda_divisoria_direita if col_idx in (2, 6, 8, 11, 14, 19, 22, 23) else borda_grade
+                    default_border = borda_divisoria_direita if col_idx in (2, 6, 8, 11, 14, 19, 22, 23) else borda_horizontal
                     cell.border = default_border
 
                     if col_name in status_has_divergence:
@@ -446,10 +447,11 @@ if arquivo_xml and arquivo_dados:
                     for col_idx in range(1, len(headers) + 1):
                         cell = worksheet.cell(row=row, column=col_idx)
 
+                        # Zebrado mantido (cor sim, cor não), preservando o padrão ao filtrar/classificar
                         if is_even:
                             cell.fill = fill_zebrado
 
-                        default_border = borda_divisoria_direita if col_idx in (2, 6, 8, 11, 14, 19, 22, 23) else borda_grade
+                        default_border = borda_divisoria_direita if col_idx in (2, 6, 8, 11, 14, 19, 22, 23) else borda_horizontal
                         cell.border = default_border
                         col_name = headers[col_idx - 1]
 
