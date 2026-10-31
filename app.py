@@ -207,16 +207,13 @@ if arquivo_xml and arquivo_dados:
                     else:
                         linha['Status_ICMS_Aliq'] = 'DIVERGENTE'
 
-                    # CÁLCULO E VALIDAÇÃO DE BASE REDUZIDA (EX: 18% COM RED 33,33% = 12,0006%)
+                    # VALIDAÇÃO INTELIGENTE DE CARGA EFETIVA (COM OU SEM REDUÇÃO)
                     pred_xml = round(item_x['pRedBC_NF'], 4)
                     red_csv = round(item_c['% ICMS red. Whintor'], 4)
 
-                    if pred_xml > 0:
-                        carga_efetiva_xml = round(item_x['ICMS_NF'] * (1.0 - (item_x['pRedBC_NF'] / 100.0)), 4)
-                    else:
-                        carga_efetiva_xml = 0.0
+                    # Calcula a carga esperada aplicando a redução sobre a alíquota do XML
+                    carga_efetiva_xml = round(item_x['ICMS_NF'] * (1.0 - (item_x['pRedBC_NF'] / 100.0)), 4)
 
-                    # Aceita o cálculo exato (12.0006), arredondamento em 2 casas (12.00) ou percentual direto
                     if (
                         carga_efetiva_xml == red_csv
                         or round(carga_efetiva_xml, 2) == round(red_csv, 2)
