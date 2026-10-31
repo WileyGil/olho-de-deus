@@ -327,13 +327,11 @@ if arquivo_xml and arquivo_dados:
                 worksheet.auto_filter.ref = f"A3:W{len(df_final) + 3}"
 
                 # ==========================================
-                # PADRÃO VISUAL PROFISSIONAL IDÊNTICO AO DA SUA IMAGEM
+                # PADRÃO VISUAL PROFISSIONAL COM LINHAS MAIS VISÍVEIS (TOM AUMENTADO)
                 # ==========================================
-                
-                # Cores Base idênticas ao modelo da imagem (Azul Escuro Profundo e Cinza Metálico Suave)
                 COLOR_BLOCO_DARK = "1B2631"    # Azul Chumbo Escuro (Super Cabeçalhos)
                 COLOR_XML_SOLID = "212F3D"     # Tom Sólido para Colunas XML
-                COLOR_WIN_SOFT = "7F8C8D"      # Cinza Metálico Suave idêntico à imagem para Colunas WinThor
+                COLOR_WIN_SOFT = "7F8C8D"      # Cinza Metálico Suave para Colunas WinThor
                 
                 fill_bloco = PatternFill(start_color=COLOR_BLOCO_DARK, end_color=COLOR_BLOCO_DARK, fill_type="solid")
                 fill_xml = PatternFill(start_color=COLOR_XML_SOLID, end_color=COLOR_XML_SOLID, fill_type="solid")
@@ -354,11 +352,15 @@ if arquivo_xml and arquivo_dados:
                 font_divergente = Font(color="9C0006", bold=True)
                 font_normal = Font(color="000000", bold=False)
 
-                borda_branca = Border(
-                    left=Side(style='thin', color='FFFFFF'), right=Side(style='thin', color='FFFFFF'),
-                    top=Side(style='thin', color='FFFFFF'), bottom=Side(style='thin', color='FFFFFF')
+                # Linhas horizontais e verticais com tom mais firme e visível (Cinza Médio Corporativo: #A6ACAF)
+                borda_grade = Border(
+                    left=Side(style='thin', color='A6ACAF'), right=Side(style='thin', color='A6ACAF'),
+                    top=Side(style='thin', color='A6ACAF'), bottom=Side(style='thin', color='A6ACAF')
                 )
-                borda_divisoria_direita = Border(right=Side(style='medium', color='BDC3C7'))
+                borda_divisoria_direita = Border(
+                    left=Side(style='thin', color='A6ACAF'), right=Side(style='medium', color='5D6D7E'),
+                    top=Side(style='thin', color='A6ACAF'), bottom=Side(style='thin', color='A6ACAF')
+                )
 
                 # Definição dos Super Grupos (Linhas 1 e 2)
                 super_grupos = [
@@ -383,7 +385,7 @@ if arquivo_xml and arquivo_dados:
                         for c in range(col_start, col_end + 1):
                             cell_target = worksheet.cell(row=r, column=c)
                             cell_target.fill = fill_obj
-                            cell_target.border = borda_branca
+                            cell_target.border = borda_grade
                             if c == col_end and col_end != 23:
                                 cell_target.border = borda_divisoria_direita
 
@@ -398,7 +400,6 @@ if arquivo_xml and arquivo_dados:
 
                 headers = colunas_ordem
                 
-                # Regra exata baseada na imagem: XML em tom escuro sólido, WinThor/CSV e Status em tom metálico suave
                 def obter_fill_cabecalho(col_idx, col_name):
                     if 'WINTHOR' in col_name or 'Whintor' in col_name or 'Status' in col_name:
                         return fill_win
@@ -410,7 +411,7 @@ if arquivo_xml and arquivo_dados:
                     cell.value = col_name
                     cell.alignment = Alignment(horizontal='center', vertical='center', wrap_text=True)
 
-                    default_border = borda_divisoria_direita if col_idx in (2, 6, 8, 11, 14, 19, 22, 23) else borda_branca
+                    default_border = borda_divisoria_direita if col_idx in (2, 6, 8, 11, 14, 19, 22, 23) else borda_grade
                     cell.border = default_border
 
                     if col_name in status_has_divergence:
@@ -448,7 +449,7 @@ if arquivo_xml and arquivo_dados:
                         if is_even:
                             cell.fill = fill_zebrado
 
-                        default_border = borda_divisoria_direita if col_idx in (2, 6, 8, 11, 14, 19, 22, 23) else borda_branca
+                        default_border = borda_divisoria_direita if col_idx in (2, 6, 8, 11, 14, 19, 22, 23) else borda_grade
                         cell.border = default_border
                         col_name = headers[col_idx - 1]
 
