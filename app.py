@@ -84,65 +84,91 @@ def extrair_fator_embalagem(uCom):
     return 1.0
 
 # ==========================================
-# 2. INTERFACE STREAMLIT (REESTILIZADA)
+# 2. INTERFACE STREAMLIT (DESIGN EXECUTIVO)
 # ==========================================
-st.set_page_config(page_title="Auditoria de Notas", page_icon="📊", layout="wide")
+st.set_page_config(page_title="Auditoria de Notas", page_icon="🛡️", layout="wide")
 
-# Estilização CSS personalizada para dar um ar corporativo refinado
+# CSS Customizado para refinamento visual corporativo (Clean & Pro)
 st.markdown("""
     <style>
-        .main-header {
+        /* Fundo geral da aplicação */
+        .stApp {
+            background-color: #0E1117;
+            color: #E6EDF3;
+        }
+        /* Cabeçalho principal */
+        .app-title {
             font-size: 2.2rem;
             font-weight: 700;
-            color: #F8F9F9;
+            color: #FFFFFF;
+            letter-spacing: -0.5px;
             margin-bottom: 0px;
         }
-        .sub-header {
+        .app-subtitle {
             font-size: 1rem;
-            color: #BDC3C7;
-            margin-bottom: 25px;
+            color: #8B949E;
+            margin-bottom: 30px;
         }
-        .card-container {
-            background-color: #151922;
-            padding: 20px;
-            border-radius: 10px;
-            border: 1px solid #2A303C;
-            margin-bottom: 20px;
+        /* Blocos de Cartão / Container */
+        .css-1r6slb0, div[data-testid="stVerticalBlock"] > div[style*="flex-direction: column;"] > div[data-testid="stVerticalBlock"] {
+            background-color: #161B22;
+        }
+        .upload-card {
+            background-color: #161B22;
+            border: 1px solid #30363D;
+            padding: 24px;
+            border-radius: 12px;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+        }
+        /* Estilização de títulos de seção */
+        .section-title {
+            font-size: 1.1rem;
+            font-weight: 600;
+            color: #C9D1D9;
+            margin-bottom: 8px;
         }
     </style>
 """, unsafe_allow_html=True)
 
-# Cabeçalho Principal Organizado
-st.markdown('<p class="main-header">📊 Auditoria de Notas Fiscais</p>', unsafe_allow_html=True)
-st.markdown('<p class="sub-header">Cruzamento inteligente de dados entre XML (Fornecedor) e Relatórios WinThor (ERP) com base absoluta na ordem dos itens.</p>', unsafe_allow_html=True)
+# Título e Descrição Executiva
+st.markdown('<p class="app-title">🛡️ Sistema de Auditoria de Notas Fiscais</p>', unsafe_allow_html=True)
+st.markdown('<p class="app-subtitle">Plataforma corporativa de cruzamento e validação fiscal entre XML de fornecedores e relatórios ERP WinThor.</p>', unsafe_allow_html=True)
 
-# Container Principal para os Uploads
-with st.container():
-    st.markdown('<div class="card-container">', unsafe_allow_html=True)
-    col1, col2 = st.columns(2, gap="medium")
-    with col1:
-        st.markdown("##### 📁 Documento Fiscal (XML)")
-        arquivo_xml = st.file_uploader("Selecione o arquivo XML da nota", type=["xml"], label_visibility="collapsed")
-    with col2:
-        st.markdown("##### 📁 Relatório ERP (WinThor)")
-        arquivo_dados = st.file_uploader("Selecione o relatório (.csv ou .xlsx)", type=["csv", "xlsx"], label_visibility="collapsed")
+# Layout de Cartões para os Uploads
+col1, col2 = st.columns(2, gap="large")
+
+with col1:
+    st.markdown('<div class="upload-card">', unsafe_allow_html=True)
+    st.markdown('<p class="section-title">📂 1. Documento Fiscal (XML)</p>', unsafe_allow_html=True)
+    st.markdown('<span style="font-size: 0.85rem; color: #8B949E;">Carregue o arquivo XML emitido pelo fornecedor.</span>', unsafe_allow_html=True)
+    st.write("")
+    arquivo_xml = st.file_uploader("Upload XML", type=["xml"], label_visibility="collapsed")
+    st.markdown('</div>', unsafe_allow_html=True)
+
+with col2:
+    st.markdown('<div class="upload-card">', unsafe_allow_html=True)
+    st.markdown('<p class="section-title">📊 2. Relatório de Entrada (WinThor)</p>', unsafe_allow_html=True)
+    st.markdown('<span style="font-size: 0.85rem; color: #8B949E;">Carregue a planilha exportada (.csv ou .xlsx).</span>', unsafe_allow_html=True)
+    st.write("")
+    arquivo_dados = st.file_uploader("Upload WinThor", type=["csv", "xlsx"], label_visibility="collapsed")
     st.markdown('</div>', unsafe_allow_html=True)
 
 # Processamento condicional apenas se ambos os arquivos estiverem presentes
 if arquivo_xml and arquivo_dados:
-    st.markdown("---")
+    st.write("")
+    st.write("")
     
-    # Status visual de prontidão
-    col_stat1, col_stat2, col_btn = st.columns([1, 1, 2])
-    with col_stat1:
-        st.success("✅ XML Carregado")
-    with col_stat2:
-        st.success("✅ WinThor Carregado")
-    with col_btn:
-        processar = st.button("🚀 Processar Auditoria e Gerar Relatório", use_container_width=True)
+    # Barra de Status e Ação Executiva
+    status_col1, status_col2, action_col = st.columns([1, 1, 2], gap="medium")
+    with status_col1:
+        st.info("📌 XML Pronto para Leitura")
+    with status_col2:
+        st.info("📌 WinThor Vinculado")
+    with action_col:
+        processar = st.button("⚡ Executar Auditoria Completa", use_container_width=True, type="primary")
 
     if processar:
-        with st.spinner("Analisando itens e cruzando tributações com base no XML..."):
+        with st.spinner("Processando auditoria item a item com base absoluta no XML..."):
             # ==========================================
             # 3. EXTRAÇÃO DO XML (NF - O CENTRO DE TUDO)
             # ==========================================
@@ -562,7 +588,7 @@ if arquivo_xml and arquivo_dados:
             
             st.success("Auditoria gerada com sucesso! Pronto para download.")
             st.download_button(
-                label="📥 Baixar Relatório Executivo (Excel)",
+                label="📥 Baixar Relatório Executivo em Excel",
                 data=excel_buffer.getvalue(),
                 file_name=nome_arquivo_saida,
                 mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
