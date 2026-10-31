@@ -326,52 +326,49 @@ if arquivo_xml and arquivo_dados:
                 worksheet.freeze_panes = 'A4'
                 worksheet.auto_filter.ref = f"A3:W{len(df_final) + 3}"
 
-                # PALETA DE CORES MODERNA E DISTINTA POR GRUPOS (HEX CORES)
-                # Cores de Fundo para os Grupos (Super Cabeçalhos e Cabeçalhos)
-                COLOR_NEUTRO_CINZA = "EAECEE"  # Identificação
-                COLOR_AZUL_CORP = "2E86C1"     # EAN / Código
-                COLOR_CINZA_DESC = "D5D8DC"    # Descrições
-                COLOR_TEAL_QTD = "117A65"      # Quantidades (Verde Água Escuro)
-                COLOR_AZUL_NCM = "2874A6"      # NCM
-                COLOR_ROXO_ICMS = "7D3C98"     # ICMS & Alíquotas
-                COLOR_LARANJA_RED = "B9770E"   # Redução de Base (Âmbar/Laranja Escuro)
-                COLOR_PRETO_ST = "34495E"      # Tipo Cálculo ST
+                # ==========================================
+                # PALETA DE CORES CORPORATIVA & PROFISSIONAL (TONS SÓBRIOS E HARMONIOSOS)
+                # ==========================================
+                COLOR_HEADER_BG = "1B4F72"       # Azul Petróleo Escuro (Base padrão corporativa)
+                COLOR_SUBHEADER_BG = "2E86C1"    # Azul Aço Suave
+                COLOR_ACCENT_BG = "34495E"       # Cinza Chumbo Escuro
+                COLOR_LIGHT_GRAY = "F4F6F7"      # Cinza Gelo para zebrado suave
+                COLOR_BORDER = "D5DBDB"          # Borda discreta
 
-                fill_neutro = PatternFill(start_color=COLOR_NEUTRO_CINZA, end_color=COLOR_NEUTRO_CINZA, fill_type="solid")
-                fill_ean = PatternFill(start_color=COLOR_AZUL_CORP, end_color=COLOR_AZUL_CORP, fill_type="solid")
-                fill_desc = PatternFill(start_color=COLOR_CINZA_DESC, end_color=COLOR_CINZA_DESC, fill_type="solid")
-                fill_qtd = PatternFill(start_color=COLOR_TEAL_QTD, end_color=COLOR_TEAL_QTD, fill_type="solid")
-                fill_ncm = PatternFill(start_color=COLOR_AZUL_NCM, end_color=COLOR_AZUL_NCM, fill_type="solid")
-                fill_icms = PatternFill(start_color=COLOR_ROXO_ICMS, end_color=COLOR_ROXO_ICMS, fill_type="solid")
-                fill_red = PatternFill(start_color=COLOR_LARANJA_RED, end_color=COLOR_LARANJA_RED, fill_type="solid")
-                fill_st = PatternFill(start_color=COLOR_PRETO_ST, end_color=COLOR_PRETO_ST, fill_type="solid")
+                fill_principal = PatternFill(start_color=COLOR_HEADER_BG, end_color=COLOR_HEADER_BG, fill_type="solid")
+                fill_secundario = PatternFill(start_color=COLOR_SUBHEADER_BG, end_color=COLOR_SUBHEADER_BG, fill_type="solid")
+                fill_neutro_escuro = PatternFill(start_color=COLOR_ACCENT_BG, end_color=COLOR_ACCENT_BG, fill_type="solid")
+                fill_zebrado = PatternFill(start_color=COLOR_LIGHT_GRAY, end_color=COLOR_LIGHT_GRAY, fill_type="solid")
+
+                # Cores de status mantidas funcionais e claras (Verde/Vermelho suave)
+                fill_cab_status_divergente = PatternFill(start_color="9C0006", end_color="9C0006", fill_type="solid")
+                fill_cab_status_convergente = PatternFill(start_color="196F3D", end_color="196F3D", fill_type="solid")
+                fill_vermelho_claro = PatternFill(start_color="FADBD8", end_color="FADBD8", fill_type="solid")
+                fill_verde_oliva_claro = PatternFill(start_color="D4EFDF", end_color="D4EFDF", fill_type="solid")
+                fill_cinza_sobra = PatternFill(start_color="EAEDED", end_color="EAEDED", fill_type="solid")
 
                 font_super_white = Font(bold=True, size=11, color="FFFFFF")
-                font_super_dark = Font(bold=True, size=11, color="2C3E50")
                 font_header_white = Font(bold=True, size=10, color="FFFFFF")
-                font_header_dark = Font(bold=True, size=10, color="2C3E50")
                 font_header_status = Font(bold=True, size=10, color="FFFFFF")
-
-                fill_zebrado = PatternFill(start_color="F8F9F9", end_color="F8F9F9", fill_type="solid")
-                fill_cab_status_divergente = PatternFill(start_color="9C0006", end_color="9C0006", fill_type="solid")
-                fill_cab_status_convergente = PatternFill(start_color="006100", end_color="006100", fill_type="solid")
+                font_divergente = Font(color="9C0006", bold=True)
+                font_normal = Font(color="000000", bold=False)
 
                 borda_branca = Border(
                     left=Side(style='thin', color='FFFFFF'), right=Side(style='thin', color='FFFFFF'),
                     top=Side(style='thin', color='FFFFFF'), bottom=Side(style='thin', color='FFFFFF')
                 )
-                borda_divisoria_direita = Border(right=Side(style='medium', color='BDC3C7'))
+                borda_divisoria_direita = Border(right=Side(style='medium', color=COLOR_BORDER))
 
-                # Definição dos Grupos: (Nome, Coluna Inicial, Coluna Final, Fill, Font Super)
+                # Distribuição corporativa elegante dos grupos (alternando tons de azul petróleo e cinza chumbo)
                 super_grupos = [
-                    ("IDENTIFICAÇÃO", 1, 2, fill_neutro, font_super_dark),
-                    ("CÓDIGO E CÓDIGO DE BARRAS (EAN)", 3, 6, fill_ean, font_super_white),
-                    ("DESCRIÇÕES COMPARATIVAS", 7, 8, fill_desc, font_super_dark),
-                    ("QUANTIDADES", 9, 11, fill_qtd, font_super_white),
-                    ("CLASSIFICAÇÃO FISCAL (NCM)", 12, 14, fill_ncm, font_super_white),
-                    ("ALÍQUOTAS DE ICMS E ORIGEM", 15, 19, fill_icms, font_super_white),
-                    ("REDUÇÃO DE BASE DE CÁLCULO", 20, 22, fill_red, font_super_white),
-                    ("TIPO CÁLCULO ST", 23, 23, fill_st, font_super_white)
+                    ("IDENTIFICAÇÃO", 1, 2, fill_neutro_escuro, font_super_white),
+                    ("CÓDIGO E CÓDIGO DE BARRAS (EAN)", 3, 6, fill_principal, font_super_white),
+                    ("DESCRIÇÕES COMPARATIVAS", 7, 8, fill_neutro_escuro, font_super_white),
+                    ("QUANTIDADES", 9, 11, fill_secundario, font_super_white),
+                    ("CLASSIFICAÇÃO FISCAL (NCM)", 12, 14, fill_principal, font_super_white),
+                    ("ALÍQUOTAS DE ICMS E ORIGEM", 15, 19, fill_secundario, font_super_white),
+                    ("REDUÇÃO DE BASE DE CÁLCULO", 20, 22, fill_principal, font_super_white),
+                    ("TIPO CÁLCULO ST", 23, 23, fill_neutro_escuro, font_super_white)
                 ]
 
                 for label, col_start, col_end, fill_obj, font_obj in super_grupos:
@@ -400,16 +397,15 @@ if arquivo_xml and arquivo_dados:
 
                 headers = colunas_ordem
                 
-                # Mapeamento de cor de fundo dos cabeçalhos da linha 3 conforme o grupo
                 def obter_fill_cabecalho(col_idx):
-                    if col_idx in (1, 2): return fill_neutro, font_header_dark
-                    elif 3 <= col_idx <= 6: return fill_ean, font_header_white
-                    elif 7 <= col_idx <= 8: return fill_desc, font_header_dark
-                    elif 9 <= col_idx <= 11: return fill_qtd, font_header_white
-                    elif 12 <= col_idx <= 14: return fill_ncm, font_header_white
-                    elif 15 <= col_idx <= 19: return fill_icms, font_header_white
-                    elif 20 <= col_idx <= 22: return fill_red, font_header_white
-                    else: return fill_st, font_header_white
+                    if col_idx in (1, 2): return fill_neutro_escuro, font_header_white
+                    elif 3 <= col_idx <= 6: return fill_principal, font_header_white
+                    elif 7 <= col_idx <= 8: return fill_neutro_escuro, font_header_white
+                    elif 9 <= col_idx <= 11: return fill_secundario, font_header_white
+                    elif 12 <= col_idx <= 14: return fill_principal, font_header_white
+                    elif 15 <= col_idx <= 19: return fill_secundario, font_header_white
+                    elif 20 <= col_idx <= 22: return fill_principal, font_header_white
+                    else: return fill_neutro_escuro, font_header_white
 
                 for col_idx, col_name in enumerate(headers, 1):
                     cell = worksheet.cell(row=3, column=col_idx)
@@ -430,13 +426,6 @@ if arquivo_xml and arquivo_dados:
                         f_obj, fn_obj = obter_fill_cabecalho(col_idx)
                         cell.fill = f_obj
                         cell.font = fn_obj
-
-                fill_cinza = PatternFill(start_color="D9D9D9", end_color="D9D9D9", fill_type="solid")
-                fill_vermelho_claro = PatternFill(start_color="FFC7CE", end_color="FFC7CE", fill_type="solid")
-                fill_verde_oliva_claro = PatternFill(start_color="E2EFDA", end_color="E2EFDA", fill_type="solid")
-
-                font_divergente = Font(color="9C0006", bold=True)
-                font_normal = Font(color="000000", bold=False)
 
                 align_center_cols = [
                     'Linha_NF', 'Linha_WINTHOR', 'EAN_NF', 'EAN_WINTHOR', 'Qtd_NF', 'Qtd_WINTHOR',
@@ -497,7 +486,7 @@ if arquivo_xml and arquivo_dados:
 
                     if 'SOBRA' in str(linha_dict.get('Status_Geral', '')):
                         for col_idx in range(1, len(headers) + 1):
-                            worksheet.cell(row=row, column=col_idx).fill = fill_cinza
+                            worksheet.cell(row=row, column=col_idx).fill = fill_cinza_sobra
                         continue
 
                     for col_status, colunas_dados in status_dependents.items():
