@@ -86,7 +86,7 @@ def extrair_fator_embalagem(uCom):
 # ==========================================
 # 2. INTERFACE STREAMLIT
 # ==========================================
-st.set_page_config(page_title="Auditoria Olho de Deus", layout="wide")
+st.set_page_config(page_title="Auditoria de Notas", layout="wide")
 st.title("Auditoria de Notas")
 st.markdown("Faça o upload do arquivo XML da nota e do arquivo do WinThor (.csv ou .xlsx) para cruzar as informações com base absoluta na ordem do XML.")
 
@@ -493,7 +493,6 @@ if arquivo_xml and arquivo_dados:
                                         cell_dado.font = font_normal
 
                 # APLICAÇÃO DA FORMATAÇÃO CONDICIONAL DO ZEBRADO APENAS NAS COLUNAS QUE NÃO SÃO DE STATUS
-                # Isso preserva as cores verde/vermelho das células de status perfeitamente!
                 letras_nao_status = []
                 for idx, col_name in enumerate(headers, 1):
                     if not col_name.startswith('Status'):
