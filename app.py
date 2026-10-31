@@ -76,7 +76,6 @@ def extrair_fator_embalagem(uCom):
             return float(match.group(1))
         except:
             pass
-    # Tenta achar qualquer número isolado após letras
     match_nums = re.findall(r'\d+', str(uCom))
     if match_nums:
         try:
@@ -90,7 +89,7 @@ def extrair_fator_embalagem(uCom):
 # ==========================================
 st.set_page_config(page_title="Auditoria Olho de Deus", layout="wide")
 st.title("Auditoria de Notas")
-st.markdown("Faça o upload do arquivo XML da nota e do arquivo do WinThor (.csv ou .xlsx) para cruzar as informações com base absoluta na ordem do XML.")
+st.markdown("Faça o upload do arquivo XML da nota e do arquivoതിനുള്ള WinThor (.csv ou .xlsx) para cruzar as informações com base absoluta na ordem do XML.")
 
 col1, col2 = st.columns(2)
 with col1:
@@ -135,14 +134,12 @@ if arquivo_xml and arquivo_dados:
                 uCom = prod.find('ns:uCom', ns).text if prod.find('ns:uCom', ns) is not None else 'UN'
                 qCom_xml = float(prod.find('ns:qCom', ns).text) if prod.find('ns:qCom', ns) is not None else 0.0
                 
-                # Cálculo inteligente da quantidade total em unidades
+                # Fator para conferência interna
                 fator = extrair_fator_embalagem(uCom)
-                qtd_total_unidades = qCom_xml * fator if 'DP' in uCom.upper() or 'CX' in uCom.upper() or fator > 1 else qCom_xml
 
                 vUn = float(prod.find('ns:vUnCom', ns).text) if prod.find('ns:vUnCom', ns) is not None else 0.0
                 vTot = float(prod.find('ns:vProd', ns).text) if prod.find('ns:vProd', ns) is not None else 0.0
                 
-                # Extração correta de pICMS e Origem de dentro do grupo ICMS
                 icms_node = det.find('.//ns:ICMS', ns)
                 icms = 0.0
                 origem_desc = '0 - Nacional'
@@ -167,7 +164,8 @@ if arquivo_xml and arquivo_dados:
                     'EAN_Comp_NF': ean_comp,
                     'EANTrib_Comp_NF': ean_trib_comp,
                     'NCM_NF': ncm,
-                    'Qtd_NF': qtd_total_unidades,
+                    'Qtd_NF': qCom_xml,          # Exibe o valor original da nota (ex: 1)
+                    '_Fator_Embalagem': fator,   # Usado internamente para validação
                     'Vl_Unit_NF': vUn,
                     'Vl_Total_NF': vTot,
                     'Origem_XML': origem_desc,
@@ -222,7 +220,7 @@ if arquivo_xml and arquivo_dados:
                 else:
                     linha.update({
                         'Linha_NF': '-', 'Descricao_NF': '-', 'EAN_NF': '-', 'NCM_NF': '-',
-                        'Qtd_NF': '-', 'Vl_Unit_NF': '-', 'Vl_Total_NF': '-', 'Origem_XML': '-', 'ICMS_NF': '-', 'pRedBC_NF': '-'
+                        'Qtd_NF': '-', '_Fator_Embalagem': 1.0, 'Vl_Unit_NF': '-', 'Vl_Total_NF': '-', 'Origem_XML': '-', 'ICMS_NF': '-', 'pRedBC_NF': '-'
                     })
 
                 if item_c:
@@ -279,7 +277,10 @@ if arquivo_xml and arquivo_dados:
                         linha['Tipo_Calculo_ST'] = item_c['Tipo_Calculo_WINTHOR']
 
                     linha['Status_NCM'] = 'OK' if str(item_x['NCM_NF']) == str(item_c['NCM_WINTHOR']) else 'DIVERGENTE'
-                    linha['Status_Qtd'] = 'OK' if round(item_x['Qtd_NF'], 4) == round(item_c['Qtd_WINTHOR'], 4) else 'DIVERGENTE'
+                    
+                    # CONVERSÃO INTELIGENTE APLICADA APENAS NO STATUS DE QUANTIDADE
+                    qtd_xml_convertida = item_x['Qtd_NF'] * item_x['_Fator_Embalagem']
+                    linha['Status_Qtd'] = 'OK' if round(qtd_xml_convertida, 4) == round(item_c['Qtd_WINTHOR'], 4) else 'DIVERGENTE'
 
                 elif item_x and not item_c:
                     linha['Status_Geral'] = 'SOBRA NF (SEM PAR)'
