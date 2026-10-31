@@ -84,66 +84,70 @@ def extrair_fator_embalagem(uCom):
     return 1.0
 
 # ==========================================
-# 2. INTERFACE STREAMLIT (DASHBOARD EXECUTIVO)
+# 2. INTERFACE STREAMLIT (DASHBOARD COMPACTO)
 # ==========================================
 st.set_page_config(page_title="Auditoria de Notas | Dashboard", page_icon="📊", layout="wide")
 
-# Estilização CSS inspirada no padrão de dashboards corporativos (Clean, moderno e profissional)
+# CSS Customizado com foco em compactação e responsividade para telas menores
 st.markdown("""
     <style>
         .stApp {
             background-color: #F4F6F9;
             color: #2C3E50;
         }
-        /* Top bar corporativa */
+        .block-container {
+            padding-top: 1.5rem;
+            padding-bottom: 2rem;
+        }
+        /* Top bar compacta */
         .dashboard-header {
             background: linear-gradient(135deg, #1B2631 0%, #2C3E50 100%);
-            padding: 24px 30px;
-            border-radius: 10px;
+            padding: 16px 20px;
+            border-radius: 8px;
             color: #FFFFFF;
-            margin-bottom: 25px;
-            box-shadow: 0 4px 15px rgba(0,0,0,0.08);
+            margin-bottom: 15px;
+            box-shadow: 0 3px 10px rgba(0,0,0,0.06);
         }
         .dashboard-title {
-            font-size: 1.8rem;
+            font-size: 1.5rem;
             font-weight: 700;
             margin: 0;
             color: #FFFFFF;
         }
         .dashboard-subtitle {
-            font-size: 0.95rem;
+            font-size: 0.85rem;
             color: #BDC3C7;
-            margin-top: 5px;
+            margin-top: 3px;
             margin-bottom: 0;
         }
-        /* Cards Estilizados */
+        /* Cards Compactos */
         .card-panel {
             background-color: #FFFFFF;
             border: 1px solid #E5E7E9;
-            padding: 20px 24px;
-            border-radius: 10px;
-            box-shadow: 0 2px 8px rgba(0,0,0,0.04);
-            margin-bottom: 20px;
+            padding: 14px 18px;
+            border-radius: 8px;
+            box-shadow: 0 1px 4px rgba(0,0,0,0.03);
+            margin-bottom: 12px;
         }
         .card-title {
-            font-size: 1.05rem;
+            font-size: 0.95rem;
             font-weight: 600;
             color: #34495E;
-            margin-bottom: 12px;
+            margin-bottom: 8px;
         }
     </style>
 """, unsafe_allow_html=True)
 
-# Cabeçalho Principal Estilo Dashboard
+# Cabeçalho Compacto
 st.markdown("""
     <div class="dashboard-header">
         <p class="dashboard-title">📊 Painel de Auditoria de Notas Fiscais</p>
-        <p class="dashboard-subtitle">Cruzamento automatizado e validação tributária entre XML de fornecedores e relatórios ERP WinThor.</p>
+        <p class="dashboard-subtitle">Cruzamento automatizado entre XML e relatórios WinThor.</p>
     </div>
 """, unsafe_allow_html=True)
 
-# Layout de Cartões para Uploads e Configurações
-col_up1, col_up2 = st.columns(2, gap="large")
+# Layout de Uploads Compacto
+col_up1, col_up2 = st.columns(2, gap="medium")
 
 with col_up1:
     st.markdown('<div class="card-panel">', unsafe_allow_html=True)
@@ -157,35 +161,33 @@ with col_up2:
     arquivo_dados = st.file_uploader("Upload WinThor", type=["csv", "xlsx"], label_visibility="collapsed")
     st.markdown('</div>', unsafe_allow_html=True)
 
-# Seção de Seleção de Blocos Gerais para o Relatório
+# Seção de Seleção de Blocos (Compacta em duas linhas)
 st.markdown('<div class="card-panel">', unsafe_allow_html=True)
-st.markdown('<p class="card-title">⚙️ Seleção de Blocos para Exportação no Relatório</p>', unsafe_allow_html=True)
+st.markdown('<p class="card-title">⚙️ Seleção de Blocos para Exportação</p>', unsafe_allow_html=True)
 b_col1, b_col2, b_col3, b_col4 = st.columns(4)
 with b_col1:
     inc_ident = st.checkbox("Identificação", value=True)
-    inc_ean = st.checkbox("Código & EAN", value=True)
-with b_col2:
-    inc_desc = st.checkbox("Descrições", value=True)
     inc_qtd = st.checkbox("Quantidades", value=True)
-with b_col3:
+with b_col2:
+    inc_ean = st.checkbox("Código & EAN", value=True)
     inc_ncm = st.checkbox("NCM (Fiscal)", value=True)
+with b_col3:
+    inc_desc = st.checkbox("Descrições", value=True)
     inc_icms = st.checkbox("ICMS & Origem", value=True)
 with b_col4:
-    inc_red = st.checkbox("Redução de Base", value=True)
-    inc_st = st.checkbox("Tipo Cálculo ST", value=True)
+    inc_red = st.checkbox("Redução Base", value=True)
+    inc_st = st.checkbox("Cálculo ST", value=True)
 st.markdown('</div>', unsafe_allow_html=True)
 
 if arquivo_xml and arquivo_dados:
-    st.markdown("---")
-    
     col_run1, col_run2 = st.columns([3, 1])
     with col_run1:
-        st.success("✅ Arquivos carregados e prontos para processamento cruzado.")
+        st.success("✅ Arquivos prontos para processamento cruzado.")
     with col_run2:
-        processar = st.button("🚀 Processar Auditoria", use_container_width=True, type="primary")
+        processar = st.button("🚀 Processar", use_container_width=True, type="primary")
 
     if processar:
-        with st.spinner("Analisando itens e cruzando tributações com base absoluta no XML..."):
+        with st.spinner("Analisando itens e cruzando tributações com base no XML..."):
             # ==========================================
             # 3. EXTRAÇÃO DO XML (NF - O CENTRO DE TUDO)
             # ==========================================
@@ -434,7 +436,7 @@ if arquivo_xml and arquivo_dados:
             if inc_st: colunas_selecionadas.extend(mapa_colunas_blocos['Tipo Cálculo ST'])
 
             if not colunas_selecionadas:
-                colunas_selecionadas = ['Linha_NF'] # Fallback de segurança
+                colunas_selecionadas = ['Linha_NF']
 
             df_final = pd.DataFrame(dados_relatorio)
             df_final = df_final[[c for c in colunas_selecionadas if c in df_final.columns]]
@@ -482,7 +484,6 @@ if arquivo_xml and arquivo_dados:
 
                 headers = list(df_final.columns)
 
-                # Mapeamento dinâmico dos super grupos com base nas colunas ativas
                 super_grupos_def = []
                 if inc_ident: super_grupos_def.append(("IDENTIFICAÇÃO", ['Linha_NF', 'Linha_WINTHOR']))
                 if inc_ean: super_grupos_def.append(("CÓDIGO E EAN", ['Cod_Produto_WINTHOR', 'EAN_NF', 'EAN_WINTHOR', 'Status_EAN']))
@@ -532,7 +533,6 @@ if arquivo_xml and arquivo_dados:
                     cell.value = col_name
                     cell.alignment = Alignment(horizontal='center', vertical='center', wrap_text=True)
 
-                    # Verifica se é a última coluna de algum bloco visível
                     is_fim_bloco = False
                     running_c = 0
                     for _, cols in super_grupos_def:
@@ -575,7 +575,6 @@ if arquivo_xml and arquivo_dados:
                     for col_idx in range(1, len(headers) + 1):
                         cell = worksheet.cell(row=row, column=col_idx)
                         
-                        # Verifica fim de bloco para borda
                         is_fim_bloco = False
                         running_c = 0
                         for _, cols in super_grupos_def:
@@ -641,7 +640,6 @@ if arquivo_xml and arquivo_dados:
                                         cell_dado = worksheet.cell(row=row, column=headers.index(col_afetada) + 1)
                                         cell_dado.font = font_normal
 
-                # Formatação condicional para o zebrado dinâmico
                 letras_nao_status = [get_column_letter(idx) for idx, col_name in enumerate(headers, 1) if not col_name.startswith('Status')]
                 for l_col in letras_nao_status:
                     rule = FormulaRule(formula=[f'MOD(ROW(),2)=0'], stopIfTrue=True, fill=fill_zebrado)
