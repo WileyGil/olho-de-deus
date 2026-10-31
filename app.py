@@ -144,8 +144,8 @@ if arquivo_xml and arquivo_dados:
                     'Qtd_NF': qtd,
                     'Vl_Unit_NF': vUn,
                     'Vl_Total_NF': vTot,
-                    'ICMS_NF': icms,
                     'Origem_XML': origem_desc,
+                    'ICMS_NF': icms,
                     'pRedBC_NF': pRedBC
                 })
 
@@ -196,7 +196,7 @@ if arquivo_xml and arquivo_dados:
                 else:
                     linha.update({
                         'Linha_NF': '-', 'Descricao_NF': '-', 'EAN_NF': '-', 'NCM_NF': '-',
-                        'Qtd_NF': '-', 'Vl_Unit_NF': '-', 'Vl_Total_NF': '-', 'ICMS_NF': '-', 'Origem_XML': '-', 'pRedBC_NF': '-'
+                        'Qtd_NF': '-', 'Vl_Unit_NF': '-', 'Vl_Total_NF': '-', 'Origem_XML': '-', 'ICMS_NF': '-', 'pRedBC_NF': '-'
                     })
 
                 if item_c:
@@ -278,7 +278,7 @@ if arquivo_xml and arquivo_dados:
                 'Descricao_NF', 'Descricao_WINTHOR',
                 'Qtd_NF', 'Qtd_WINTHOR', 'Status_Qtd',
                 'NCM_NF', 'NCM_WINTHOR', 'Status_NCM',
-                'ICMS_NF', 'Origem_XML', 'ICMS_WINTHOR', '%Alíq.Ext. ST Guia_Whintor', 'Status_ICMS_Aliq',
+                'Origem_XML', 'ICMS_NF', 'ICMS_WINTHOR', '%Alíq.Ext. ST Guia_Whintor', 'Status_ICMS_Aliq',
                 'pRedBC_NF', '% ICMS red. Whintor', 'Status_Red_BC',
                 'Tipo_Calculo_ST'
             ]
@@ -372,7 +372,7 @@ if arquivo_xml and arquivo_dados:
                         else:
                             cell.fill = fill_cab_status_convergente
                             cell.font = font_header_status
-                    elif 'NF' in col_name or col_name in ('EAN_NF', 'Qtd_NF', 'NCM_NF', 'ICMS_NF', 'Origem_XML', 'pRedBC_NF'):
+                    elif 'NF' in col_name or col_name in ('EAN_NF', 'Qtd_NF', 'NCM_NF', 'Origem_XML', 'ICMS_NF', 'pRedBC_NF'):
                         cell.fill = fill_cab_xml
                         cell.font = font_header_default_xml
                     else:
@@ -388,7 +388,7 @@ if arquivo_xml and arquivo_dados:
 
                 align_center_cols = [
                     'Linha_NF', 'Linha_WINTHOR', 'EAN_NF', 'EAN_WINTHOR', 'Qtd_NF', 'Qtd_WINTHOR',
-                    'NCM_NF', 'NCM_WINTHOR', 'ICMS_NF', 'Origem_XML', 'ICMS_WINTHOR', '%Alíq.Ext. ST Guia_Whintor',
+                    'NCM_NF', 'NCM_WINTHOR', 'Origem_XML', 'ICMS_NF', 'ICMS_WINTHOR', '%Alíq.Ext. ST Guia_Whintor',
                     'pRedBC_NF', '% ICMS red. Whintor'
                 ]
 
