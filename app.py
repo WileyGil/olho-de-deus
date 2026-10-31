@@ -66,6 +66,25 @@ def obter_descricao_origem(orig_cod):
     }
     return tabela_origem.get(str(orig_cod).strip(), f"{orig_cod} - Desconhecida")
 
+def extrair_fator_embalagem(uCom):
+    """Extrai o multiplicador de displays/caixas (Ex: DPx20 -> 20, CX12 -> 12)"""
+    if not uCom:
+        return 1.0
+    match = re.search(r'(?:DP|CX|PC|UN)x?(\d+)', str(uCom), re.IGNORECASE)
+    if match:
+        try:
+            return float(match.group(1))
+        except:
+            pass
+    # Tenta achar qualquer número isolado após letras
+    match_nums = re.findall(r'\d+', str(uCom))
+    if match_nums:
+        try:
+            return float(match_nums[-1])
+        except:
+            pass
+    return 1.0
+
 # ==========================================
 # 2. INTERFACE STREAMLIT
 # ==========================================
@@ -112,7 +131,14 @@ if arquivo_xml and arquivo_dados:
                 ean_trib_comp = limpar_ean(ean_trib_raw)
 
                 ncm = limpar_numero(prod.find('ns:NCM', ns).text) if prod.find('ns:NCM', ns) is not None else ''
-                qtd = float(prod.find('ns:qCom', ns).text) if prod.find('ns:qCom', ns) is not None else 0.0
+                
+                uCom = prod.find('ns:uCom', ns).text if prod.find('ns:uCom', ns) is not None else 'UN'
+                qCom_xml = float(prod.find('ns:qCom', ns).text) if prod.find('ns:qCom', ns) is not None else 0.0
+                
+                # Cálculo inteligente da quantidade total em unidades
+                fator = extrair_fator_embalagem(uCom)
+                qtd_total_unidades = qCom_xml * fator if 'DP' in uCom.upper() or 'CX' in uCom.upper() or fator > 1 else qCom_xml
+
                 vUn = float(prod.find('ns:vUnCom', ns).text) if prod.find('ns:vUnCom', ns) is not None else 0.0
                 vTot = float(prod.find('ns:vProd', ns).text) if prod.find('ns:vProd', ns) is not None else 0.0
                 
@@ -141,7 +167,7 @@ if arquivo_xml and arquivo_dados:
                     'EAN_Comp_NF': ean_comp,
                     'EANTrib_Comp_NF': ean_trib_comp,
                     'NCM_NF': ncm,
-                    'Qtd_NF': qtd,
+                    'Qtd_NF': qtd_total_unidades,
                     'Vl_Unit_NF': vUn,
                     'Vl_Total_NF': vTot,
                     'Origem_XML': origem_desc,
@@ -230,7 +256,6 @@ if arquivo_xml and arquivo_dados:
                     else:
                         linha['Status_ICMS_Aliq'] = 'DIVERGENTE'
 
-                    # VALIDAÇÃO INTELIGENTE DE CARGA EFETIVA (COM OU SEM REDUÇÃO)
                     pred_xml = round(item_x['pRedBC_NF'], 4)
                     red_csv = round(item_c['% ICMS red. Whintor'], 4)
 
@@ -296,7 +321,6 @@ if arquivo_xml and arquivo_dados:
 
                 worksheet.freeze_panes = 'A4'
                 
-                # ADICIONA O FILTRO NATIVO PARA TODA A TABELA
                 worksheet.auto_filter.ref = f"A3:W{len(df_final) + 3}"
 
                 fill_zebrado = PatternFill(start_color="F9FAFB", end_color="F9FAFB", fill_type="solid")
