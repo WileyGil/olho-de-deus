@@ -109,6 +109,9 @@ if arquivo_xml and arquivo_dados:
                 vTot = float(prod.find('ns:vProd', ns).text) if prod.find('ns:vProd', ns) is not None else 0.0
                 icms = obter_icms_xml(det, ns)
 
+                orig_node = det.find('.//ns:orig', ns)
+                origem = orig_node.text if orig_node is not None else ''
+
                 pRedBC_node = det.find('.//ns:pRedBC', ns)
                 pRedBC = float(pRedBC_node.text) if pRedBC_node is not None and pRedBC_node.text else 0.0
 
@@ -123,6 +126,7 @@ if arquivo_xml and arquivo_dados:
                     'Vl_Unit_NF': vUn,
                     'Vl_Total_NF': vTot,
                     'ICMS_NF': icms,
+                    'Origem_XML': origem,
                     'pRedBC_NF': pRedBC
                 })
 
@@ -173,7 +177,7 @@ if arquivo_xml and arquivo_dados:
                 else:
                     linha.update({
                         'Linha_NF': '-', 'Descricao_NF': '-', 'EAN_NF': '-', 'NCM_NF': '-',
-                        'Qtd_NF': '-', 'Vl_Unit_NF': '-', 'Vl_Total_NF': '-', 'ICMS_NF': '-', 'pRedBC_NF': '-'
+                        'Qtd_NF': '-', 'Vl_Unit_NF': '-', 'Vl_Total_NF': '-', 'ICMS_NF': '-', 'Origem_XML': '-', 'pRedBC_NF': '-'
                     })
 
                 if item_c:
@@ -211,7 +215,6 @@ if arquivo_xml and arquivo_dados:
                     pred_xml = round(item_x['pRedBC_NF'], 4)
                     red_csv = round(item_c['% ICMS red. Whintor'], 4)
 
-                    # Calcula a carga esperada aplicando a redução sobre a alíquota do XML
                     carga_efetiva_xml = round(item_x['ICMS_NF'] * (1.0 - (item_x['pRedBC_NF'] / 100.0)), 4)
 
                     if (
@@ -256,7 +259,7 @@ if arquivo_xml and arquivo_dados:
                 'Descricao_NF', 'Descricao_WINTHOR',
                 'Qtd_NF', 'Qtd_WINTHOR', 'Status_Qtd',
                 'NCM_NF', 'NCM_WINTHOR', 'Status_NCM',
-                'ICMS_NF', 'ICMS_WINTHOR', '%Alíq.Ext. ST Guia_Whintor', 'Status_ICMS_Aliq',
+                'ICMS_NF', 'Origem_XML', 'ICMS_WINTHOR', '%Alíq.Ext. ST Guia_Whintor', 'Status_ICMS_Aliq',
                 'pRedBC_NF', '% ICMS red. Whintor', 'Status_Red_BC',
                 'Tipo_Calculo_ST'
             ]
@@ -275,7 +278,7 @@ if arquivo_xml and arquivo_dados:
                 worksheet.freeze_panes = 'A4'
                 
                 # ADICIONA O FILTRO NATIVO PARA TODA A TABELA
-                worksheet.auto_filter.ref = f"A3:V{len(df_final) + 3}"
+                worksheet.auto_filter.ref = f"A3:W{len(df_final) + 3}"
 
                 fill_zebrado = PatternFill(start_color="F9FAFB", end_color="F9FAFB", fill_type="solid")
                 fill_cab_status_divergente = PatternFill(start_color="9C0006", end_color="9C0006", fill_type="solid")
@@ -305,9 +308,9 @@ if arquivo_xml and arquivo_dados:
                     ("DESCRIÇÕES COMPARATIVAS", 7, 8, fill_cab_neutro, font_super_header_erp),
                     ("QUANTIDADES [XML]", 9, 11, fill_cab_xml, font_super_header_xml),
                     ("CLASSIFICAÇÃO FISCAL (NCM) [XML]", 12, 14, fill_cab_xml, font_super_header_xml),
-                    ("ALÍQUOTAS DE ICMS [XML]", 15, 18, fill_cab_xml, font_super_header_xml),
-                    ("REDUÇÃO DE BASE DE CÁLCULO [XML]", 19, 21, fill_cab_xml, font_super_header_xml),
-                    ("TIPO CÁLCULO ST", 22, 22, fill_cab_neutro, font_super_header_erp)
+                    ("ALÍQUOTAS DE ICMS [XML]", 15, 19, fill_cab_xml, font_super_header_xml),
+                    ("REDUÇÃO DE BASE DE CÁLCULO [XML]", 20, 22, fill_cab_xml, font_super_header_xml),
+                    ("TIPO CÁLCULO ST", 23, 23, fill_cab_neutro, font_super_header_erp)
                 ]
 
                 for label, col_start, col_end, fill_obj, font_obj in super_grupos:
@@ -322,7 +325,7 @@ if arquivo_xml and arquivo_dados:
                             cell_target = worksheet.cell(row=r, column=c)
                             cell_target.fill = fill_obj
                             cell_target.border = borda_branca
-                            if c == col_end and col_end != 22:
+                            if c == col_end and col_end != 23:
                                 cell_target.border = borda_divisoria_direita
 
                 worksheet.row_dimensions[1].height = 18
@@ -340,7 +343,7 @@ if arquivo_xml and arquivo_dados:
                     cell.value = col_name
                     cell.alignment = Alignment(horizontal='center', vertical='center', wrap_text=True)
 
-                    default_border = borda_divisoria_direita if col_idx in (2, 6, 8, 11, 14, 18, 21, 22) else borda_branca
+                    default_border = borda_divisoria_direita if col_idx in (2, 6, 8, 11, 14, 19, 22, 23) else borda_branca
                     cell.border = default_border
 
                     if col_name in status_has_divergence:
@@ -350,7 +353,7 @@ if arquivo_xml and arquivo_dados:
                         else:
                             cell.fill = fill_cab_status_convergente
                             cell.font = font_header_status
-                    elif 'NF' in col_name or col_name in ('EAN_NF', 'Qtd_NF', 'NCM_NF', 'ICMS_NF', 'pRedBC_NF'):
+                    elif 'NF' in col_name or col_name in ('EAN_NF', 'Qtd_NF', 'NCM_NF', 'ICMS_NF', 'Origem_XML', 'pRedBC_NF'):
                         cell.fill = fill_cab_xml
                         cell.font = font_header_default_xml
                     else:
@@ -366,7 +369,7 @@ if arquivo_xml and arquivo_dados:
 
                 align_center_cols = [
                     'Linha_NF', 'Linha_WINTHOR', 'EAN_NF', 'EAN_WINTHOR', 'Qtd_NF', 'Qtd_WINTHOR',
-                    'NCM_NF', 'NCM_WINTHOR', 'ICMS_NF', 'ICMS_WINTHOR', '%Alíq.Ext. ST Guia_Whintor',
+                    'NCM_NF', 'NCM_WINTHOR', 'ICMS_NF', 'Origem_XML', 'ICMS_WINTHOR', '%Alíq.Ext. ST Guia_Whintor',
                     'pRedBC_NF', '% ICMS red. Whintor'
                 ]
 
@@ -388,7 +391,7 @@ if arquivo_xml and arquivo_dados:
                         if is_even:
                             cell.fill = fill_zebrado
 
-                        default_border = borda_divisoria_direita if col_idx in (2, 6, 8, 11, 14, 18, 21, 22) else borda_branca
+                        default_border = borda_divisoria_direita if col_idx in (2, 6, 8, 11, 14, 19, 22, 23) else borda_branca
                         cell.border = default_border
                         col_name = headers[col_idx - 1]
 
@@ -407,7 +410,7 @@ if arquivo_xml and arquivo_dados:
                                 cell.number_format = '00000000'
                             except ValueError:
                                 pass
-                        elif col_name in ('EAN_NF', 'EAN_WINTHOR') and str(cell.value).strip() not in ('', '-'):
+                        elif col_name in ('EAN_NF', 'EAN_WINTHOR', 'Origem_XML') and str(cell.value).strip() not in ('', '-'):
                             cell.value = str(cell.value).strip()
                             cell.number_format = '@'
                         elif isinstance(cell.value, (int, float)) and cell.value != '-':
