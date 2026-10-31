@@ -3,6 +3,7 @@ import pandas as pd
 import xml.etree.ElementTree as ET
 from itertools import zip_longest
 from openpyxl.styles import PatternFill, Font, Alignment, Border, Side
+from openpyxl.formatting.rule import FormulaRule
 from openpyxl.utils import get_column_letter
 import re
 from datetime import datetime
@@ -327,7 +328,7 @@ if arquivo_xml and arquivo_dados:
                 worksheet.auto_filter.ref = f"A3:W{len(df_final) + 3}"
 
                 # ==========================================
-                # VISUAL LIMPO COM LINHAS VERTICAIS APENas NAS DIVISÕES DE BLOCOS
+                # VISUAL LIMPO COM ZEBRADO DINÂMICO (FORMATAÇÃO CONDICIONAL)
                 # ==========================================
                 COLOR_BLOCO_DARK = "1B2631"    # Azul Chumbo Escuro (Super Cabeçalhos)
                 COLOR_XML_SOLID = "212F3D"     # Tom Sólido para Colunas XML
@@ -352,11 +353,9 @@ if arquivo_xml and arquivo_dados:
                 font_divergente = Font(color="9C0006", bold=True)
                 font_normal = Font(color="000000", bold=False)
 
-                # Bordas: Células normais sem linhas verticais internas, apenas divisória vertical marcante no fim de cada bloco geral
                 borda_padrao = Border(left=Side(style=None), right=Side(style=None), top=Side(style=None), bottom=Side(style=None))
                 borda_fim_bloco = Border(left=Side(style=None), right=Side(style='medium', color='1B2631'), top=Side(style=None), bottom=Side(style=None))
 
-                # Colunas exatas onde cada bloco geral termina (última coluna de cada grupo)
                 colunas_fim_bloco = [2, 6, 8, 11, 14, 19, 22, 23]
 
                 # Definição dos Super Grupos (Linhas 1 e 2)
@@ -435,14 +434,8 @@ if arquivo_xml and arquivo_dados:
 
                 for row in range(4, len(df_final) + 4):
                     linha_dict = dados_relatorio[row-4]
-                    is_even = (row % 2 == 0)
-
                     for col_idx in range(1, len(headers) + 1):
                         cell = worksheet.cell(row=row, column=col_idx)
-
-                        if is_even:
-                            cell.fill = fill_zebrado
-
                         cell.border = borda_fim_bloco if col_idx in colunas_fim_bloco else borda_padrao
                         col_name = headers[col_idx - 1]
 
@@ -498,6 +491,10 @@ if arquivo_xml and arquivo_dados:
                                     if col_afetada in headers:
                                         cell_dado = worksheet.cell(row=row, column=headers.index(col_afetada) + 1)
                                         cell_dado.font = font_normal
+
+                # APLICAÇÃO DA FORMATAÇÃO CONDICIONAL PARA O ZEBRADO DINÂMICO AO CLASSIFICAR/FILTRAR
+                rule = FormulaRule(formula=['MOD(ROW(),2)=0'], stopIfTrue=True, fill=fill_zebrado)
+                worksheet.conditional_formatting.add(f'A4:W{len(df_final) + 3}', rule)
 
                 for col in worksheet.columns:
                     max_length = 0
