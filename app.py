@@ -60,11 +60,12 @@ def obter_descricao_origem(orig_cod):
         '2': '2 - Estrangeira (Mercado Interno)',
         '3': '3 - Nacional (Imp. > 40% e <= 70%)',
         '4': '4 - Nacional (Processo Produtivo Básico)',
-        '5': '5 - Nacional (Imp. <= 40%)',
+        '5': '5 - Nacional (Imp. <= 70%)',
         '6': '6 - Estrangeira (Sem Similar Nacional)',
         '7': '7 - Estrangeira (Mercado Interno, Sem Similar)',
         '8': '8 - Nacional (Imp. > 70%)'
     }
+    tabela_origem['5'] = '5 - Nacional (Imp. <= 40%)'
     return tabela_origem.get(str(orig_cod).strip(), f"{orig_cod} - Desconhecida")
 
 def extrair_fator_embalagem(uCom):
@@ -100,261 +101,197 @@ def formatar_moeda_br(valor):
         return "-"
     return f"R$ {formatar_num_br(valor, 2)}"
 
-def badge_status_html(status_val):
-    st_str = str(status_val).strip().upper()
-    if st_str == 'OK':
-        return '<span class="badge-ok">✓ OK</span>'
-    elif st_str == 'DIVERGENTE':
-        return '<span class="badge-div">✗ DIVERGENTE</span>'
-    return '<span class="badge-neutral">-</span>'
 
 # ==========================================
-# 2. INTERFACE STREAMLIT (DASHBOARD COMPACTO E INTERATIVO)
+# 2. CONFIGURAÇÃO DE PÁGINA E ESTILO (100% FOCO EM DIVERGÊNCIAS)
 # ==========================================
-st.set_page_config(page_title="Auditoria de Notas | Dashboard", page_icon="📊", layout="wide")
+st.set_page_config(
+    page_title="Painel de Auditoria de Notas - Foco em Divergências",
+    page_icon="🚨",
+    layout="wide",
+    initial_sidebar_state="expanded"
+)
 
 st.markdown("""
     <style>
         .stApp {
             background-color: #F4F6F9;
-            color: #2C3E50;
+            color: #1B2631;
         }
         .block-container {
-            padding-top: 1.5rem;
+            padding-top: 1.2rem;
             padding-bottom: 2rem;
+            max-width: 98%;
         }
-        .dashboard-header {
+        /* Top Header Executivo */
+        .top-banner {
             background: linear-gradient(135deg, #1B2631 0%, #2C3E50 100%);
-            padding: 16px 20px;
+            padding: 14px 22px;
             border-radius: 8px;
             color: #FFFFFF;
-            margin-bottom: 15px;
-            box-shadow: 0 3px 10px rgba(0,0,0,0.06);
+            margin-bottom: 14px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            box-shadow: 0 3px 10px rgba(0,0,0,0.08);
         }
-        .dashboard-title {
-            font-size: 1.5rem;
+        .top-banner-title {
+            font-size: 1.35rem;
             font-weight: 700;
             margin: 0;
             color: #FFFFFF;
         }
-        .dashboard-subtitle {
-            font-size: 0.85rem;
+        .top-banner-sub {
+            font-size: 0.82rem;
             color: #BDC3C7;
-            margin-top: 3px;
-            margin-bottom: 0;
+            margin: 2px 0 0 0;
         }
-        .card-panel {
+        /* Barra de Comando da Nota */
+        .nf-action-bar {
             background-color: #FFFFFF;
             border: 1px solid #E5E7E9;
-            padding: 14px 18px;
+            border-left: 5px solid #9C0006;
             border-radius: 8px;
-            box-shadow: 0 1px 4px rgba(0,0,0,0.03);
+            padding: 12px 18px;
             margin-bottom: 12px;
-        }
-        .card-title {
-            font-size: 0.95rem;
-            font-weight: 600;
-            color: #34495E;
-            margin-bottom: 8px;
-        }
-        .kpi-grid {
-            display: grid;
-            grid-template-columns: repeat(4, 1fr);
-            gap: 12px;
-            margin-bottom: 14px;
-        }
-        .kpi-card {
-            background: #FFFFFF;
-            border-radius: 8px;
-            padding: 14px 16px;
-            border: 1px solid #E5E7E9;
-            border-left: 5px solid #2C3E50;
             box-shadow: 0 1px 4px rgba(0,0,0,0.04);
         }
-        .kpi-card.ok { border-left-color: #196F3D; }
-        .kpi-card.div { border-left-color: #9C0006; }
-        .kpi-card.sobra { border-left-color: #D68910; }
-        .kpi-label {
-            font-size: 0.78rem;
-            font-weight: 600;
-            text-transform: uppercase;
-            color: #7F8C8D;
-            margin-bottom: 4px;
-        }
-        .kpi-value {
-            font-size: 1.45rem;
+        .nf-title-line {
+            font-size: 1.08rem;
             font-weight: 700;
             color: #1B2631;
-            line-height: 1.2;
+            margin: 0;
         }
-        .kpi-sub {
-            font-size: 0.78rem;
+        .nf-meta-line {
+            font-size: 0.83rem;
             color: #566573;
-            margin-top: 4px;
+            margin-top: 3px;
         }
-        .pill-bar {
+        /* Caixa de Divergência Vermelha (Destaque Principal no Card) */
+        .div-alert-box {
+            background-color: #FDEDEC;
+            border: 1.5px solid #F5B7B1;
+            border-left: 6px solid #9C0006;
+            border-radius: 8px;
+            padding: 14px 18px;
+            margin-bottom: 12px;
+        }
+        .div-alert-header {
+            font-size: 0.82rem;
+            font-weight: 800;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            color: #9C0006;
+            margin-bottom: 10px;
+            border-bottom: 1px solid #F5B7B1;
+            padding-bottom: 6px;
+        }
+        .div-item-row {
             display: flex;
             flex-wrap: wrap;
-            gap: 8px;
-            margin-bottom: 14px;
-        }
-        .err-pill {
-            padding: 5px 12px;
-            border-radius: 999px;
-            font-size: 0.8rem;
-            font-weight: 600;
-            border: 1px solid transparent;
-        }
-        .err-pill.zero {
-            background-color: #E8F8F5;
-            color: #117864;
-            border-color: #A3E4D7;
-        }
-        .err-pill.alert {
-            background-color: #FDEDEC;
-            color: #9C0006;
-            border-color: #F5B7B1;
-        }
-        .prod-section {
+            justify-content: space-between;
+            align-items: center;
             background-color: #FFFFFF;
+            border: 1px solid #FADBD8;
+            border-radius: 6px;
+            padding: 9px 14px;
+            margin-bottom: 8px;
+        }
+        .div-item-row:last-child {
+            margin-bottom: 0;
+        }
+        .div-crit-name {
+            font-size: 0.9rem;
+            font-weight: 700;
+            color: #9C0006;
+            min-width: 190px;
+        }
+        .div-comp-vals {
+            font-size: 0.9rem;
+            font-weight: 600;
+            color: #1B2631;
+        }
+        .val-xml-tag {
+            background-color: #EBF5FB;
+            color: #1B4F72;
+            padding: 3px 8px;
+            border-radius: 4px;
+            font-weight: 700;
+            border: 1px solid #AED6F1;
+        }
+        .val-erp-tag {
+            background-color: #FADBD8;
+            color: #9C0006;
+            padding: 3px 8px;
+            border-radius: 4px;
+            font-weight: 700;
+            border: 1px solid #F1948A;
+        }
+        .div-rule-note {
+            font-size: 0.78rem;
+            color: #641E16;
+            background-color: #F9EBEA;
+            padding: 3px 8px;
+            border-radius: 4px;
+            font-weight: 600;
+        }
+        /* Ficha Técnica do Produto (Neutra, sem selos OK) */
+        .prod-info-grid {
+            display: grid;
+            grid-template-columns: repeat(4, 1fr);
+            gap: 10px;
+            background-color: #F8F9F9;
             border: 1px solid #E5E7E9;
             border-radius: 8px;
             padding: 12px 14px;
-            height: 100%;
         }
-        .prod-section.div-border {
-            border: 1.5px solid #E6B0AA;
-            background-color: #FFFDFD;
-        }
-        .prod-section.ok-border {
-            border: 1px solid #D4EFDF;
-        }
-        .prod-sec-header {
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            font-size: 0.85rem;
+        .info-col-title {
+            font-size: 0.78rem;
             font-weight: 700;
-            color: #1B2631;
-            border-bottom: 1px solid #EAECEE;
-            padding-bottom: 6px;
-            margin-bottom: 8px;
+            text-transform: uppercase;
+            color: #566573;
+            border-bottom: 1px solid #D5D8DC;
+            padding-bottom: 4px;
+            margin-bottom: 6px;
         }
-        .field-row {
+        .info-kv {
             display: flex;
             justify-content: space-between;
-            align-items: baseline;
-            padding: 4px 0;
-            border-bottom: 1px dashed #F2F4F4;
-            font-size: 0.83rem;
+            font-size: 0.81rem;
+            padding: 2px 0;
         }
-        .field-row:last-child {
-            border-bottom: none;
-        }
-        .field-label {
+        .info-k {
             color: #566573;
-            font-weight: 500;
-            padding-right: 8px;
         }
-        .field-val {
+        .info-v {
             font-weight: 600;
             color: #1B2631;
             text-align: right;
         }
-        .field-val.val-div {
-            color: #9C0006;
-            font-weight: 700;
-            background-color: #FADBD8;
-            padding: 1px 6px;
-            border-radius: 4px;
-        }
-        .field-val.val-ok {
-            color: #196F3D;
-            font-weight: 700;
-        }
-        .badge-ok {
-            background-color: #D4EFDF;
-            color: #196F3D;
-            padding: 2px 8px;
-            border-radius: 12px;
-            font-size: 0.74rem;
-            font-weight: 700;
-        }
-        .badge-div {
-            background-color: #FADBD8;
-            color: #9C0006;
-            padding: 2px 8px;
-            border-radius: 12px;
-            font-size: 0.74rem;
-            font-weight: 700;
-        }
-        .badge-neutral {
-            background-color: #EAEDED;
-            color: #566573;
-            padding: 2px 8px;
-            border-radius: 12px;
-            font-size: 0.74rem;
-            font-weight: 600;
-        }
-        .desc-box {
-            background-color: #F8F9F9;
+        .desc-compare-bar {
+            background-color: #FFFFFF;
             border: 1px solid #E5E7E9;
             border-radius: 6px;
-            padding: 8px 12px;
+            padding: 8px 14px;
             margin-bottom: 10px;
-            font-size: 0.84rem;
+            font-size: 0.83rem;
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 14px;
+        }
+        /* Ajuste de botões no Streamlit */
+        div.stButton > button {
+            border-radius: 20px;
+            font-weight: 600;
+            font-size: 0.82rem;
+            padding: 0.35rem 0.75rem;
         }
     </style>
 """, unsafe_allow_html=True)
 
-st.markdown("""
-    <div class="dashboard-header">
-        <p class="dashboard-title">📊 Painel de Auditoria de Notas Fiscais</p>
-        <p class="dashboard-subtitle">Cruzamento automatizado entre XML e relatórios WinThor com inspeção interativa e exportação executiva.</p>
-    </div>
-""", unsafe_allow_html=True)
-
-col_up1, col_up2 = st.columns(2, gap="medium")
-
-with col_up1:
-    st.markdown('<div class="card-panel">', unsafe_allow_html=True)
-    st.markdown('<p class="card-title">📂 1. Nota Fiscal Eletrônica (XML)</p>', unsafe_allow_html=True)
-    arquivo_xml = st.file_uploader("Upload XML", type=["xml"], label_visibility="collapsed")
-    st.markdown('</div>', unsafe_allow_html=True)
-
-with col_up2:
-    st.markdown('<div class="card-panel">', unsafe_allow_html=True)
-    st.markdown('<p class="card-title">📊 2. Relatório de Pré-Entrada (WinThor)</p>', unsafe_allow_html=True)
-    arquivo_dados = st.file_uploader("Upload WinThor", type=["csv", "xlsx"], label_visibility="collapsed")
-    st.markdown('</div>', unsafe_allow_html=True)
-
-# Seção de Seleção de Blocos com a opção "Marcar/Desmarcar Todos"
-st.markdown('<div class="card-panel">', unsafe_allow_html=True)
-top_col1, top_col2 = st.columns([4, 1])
-with top_col1:
-    st.markdown('<p class="card-title" style="margin-bottom:0;">⚙️ Seleção de Blocos para Visualização e Exportação</p>', unsafe_allow_html=True)
-with top_col2:
-    selecionar_todos = st.checkbox("Selecionar Todos", value=True)
-
-st.write("")
-b_col1, b_col2, b_col3, b_col4 = st.columns(4)
-with b_col1:
-    inc_ident = st.checkbox("Identificação", value=selecionar_todos)
-    inc_qtd = st.checkbox("Quantidades", value=selecionar_todos)
-with b_col2:
-    inc_ean = st.checkbox("Código & EAN", value=selecionar_todos)
-    inc_ncm = st.checkbox("NCM (Fiscal)", value=selecionar_todos)
-with b_col3:
-    inc_desc = st.checkbox("Descrições", value=selecionar_todos)
-    inc_icms = st.checkbox("ICMS & Origem", value=selecionar_todos)
-with b_col4:
-    inc_red = st.checkbox("Redução Base", value=selecionar_todos)
-    inc_st = st.checkbox("Cálculo ST", value=selecionar_todos)
-st.markdown('</div>', unsafe_allow_html=True)
-
 
 # ==========================================
-# FUNÇÃO DE PROCESSAMENTO COMPLETO (XML + WINTHOR)
+# 3. MOTOR DE AUDITORIA E GERAÇÃO DO EXCEL
 # ==========================================
 def executar_auditoria(xml_bytes, dados_bytes, nome_dados):
     ns = {'ns': 'http://www.portalfiscal.inf.br/nfe'}
@@ -467,6 +404,7 @@ def executar_auditoria(xml_bytes, dados_bytes, nome_dados):
 
     # 5. CRUZAMENTO BASEADO ESTRITAMENTE NA ORDEM DO XML
     dados_relatorio = []
+    ocorrencias_de_para = []
 
     for item_x, item_c in zip_longest(itens_xml, itens_csv, fillvalue=None):
         linha = {}
@@ -490,10 +428,14 @@ def executar_auditoria(xml_bytes, dados_bytes, nome_dados):
             })
 
         lista_erros_item = []
+        detalhes_erros_item = []
 
         if item_x and item_c:
             linha['Status_Geral'] = 'PAREADO'
+            cod_prod = linha.get('Cod_Produto_WINTHOR') or '-'
+            desc_ref = linha.get('Descricao_WINTHOR') or linha.get('Descricao_NF') or '-'
 
+            # 1. Validação EAN
             ean_x_comp = item_x.get('EAN_Comp_NF', '')
             eantrib_x_comp = item_x.get('EANTrib_Comp_NF', '')
             ean_win_comp = item_c.get('EAN_Comp_WINTHOR', '')
@@ -505,7 +447,36 @@ def executar_auditoria(xml_bytes, dados_bytes, nome_dados):
             else:
                 linha['Status_EAN'] = 'DIVERGENTE'
                 lista_erros_item.append('EAN')
+                val_xml_ean = linha['EAN_NF'] if linha['EAN_NF'] else 'SEM GTIN'
+                val_win_ean = linha['EAN_WINTHOR'] if linha['EAN_WINTHOR'] else 'VAZIO'
+                detalhes_erros_item.append({
+                    'criterio': 'DIVERGÊNCIA DE EAN (CÓDIGO DE BARRAS)',
+                    'tag': 'EAN',
+                    'xml': val_xml_ean,
+                    'winthor': val_win_ean,
+                    'regra': f"cEAN ({item_x.get('EAN_Raw_NF') or '-'}) / cEANTrib ({item_x.get('EANTrib_Raw_NF') or '-'}) ≠ ERP"
+                })
+                ocorrencias_de_para.append({
+                    'Linha NF': linha['Linha_NF'],
+                    'Linha ERP': linha['Linha_WINTHOR'],
+                    'Cód. WinThor': cod_prod,
+                    'Produto': desc_ref,
+                    'Critério Divergente': 'EAN (Cód. Barras)',
+                    'Valor no XML (NF)': val_xml_ean,
+                    'Valor no WinThor (ERP)': val_win_ean,
+                    'Diagnóstico': 'Código de barras da NF não confere com o cadastro no WinThor'
+                })
 
+            # 2. Tipo Cálculo ST (Tradutor)
+            tipo_calc = str(item_c.get('Tipo_Calculo_WINTHOR', '')).strip().upper()
+            if tipo_calc == 'N':
+                linha['Tipo_Calculo_ST'] = 'NOTA FISCAL'
+            elif tipo_calc == 'G':
+                linha['Tipo_Calculo_ST'] = 'GUIA'
+            else:
+                linha['Tipo_Calculo_ST'] = item_c['Tipo_Calculo_WINTHOR']
+
+            # 3. Validação ICMS Alíquota
             icms_xml = round(item_x['ICMS_NF'], 2)
             icms_csv = round(item_c['ICMS_WINTHOR'], 2)
             st_guia = round(item_c['%Alíq.Ext. ST Guia_Whintor'], 2)
@@ -513,8 +484,28 @@ def executar_auditoria(xml_bytes, dados_bytes, nome_dados):
                 linha['Status_ICMS_Aliq'] = 'OK'
             else:
                 linha['Status_ICMS_Aliq'] = 'DIVERGENTE'
-                lista_erros_item.append('ICMS Alíquota')
+                lista_erros_item.append('ICMS')
+                val_xml_icms = formatar_num_br(icms_xml, 2, '%')
+                val_win_icms = f"%ICMS: {formatar_num_br(icms_csv, 2, '%')} | ST Guia: {formatar_num_br(st_guia, 2, '%')}"
+                detalhes_erros_item.append({
+                    'criterio': 'DIVERGÊNCIA DE ALÍQUOTA DE ICMS',
+                    'tag': 'ICMS',
+                    'xml': val_xml_icms,
+                    'winthor': val_win_icms,
+                    'regra': f"Origem: {linha['Origem_XML']} | Tipo ST: {linha['Tipo_Calculo_ST']}"
+                })
+                ocorrencias_de_para.append({
+                    'Linha NF': linha['Linha_NF'],
+                    'Linha ERP': linha['Linha_WINTHOR'],
+                    'Cód. WinThor': cod_prod,
+                    'Produto': desc_ref,
+                    'Critério Divergente': 'Alíquota ICMS',
+                    'Valor no XML (NF)': val_xml_icms,
+                    'Valor no WinThor (ERP)': val_win_icms,
+                    'Diagnóstico': f"ICMS da NF diferente de %ICMS e de %Alíq.Ext.ST Guia (ST: {linha['Tipo_Calculo_ST']})"
+                })
 
+            # 4. Validação Redução de Base de Cálculo
             pred_xml = round(item_x['pRedBC_NF'], 4)
             red_csv = round(item_c['% ICMS red. Whintor'], 4)
             carga_efetiva_xml = round(item_x['ICMS_NF'] * (1.0 - (item_x['pRedBC_NF'] / 100.0)), 4)
@@ -528,20 +519,52 @@ def executar_auditoria(xml_bytes, dados_bytes, nome_dados):
                 linha['Status_Red_BC'] = 'OK'
             else:
                 linha['Status_Red_BC'] = 'DIVERGENTE'
-                lista_erros_item.append('Redução de Base')
+                lista_erros_item.append('Redução BC')
+                val_xml_red = f"pRedBC: {formatar_num_br(pred_xml, 4, '%')} (Carga Efetiva: {formatar_num_br(carga_efetiva_xml, 2, '%')})"
+                val_win_red = formatar_num_br(red_csv, 4, '%')
+                detalhes_erros_item.append({
+                    'criterio': 'DIVERGÊNCIA DE REDUÇÃO DE BASE DE CÁLCULO',
+                    'tag': 'Redução BC',
+                    'xml': val_xml_red,
+                    'winthor': val_win_red,
+                    'regra': f"Carga Efetiva XML ({formatar_num_br(carga_efetiva_xml, 4, '%')}) ≠ WinThor ({val_win_red})"
+                })
+                ocorrencias_de_para.append({
+                    'Linha NF': linha['Linha_NF'],
+                    'Linha ERP': linha['Linha_WINTHOR'],
+                    'Cód. WinThor': cod_prod,
+                    'Produto': desc_ref,
+                    'Critério Divergente': 'Redução de Base',
+                    'Valor no XML (NF)': val_xml_red,
+                    'Valor no WinThor (ERP)': val_win_red,
+                    'Diagnóstico': 'Nem o % de redução nem a carga efetiva coincidem com o WinThor'
+                })
 
-            tipo_calc = str(item_c.get('Tipo_Calculo_WINTHOR', '')).strip().upper()
-            if tipo_calc == 'N':
-                linha['Tipo_Calculo_ST'] = 'NOTA FISCAL'
-            elif tipo_calc == 'G':
-                linha['Tipo_Calculo_ST'] = 'GUIA'
-            else:
-                linha['Tipo_Calculo_ST'] = item_c['Tipo_Calculo_WINTHOR']
-
+            # 5. Validação NCM
             linha['Status_NCM'] = 'OK' if str(item_x['NCM_NF']) == str(item_c['NCM_WINTHOR']) else 'DIVERGENTE'
             if linha['Status_NCM'] == 'DIVERGENTE':
                 lista_erros_item.append('NCM')
+                val_xml_ncm = str(item_x['NCM_NF'] or '-')
+                val_win_ncm = str(item_c['NCM_WINTHOR'] or '-')
+                detalhes_erros_item.append({
+                    'criterio': 'DIVERGÊNCIA DE CLASSIFICAÇÃO FISCAL (NCM)',
+                    'tag': 'NCM',
+                    'xml': val_xml_ncm,
+                    'winthor': val_win_ncm,
+                    'regra': 'Código NCM de 8 dígitos divergente entre NF e ERP'
+                })
+                ocorrencias_de_para.append({
+                    'Linha NF': linha['Linha_NF'],
+                    'Linha ERP': linha['Linha_WINTHOR'],
+                    'Cód. WinThor': cod_prod,
+                    'Produto': desc_ref,
+                    'Critério Divergente': 'NCM (Fiscal)',
+                    'Valor no XML (NF)': val_xml_ncm,
+                    'Valor no WinThor (ERP)': val_win_ncm,
+                    'Diagnóstico': 'Classificação fiscal NCM divergente'
+                })
 
+            # 6. Validação Quantidades
             qtd_xml_pura = item_x['Qtd_NF']
             qtd_win = item_c['Qtd_WINTHOR']
             fator = item_x['_Fator_Embalagem']
@@ -552,22 +575,82 @@ def executar_auditoria(xml_bytes, dados_bytes, nome_dados):
             else:
                 linha['Status_Qtd'] = 'DIVERGENTE'
                 lista_erros_item.append('Quantidade')
+                val_xml_qtd = (
+                    f"{formatar_num_br(qtd_xml_pura, 2)} {linha['Unid_XML']} "
+                    f"(×{formatar_num_br(fator, 0)} = {formatar_num_br(qtd_xml_convertida, 2)})"
+                    if fator != 1.0 else f"{formatar_num_br(qtd_xml_pura, 2)} {linha['Unid_XML']}"
+                )
+                val_win_qtd = formatar_num_br(qtd_win, 2)
+                detalhes_erros_item.append({
+                    'criterio': 'DIVERGÊNCIA DE QUANTIDADE',
+                    'tag': 'Quantidade',
+                    'xml': val_xml_qtd,
+                    'winthor': val_win_qtd,
+                    'regra': f"Qtd Pura ({formatar_num_br(qtd_xml_pura, 2)}) e Convertida ({formatar_num_br(qtd_xml_convertida, 2)}) ≠ ERP ({val_win_qtd})"
+                })
+                ocorrencias_de_para.append({
+                    'Linha NF': linha['Linha_NF'],
+                    'Linha ERP': linha['Linha_WINTHOR'],
+                    'Cód. WinThor': cod_prod,
+                    'Produto': desc_ref,
+                    'Critério Divergente': 'Quantidade',
+                    'Valor no XML (NF)': val_xml_qtd,
+                    'Valor no WinThor (ERP)': val_win_qtd,
+                    'Diagnóstico': 'Quantidade da NF (pura ou convertida pelo fator da embalagem) não bate com a Pré-Entrada'
+                })
 
         elif item_x and not item_c:
-            linha['Status_Geral'] = 'SOBRA NF (SEM PAR)'
+            linha['Status_Geral'] = 'SOBRA'
+            linha['_Tipo_Sobra'] = 'SOBRA NO XML (Ausente no WinThor)'
             linha['_Carga_Efetiva_XML'] = '-'
             for st_col in ['Status_EAN', 'Status_ICMS_Aliq', 'Status_Red_BC', 'Tipo_Calculo_ST', 'Status_NCM', 'Status_Qtd']:
                 linha[st_col] = '-'
-            lista_erros_item.append('Sobra NF')
+            lista_erros_item.append('Sobras')
+            detalhes_erros_item.append({
+                'criterio': 'ITEM SOBRANDO NO XML (SEM CORRESPONDENTE NO WINTHOR)',
+                'tag': 'Sobras',
+                'xml': f"Linha NF #{linha['Linha_NF']} — {linha['Descricao_NF']}",
+                'winthor': 'AUSENTE NO ERP',
+                'regra': 'Faturado na Nota Fiscal, mas sem linha correspondente na planilha do WinThor'
+            })
+            ocorrencias_de_para.append({
+                'Linha NF': linha['Linha_NF'],
+                'Linha ERP': '-',
+                'Cód. WinThor': '-',
+                'Produto': linha['Descricao_NF'],
+                'Critério Divergente': 'Sobra no XML',
+                'Valor no XML (NF)': f"Qtd: {formatar_num_br(linha['Qtd_NF'], 2)}",
+                'Valor no WinThor (ERP)': 'AUSENTE',
+                'Diagnóstico': 'Item presente no XML, mas sem par na planilha WinThor'
+            })
 
         else:
-            linha['Status_Geral'] = 'SOBRA WINTHOR (SEM PAR)'
+            linha['Status_Geral'] = 'SOBRA'
+            linha['_Tipo_Sobra'] = 'SOBRA NO WINTHOR (Ausente no XML)'
             linha['_Carga_Efetiva_XML'] = '-'
             for st_col in ['Status_EAN', 'Status_ICMS_Aliq', 'Status_Red_BC', 'Tipo_Calculo_ST', 'Status_NCM', 'Status_Qtd']:
                 linha[st_col] = '-'
-            lista_erros_item.append('Sobra WinThor')
+            lista_erros_item.append('Sobras')
+            detalhes_erros_item.append({
+                'criterio': 'ITEM SOBRANDO NO WINTHOR (SEM CORRESPONDENTE NO XML)',
+                'tag': 'Sobras',
+                'xml': 'AUSENTE NO XML',
+                'winthor': f"Linha ERP #{linha['Linha_WINTHOR']} (Cód. {linha['Cod_Produto_WINTHOR']}) — {linha['Descricao_WINTHOR']}",
+                'regra': 'Presente na Pré-Entrada do WinThor, mas sem item correspondente no XML'
+            })
+            ocorrencias_de_para.append({
+                'Linha NF': '-',
+                'Linha ERP': linha['Linha_WINTHOR'],
+                'Cód. WinThor': linha['Cod_Produto_WINTHOR'],
+                'Produto': linha['Descricao_WINTHOR'],
+                'Critério Divergente': 'Sobra no WinThor',
+                'Valor no XML (NF)': 'AUSENTE',
+                'Valor no WinThor (ERP)': f"Qtd: {formatar_num_br(linha['Qtd_WINTHOR'], 2)}",
+                'Diagnóstico': 'Item esperado no WinThor, mas ausente no XML'
+            })
 
         linha['_Erros_Item'] = lista_erros_item
+        linha['_Detalhes_Erros'] = detalhes_erros_item
         linha['_Qtd_Erros'] = len(lista_erros_item)
         dados_relatorio.append(linha)
 
@@ -580,7 +663,8 @@ def executar_auditoria(xml_bytes, dados_bytes, nome_dados):
         'nome_arquivo_saida': nome_arquivo_saida,
         'qtd_xml': len(itens_xml),
         'qtd_csv': len(itens_csv),
-        'dados_relatorio': dados_relatorio
+        'dados_relatorio': dados_relatorio,
+        'ocorrencias_de_para': ocorrencias_de_para
     }
 
 
@@ -792,571 +876,362 @@ def gerar_excel_formatado(df_final, dados_relatorio, super_grupos_def):
     return excel_buffer.getvalue()
 
 
-def estilizar_dataframe_streamlit(df_view, dados_filtrados):
-    status_dependents = {
-        'Status_EAN': ['EAN_NF', 'EAN_WINTHOR'],
-        'Status_Qtd': ['Qtd_NF', 'Qtd_WINTHOR'],
-        'Status_NCM': ['NCM_NF', 'NCM_WINTHOR'],
-        'Status_ICMS_Aliq': ['ICMS_NF', 'ICMS_WINTHOR', '%Alíq.Ext. ST Guia_Whintor'],
-        'Status_Red_BC': ['pRedBC_NF', '% ICMS red. Whintor']
-    }
+def renderizar_card_divergente(item):
+    detalhes_erros = item.get('_Detalhes_Erros', [])
 
-    def style_rows(row):
-        idx_pos = row.name
-        item_raw = dados_filtrados[idx_pos] if idx_pos < len(dados_filtrados) else {}
-        styles = ['' for _ in row.index]
+    # 1. Bloco Principal em Destaque Vermelho: SOMENTE AS DIVERGÊNCIAS ENCONTRADAS
+    linhas_html_erros = []
+    for err in detalhes_erros:
+        crit_esc = html.escape(str(err.get('criterio', '')))
+        xml_esc = html.escape(str(err.get('xml', '-')))
+        win_esc = html.escape(str(err.get('winthor', '-')))
+        regra_esc = html.escape(str(err.get('regra', '')))
 
-        if 'SOBRA' in str(item_raw.get('Status_Geral', '')):
-            return ['background-color: #EAEDED; color: #566573; font-style: italic;' for _ in row.index]
+        linhas_html_erros.append(f"""
+            <div class="div-item-row">
+                <div class="div-crit-name">🔴 {crit_esc}</div>
+                <div class="div-comp-vals">
+                    XML: <span class="val-xml-tag">{xml_esc}</span>
+                    &nbsp;&nbsp;➔&nbsp;&nbsp;
+                    WINTHOR: <span class="val-erp-tag">{win_esc}</span>
+                </div>
+                <div class="div-rule-note">{regra_esc}</div>
+            </div>
+        """)
 
-        col_to_pos = {c: i for i, c in enumerate(row.index)}
-
-        for st_col, dep_cols in status_dependents.items():
-            st_val = item_raw.get(st_col, '')
-            if st_col in col_to_pos:
-                if st_val == 'DIVERGENTE':
-                    styles[col_to_pos[st_col]] = 'background-color: #FADBD8; color: #9C0006; font-weight: 700;'
-                elif st_val == 'OK':
-                    styles[col_to_pos[st_col]] = 'background-color: #D4EFDF; color: #196F3D; font-weight: 700;'
-
-            if st_val == 'DIVERGENTE':
-                for dc in dep_cols:
-                    if dc in col_to_pos:
-                        styles[col_to_pos[dc]] = 'background-color: #FDEDEC; color: #9C0006; font-weight: 700;'
-
-        return styles
-
-    format_dict = {}
-    for c in df_view.columns:
-        if 'pRedBC' in c or 'red. Whintor' in c:
-            format_dict[c] = lambda v: formatar_num_br(v, 4)
-        elif 'Qtd' in c or 'ICMS' in c or 'Whintor' in c:
-            format_dict[c] = lambda v: formatar_num_br(v, 2)
-
-    return df_view.style.apply(style_rows, axis=1).format(format_dict)
-
-
-def renderizar_card_produto(item):
-    status_geral = str(item.get('Status_Geral', ''))
-    erros = item.get('_Erros_Item', [])
-    is_sobra = 'SOBRA' in status_geral
-
-    desc_nf = html.escape(str(item.get('Descricao_NF', '-')))
-    desc_win = html.escape(str(item.get('Descricao_WINTHOR', '-')))
     st.markdown(f"""
-        <div class="desc-box">
-            <div><strong>📄 Descrição no XML (Fornecedor):</strong> {desc_nf}</div>
-            <div style="margin-top:4px;"><strong>🏢 Descrição no WinThor (ERP):</strong> {desc_win}</div>
+        <div class="div-alert-box">
+            <div class="div-alert-header">🚨 Ocorrências que exigem correção neste produto ({len(detalhes_erros)})</div>
+            {"".join(linhas_html_erros)}
         </div>
     """, unsafe_allow_html=True)
 
-    if is_sobra:
-        st.warning(f"⚠️ **{status_geral}** — Este item existe apenas em uma das pontas do cruzamento posicional e não possui par na linha correspondente.")
+    # 2. Ficha Completa do Produto para Análise (Neutra, sem selos OK)
+    desc_nf = html.escape(str(item.get('Descricao_NF', '-')))
+    desc_win = html.escape(str(item.get('Descricao_WINTHOR', '-')))
+    fator_emb = item.get('_Fator_Embalagem', 1.0)
+    unid_xml = html.escape(str(item.get('Unid_XML', '-')))
 
-    c1, c2, c3, c4 = st.columns(4, gap="small")
-
-    # 1. Card Código, EAN e NCM
-    with c1:
-        st_ean = item.get('Status_EAN', '-')
-        st_ncm = item.get('Status_NCM', '-')
-        tem_div_c1 = (st_ean == 'DIVERGENTE') or (st_ncm == 'DIVERGENTE')
-        cls_c1 = "div-border" if tem_div_c1 else ("ok-border" if not is_sobra else "")
-        cls_ean = "val-div" if st_ean == 'DIVERGENTE' else ("val-ok" if st_ean == 'OK' else "")
-        cls_ncm = "val-div" if st_ncm == 'DIVERGENTE' else ("val-ok" if st_ncm == 'OK' else "")
-
-        st.markdown(f"""
-            <div class="prod-section {cls_c1}">
-                <div class="prod-sec-header">
-                    <span>🏷️ Código, EAN & NCM</span>
-                    {badge_status_html('DIVERGENTE' if tem_div_c1 else ('OK' if not is_sobra else '-'))}
-                </div>
-                <div class="field-row">
-                    <span class="field-label">Cód. WinThor:</span>
-                    <span class="field-val">{html.escape(str(item.get('Cod_Produto_WINTHOR', '-')))}</span>
-                </div>
-                <div class="field-row">
-                    <span class="field-label">EAN (XML):</span>
-                    <span class="field-val {cls_ean}">{html.escape(str(item.get('EAN_NF') or 'SEM GTIN'))}</span>
-                </div>
-                <div class="field-row">
-                    <span class="field-label">EAN (WinThor):</span>
-                    <span class="field-val {cls_ean}">{html.escape(str(item.get('EAN_WINTHOR') or 'VAZIO'))}</span>
-                </div>
-                <div class="field-row">
-                    <span class="field-label">Status EAN:</span>
-                    <span class="field-val">{badge_status_html(st_ean)}</span>
-                </div>
-                <div class="field-row">
-                    <span class="field-label">NCM (XML vs ERP):</span>
-                    <span class="field-val {cls_ncm}">{html.escape(str(item.get('NCM_NF', '-')))} | {html.escape(str(item.get('NCM_WINTHOR', '-')))}</span>
-                </div>
-                <div class="field-row">
-                    <span class="field-label">Status NCM:</span>
-                    <span class="field-val">{badge_status_html(st_ncm)}</span>
-                </div>
+    st.markdown(f"""
+        <div class="desc-compare-bar">
+            <div><strong>📄 Descrição no XML:</strong> {desc_nf}</div>
+            <div><strong>🏢 Descrição no WinThor:</strong> {desc_win}</div>
+        </div>
+        <div class="prod-info-grid">
+            <div>
+                <div class="info-col-title">🏷️ Dados de Identificação</div>
+                <div class="info-kv"><span class="info-k">Linha NF / ERP:</span><span class="info-v">#{item.get('Linha_NF', '-')} / #{item.get('Linha_WINTHOR', '-')}</span></div>
+                <div class="info-kv"><span class="info-k">Cód. WinThor:</span><span class="info-v">{html.escape(str(item.get('Cod_Produto_WINTHOR', '-')))}</span></div>
+                <div class="info-kv"><span class="info-k">EAN XML:</span><span class="info-v">{html.escape(str(item.get('EAN_NF') or 'SEM GTIN'))}</span></div>
+                <div class="info-kv"><span class="info-k">EAN WinThor:</span><span class="info-v">{html.escape(str(item.get('EAN_WINTHOR') or 'VAZIO'))}</span></div>
             </div>
-        """, unsafe_allow_html=True)
-
-    # 2. Card Quantidades, Embalagem e Valores
-    with c2:
-        st_qtd = item.get('Status_Qtd', '-')
-        cls_c2 = "div-border" if st_qtd == 'DIVERGENTE' else ("ok-border" if st_qtd == 'OK' else "")
-        cls_qtd = "val-div" if st_qtd == 'DIVERGENTE' else ("val-ok" if st_qtd == 'OK' else "")
-        fator_emb = item.get('_Fator_Embalagem', 1.0)
-        unid_xml = html.escape(str(item.get('Unid_XML', '-')))
-
-        st.markdown(f"""
-            <div class="prod-section {cls_c2}">
-                <div class="prod-sec-header">
-                    <span>📦 Quantidades & Valores</span>
-                    {badge_status_html(st_qtd)}
-                </div>
-                <div class="field-row">
-                    <span class="field-label">Unid. / Fator XML:</span>
-                    <span class="field-val">{unid_xml} (×{formatar_num_br(fator_emb, 0)})</span>
-                </div>
-                <div class="field-row">
-                    <span class="field-label">Qtd Pura (XML):</span>
-                    <span class="field-val {cls_qtd}">{formatar_num_br(item.get('Qtd_NF'), 2)}</span>
-                </div>
-                <div class="field-row">
-                    <span class="field-label">Qtd Convertida (XML):</span>
-                    <span class="field-val {cls_qtd}">{formatar_num_br(item.get('_Qtd_Convertida_XML'), 2)}</span>
-                </div>
-                <div class="field-row">
-                    <span class="field-label">Qtd WinThor:</span>
-                    <span class="field-val {cls_qtd}">{formatar_num_br(item.get('Qtd_WINTHOR'), 2)}</span>
-                </div>
-                <div class="field-row">
-                    <span class="field-label">Vl. Unitário NF:</span>
-                    <span class="field-val">{formatar_moeda_br(item.get('Vl_Unit_NF'))}</span>
-                </div>
-                <div class="field-row">
-                    <span class="field-label">Vl. Total NF:</span>
-                    <span class="field-val">{formatar_moeda_br(item.get('Vl_Total_NF'))}</span>
-                </div>
+            <div>
+                <div class="info-col-title">📦 Quantidade & Valores</div>
+                <div class="info-kv"><span class="info-k">Unid. / Fator XML:</span><span class="info-v">{unid_xml} (×{formatar_num_br(fator_emb, 0)})</span></div>
+                <div class="info-kv"><span class="info-k">Qtd XML (Pura / Conv.):</span><span class="info-v">{formatar_num_br(item.get('Qtd_NF'), 2)} / {formatar_num_br(item.get('_Qtd_Convertida_XML'), 2)}</span></div>
+                <div class="info-kv"><span class="info-k">Qtd WinThor:</span><span class="info-v">{formatar_num_br(item.get('Qtd_WINTHOR'), 2)}</span></div>
+                <div class="info-kv"><span class="info-k">Vl. Unit. / Total NF:</span><span class="info-v">{formatar_moeda_br(item.get('Vl_Unit_NF'))} | {formatar_moeda_br(item.get('Vl_Total_NF'))}</span></div>
             </div>
-        """, unsafe_allow_html=True)
-
-    # 3. Card Tributação (ICMS, Origem e ST)
-    with c3:
-        st_icms = item.get('Status_ICMS_Aliq', '-')
-        cls_c3 = "div-border" if st_icms == 'DIVERGENTE' else ("ok-border" if st_icms == 'OK' else "")
-        cls_icms = "val-div" if st_icms == 'DIVERGENTE' else ("val-ok" if st_icms == 'OK' else "")
-
-        st.markdown(f"""
-            <div class="prod-section {cls_c3}">
-                <div class="prod-sec-header">
-                    <span>💰 ICMS, Origem & ST</span>
-                    {badge_status_html(st_icms)}
-                </div>
-                <div class="field-row">
-                    <span class="field-label">Origem (XML):</span>
-                    <span class="field-val">{html.escape(str(item.get('Origem_XML', '-')))}</span>
-                </div>
-                <div class="field-row">
-                    <span class="field-label">ICMS NF (XML):</span>
-                    <span class="field-val {cls_icms}">{formatar_num_br(item.get('ICMS_NF'), 2, '%')}</span>
-                </div>
-                <div class="field-row">
-                    <span class="field-label">%ICMS WinThor:</span>
-                    <span class="field-val {cls_icms}">{formatar_num_br(item.get('ICMS_WINTHOR'), 2, '%')}</span>
-                </div>
-                <div class="field-row">
-                    <span class="field-label">%Alíq. Ext. ST Guia:</span>
-                    <span class="field-val {cls_icms}">{formatar_num_br(item.get('%Alíq.Ext. ST Guia_Whintor'), 2, '%')}</span>
-                </div>
-                <div class="field-row">
-                    <span class="field-label">Tipo Cálculo ST:</span>
-                    <span class="field-val">{html.escape(str(item.get('Tipo_Calculo_ST', '-')))}</span>
-                </div>
+            <div>
+                <div class="info-col-title">💰 Tributação ICMS & ST</div>
+                <div class="info-kv"><span class="info-k">Origem XML:</span><span class="info-v">{html.escape(str(item.get('Origem_XML', '-')))}</span></div>
+                <div class="info-kv"><span class="info-k">ICMS XML:</span><span class="info-v">{formatar_num_br(item.get('ICMS_NF'), 2, '%')}</span></div>
+                <div class="info-kv"><span class="info-k">%ICMS WinThor:</span><span class="info-v">{formatar_num_br(item.get('ICMS_WINTHOR'), 2, '%')}</span></div>
+                <div class="info-kv"><span class="info-k">ST Guia / Tipo ST:</span><span class="info-v">{formatar_num_br(item.get('%Alíq.Ext. ST Guia_Whintor'), 2, '%')} ({html.escape(str(item.get('Tipo_Calculo_ST', '-')))})</span></div>
             </div>
-        """, unsafe_allow_html=True)
-
-    # 4. Card Redução de Base & Carga Efetiva
-    with c4:
-        st_red = item.get('Status_Red_BC', '-')
-        cls_c4 = "div-border" if st_red == 'DIVERGENTE' else ("ok-border" if st_red == 'OK' else "")
-        cls_red = "val-div" if st_red == 'DIVERGENTE' else ("val-ok" if st_red == 'OK' else "")
-
-        st.markdown(f"""
-            <div class="prod-section {cls_c4}">
-                <div class="prod-sec-header">
-                    <span>📉 Redução de Base</span>
-                    {badge_status_html(st_red)}
-                </div>
-                <div class="field-row">
-                    <span class="field-label">pRedBC (XML):</span>
-                    <span class="field-val {cls_red}">{formatar_num_br(item.get('pRedBC_NF'), 4, '%')}</span>
-                </div>
-                <div class="field-row">
-                    <span class="field-label">Carga Efetiva XML:</span>
-                    <span class="field-val {cls_red}">{formatar_num_br(item.get('_Carga_Efetiva_XML'), 4, '%')}</span>
-                </div>
-                <div class="field-row">
-                    <span class="field-label">% ICMS Red. WinThor:</span>
-                    <span class="field-val {cls_red}">{formatar_num_br(item.get('% ICMS red. Whintor'), 4, '%')}</span>
-                </div>
-                <div class="field-row">
-                    <span class="field-label">Fórmula Aplicada:</span>
-                    <span class="field-val" style="font-size:0.75rem; color:#566573;">ICMS × (1 - pRedBC/100)</span>
-                </div>
+            <div>
+                <div class="info-col-title">📉 Redução & Fiscal</div>
+                <div class="info-kv"><span class="info-k">NCM (XML | ERP):</span><span class="info-v">{html.escape(str(item.get('NCM_NF', '-')))} | {html.escape(str(item.get('NCM_WINTHOR', '-')))}</span></div>
+                <div class="info-kv"><span class="info-k">pRedBC XML:</span><span class="info-v">{formatar_num_br(item.get('pRedBC_NF'), 4, '%')}</span></div>
+                <div class="info-kv"><span class="info-k">Carga Efetiva XML:</span><span class="info-v">{formatar_num_br(item.get('_Carga_Efetiva_XML'), 4, '%')}</span></div>
+                <div class="info-kv"><span class="info-k">% ICMS Red. ERP:</span><span class="info-v">{formatar_num_br(item.get('% ICMS red. Whintor'), 4, '%')}</span></div>
             </div>
-        """, unsafe_allow_html=True)
+        </div>
+    """, unsafe_allow_html=True)
 
 
 # ==========================================
-# EXECUÇÃO E EXIBIÇÃO DOS RESULTADOS
+# 4. BARRA LATERAL (UPLOAD E COLUNAS DO EXCEL)
 # ==========================================
-if arquivo_xml and arquivo_dados:
+with st.sidebar:
+    st.markdown("### 📂 Arquivos da Auditoria")
+    arquivo_xml = st.file_uploader("1. XML Nota Fiscal", type=["xml"])
+    arquivo_dados = st.file_uploader("2. WinThor (.csv ou .xlsx)", type=["csv", "xlsx"])
+
+    st.markdown("---")
+    st.markdown("### ⚙️ Colunas do Relatório Excel")
+    selecionar_todos = st.checkbox("Selecionar Todos os Blocos", value=True)
+
+    inc_ident = st.checkbox("Identificação (Linhas)", value=selecionar_todos)
+    inc_ean = st.checkbox("Código & EAN", value=selecionar_todos)
+    inc_desc = st.checkbox("Descrições", value=selecionar_todos)
+    inc_qtd = st.checkbox("Quantidades", value=selecionar_todos)
+    inc_ncm = st.checkbox("NCM (Fiscal)", value=selecionar_todos)
+    inc_icms = st.checkbox("ICMS & Origem", value=selecionar_todos)
+    inc_red = st.checkbox("Redução de Base", value=selecionar_todos)
+    inc_st = st.checkbox("Tipo Cálculo ST", value=selecionar_todos)
+
+
+# ==========================================
+# 5. PAINEL PRINCIPAL — 100% FOCADO EM DIVERGÊNCIAS
+# ==========================================
+st.markdown("""
+    <div class="top-banner">
+        <div>
+            <p class="top-banner-title">🚨 Painel de Auditoria de Notas Fiscais — Foco em Divergências</p>
+            <p class="top-banner-sub">Exibindo exclusivamente inconsistências fiscais, cadastrais e sobras entre o XML do fornecedor e o WinThor.</p>
+        </div>
+    </div>
+""", unsafe_allow_html=True)
+
+if not (arquivo_xml and arquivo_dados):
+    st.info("👈 **Envie o arquivo XML da Nota Fiscal e a planilha do WinThor (.csv ou .xlsx) no menu lateral esquerdo** para carregar automaticamente todas as divergências.")
+else:
     assinatura_arquivos = f"{arquivo_xml.name}_{arquivo_xml.size}_{arquivo_dados.name}_{arquivo_dados.size}"
 
-    col_run1, col_run2 = st.columns([3, 1])
-    with col_run1:
-        st.success("✅ Arquivos prontos para processamento cruzado.")
-    with col_run2:
-        processar = st.button("🚀 Processar Auditoria", use_container_width=True, type="primary")
-
-    if processar or st.session_state.get('assinatura_arquivos') == assinatura_arquivos:
-        if processar or 'resultado_auditoria' not in st.session_state or st.session_state.get('assinatura_arquivos') != assinatura_arquivos:
-            with st.spinner("Analisando itens e cruzando tributações com base no XML..."):
-                st.session_state['resultado_auditoria'] = executar_auditoria(
-                    arquivo_xml.getvalue(),
-                    arquivo_dados.getvalue(),
-                    arquivo_dados.name
-                )
-                st.session_state['assinatura_arquivos'] = assinatura_arquivos
-
-        res = st.session_state['resultado_auditoria']
-        dados_relatorio = res['dados_relatorio']
-        numero_nf = res['numero_nf']
-        emit_nome = res['emit_nome']
-        nome_arquivo_saida = res['nome_arquivo_saida']
-
-        # Filtragem de colunas conforme os blocos selecionados
-        mapa_colunas_blocos = {
-            'Identificação': ['Linha_NF', 'Linha_WINTHOR'],
-            'Código & EAN': ['Cod_Produto_WINTHOR', 'EAN_NF', 'EAN_WINTHOR', 'Status_EAN'],
-            'Descrições': ['Descricao_NF', 'Descricao_WINTHOR'],
-            'Quantidades': ['Qtd_NF', 'Qtd_WINTHOR', 'Status_Qtd'],
-            'NCM (Fiscal)': ['NCM_NF', 'NCM_WINTHOR', 'Status_NCM'],
-            'ICMS & Origem': ['Origem_XML', 'ICMS_NF', 'ICMS_WINTHOR', '%Alíq.Ext. ST Guia_Whintor', 'Status_ICMS_Aliq'],
-            'Redução de Base': ['pRedBC_NF', '% ICMS red. Whintor', 'Status_Red_BC'],
-            'Tipo Cálculo ST': ['Tipo_Calculo_ST']
-        }
-
-        colunas_selecionadas = []
-        if inc_ident: colunas_selecionadas.extend(mapa_colunas_blocos['Identificação'])
-        if inc_ean: colunas_selecionadas.extend(mapa_colunas_blocos['Código & EAN'])
-        if inc_desc: colunas_selecionadas.extend(mapa_colunas_blocos['Descrições'])
-        if inc_qtd: colunas_selecionadas.extend(mapa_colunas_blocos['Quantidades'])
-        if inc_ncm: colunas_selecionadas.extend(mapa_colunas_blocos['NCM (Fiscal)'])
-        if inc_icms: colunas_selecionadas.extend(mapa_colunas_blocos['ICMS & Origem'])
-        if inc_red: colunas_selecionadas.extend(mapa_colunas_blocos['Redução de Base'])
-        if inc_st: colunas_selecionadas.extend(mapa_colunas_blocos['Tipo Cálculo ST'])
-
-        if not colunas_selecionadas:
-            colunas_selecionadas = ['Linha_NF']
-
-        super_grupos_def = []
-        if inc_ident: super_grupos_def.append(("IDENTIFICAÇÃO", ['Linha_NF', 'Linha_WINTHOR']))
-        if inc_ean: super_grupos_def.append(("CÓDIGO E EAN", ['Cod_Produto_WINTHOR', 'EAN_NF', 'EAN_WINTHOR', 'Status_EAN']))
-        if inc_desc: super_grupos_def.append(("DESCRIÇÕES", ['Descricao_NF', 'Descricao_WINTHOR']))
-        if inc_qtd: super_grupos_def.append(("QUANTIDADES", ['Qtd_NF', 'Qtd_WINTHOR', 'Status_Qtd']))
-        if inc_ncm: super_grupos_def.append(("CLASSIFICAÇÃO FISCAL (NCM)", ['NCM_NF', 'NCM_WINTHOR', 'Status_NCM']))
-        if inc_icms: super_grupos_def.append(("ALÍQUOTAS DE ICMS E ORIGEM", ['Origem_XML', 'ICMS_NF', 'ICMS_WINTHOR', '%Alíq.Ext. ST Guia_Whintor', 'Status_ICMS_Aliq']))
-        if inc_red: super_grupos_def.append(("REDUÇÃO DE BASE", ['pRedBC_NF', '% ICMS red. Whintor', 'Status_Red_BC']))
-        if inc_st: super_grupos_def.append(("TIPO CÁLCULO ST", ['Tipo_Calculo_ST']))
-
-        df_completo = pd.DataFrame(dados_relatorio)
-        df_final = df_completo[[c for c in colunas_selecionadas if c in df_completo.columns]].copy()
-
-        # Geração do arquivo Excel em memória
-        excel_bytes = gerar_excel_formatado(df_final, dados_relatorio, super_grupos_def)
-
-        # Cálculo de métricas de resumo para os Cards de Topo
-        total_linhas = len(dados_relatorio)
-        itens_pareados = [d for d in dados_relatorio if d['Status_Geral'] == 'PAREADO']
-        itens_100_ok = [d for d in itens_pareados if d['_Qtd_Erros'] == 0]
-        itens_com_div = [d for d in itens_pareados if d['_Qtd_Erros'] > 0]
-        itens_sobra = [d for d in dados_relatorio if 'SOBRA' in str(d['Status_Geral'])]
-
-        div_ean = sum(1 for d in itens_pareados if d.get('Status_EAN') == 'DIVERGENTE')
-        div_qtd = sum(1 for d in itens_pareados if d.get('Status_Qtd') == 'DIVERGENTE')
-        div_ncm = sum(1 for d in itens_pareados if d.get('Status_NCM') == 'DIVERGENTE')
-        div_icms = sum(1 for d in itens_pareados if d.get('Status_ICMS_Aliq') == 'DIVERGENTE')
-        div_red = sum(1 for d in itens_pareados if d.get('Status_Red_BC') == 'DIVERGENTE')
-
-        st.markdown("---")
-
-        # Barra superior de cabeçalho da NF + Botão de Download Imediato
-        top_res1, top_res2 = st.columns([3, 1.3])
-        with top_res1:
-            subtitulo_emit = f" — Emitente: **{emit_nome}**" if emit_nome else ""
-            st.markdown(f"### 🧾 Resultado da Auditoria — NF Nº **{numero_nf}**{subtitulo_emit}")
-        with top_res2:
-            st.download_button(
-                label="📥 Baixar Relatório Executivo em Excel",
-                data=excel_bytes,
-                file_name=nome_arquivo_saida,
-                mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
-                use_container_width=True,
-                key="btn_download_top"
+    if 'resultado_auditoria' not in st.session_state or st.session_state.get('assinatura_arquivos') != assinatura_arquivos:
+        with st.spinner("Cruzando itens e filtrando divergências..."):
+            st.session_state['resultado_auditoria'] = executar_auditoria(
+                arquivo_xml.getvalue(),
+                arquivo_dados.getvalue(),
+                arquivo_dados.name
             )
+            st.session_state['assinatura_arquivos'] = assinatura_arquivos
+            st.session_state['filtro_erro_ativo'] = 'TODOS'
 
-        # KPIs Executivos
+    res = st.session_state['resultado_auditoria']
+    dados_relatorio = res['dados_relatorio']
+    ocorrencias_de_para = res['ocorrencias_de_para']
+    numero_nf = res['numero_nf']
+    emit_nome = res['emit_nome']
+    nome_arquivo_saida = res['nome_arquivo_saida']
+
+    # Preparação do DataFrame para o Excel (mantém a funcionalidade original completa)
+    mapa_colunas_blocos = {
+        'Identificação': ['Linha_NF', 'Linha_WINTHOR'],
+        'Código & EAN': ['Cod_Produto_WINTHOR', 'EAN_NF', 'EAN_WINTHOR', 'Status_EAN'],
+        'Descrições': ['Descricao_NF', 'Descricao_WINTHOR'],
+        'Quantidades': ['Qtd_NF', 'Qtd_WINTHOR', 'Status_Qtd'],
+        'NCM (Fiscal)': ['NCM_NF', 'NCM_WINTHOR', 'Status_NCM'],
+        'ICMS & Origem': ['Origem_XML', 'ICMS_NF', 'ICMS_WINTHOR', '%Alíq.Ext. ST Guia_Whintor', 'Status_ICMS_Aliq'],
+        'Redução de Base': ['pRedBC_NF', '% ICMS red. Whintor', 'Status_Red_BC'],
+        'Tipo Cálculo ST': ['Tipo_Calculo_ST']
+    }
+
+    colunas_selecionadas = []
+    if inc_ident: colunas_selecionadas.extend(mapa_colunas_blocos['Identificação'])
+    if inc_ean: colunas_selecionadas.extend(mapa_colunas_blocos['Código & EAN'])
+    if inc_desc: colunas_selecionadas.extend(mapa_colunas_blocos['Descrições'])
+    if inc_qtd: colunas_selecionadas.extend(mapa_colunas_blocos['Quantidades'])
+    if inc_ncm: colunas_selecionadas.extend(mapa_colunas_blocos['NCM (Fiscal)'])
+    if inc_icms: colunas_selecionadas.extend(mapa_colunas_blocos['ICMS & Origem'])
+    if inc_red: colunas_selecionadas.extend(mapa_colunas_blocos['Redução de Base'])
+    if inc_st: colunas_selecionadas.extend(mapa_colunas_blocos['Tipo Cálculo ST'])
+
+    if not colunas_selecionadas:
+        colunas_selecionadas = ['Linha_NF']
+
+    super_grupos_def = []
+    if inc_ident: super_grupos_def.append(("IDENTIFICAÇÃO", ['Linha_NF', 'Linha_WINTHOR']))
+    if inc_ean: super_grupos_def.append(("CÓDIGO E EAN", ['Cod_Produto_WINTHOR', 'EAN_NF', 'EAN_WINTHOR', 'Status_EAN']))
+    if inc_desc: super_grupos_def.append(("DESCRIÇÕES", ['Descricao_NF', 'Descricao_WINTHOR']))
+    if inc_qtd: super_grupos_def.append(("QUANTIDADES", ['Qtd_NF', 'Qtd_WINTHOR', 'Status_Qtd']))
+    if inc_ncm: super_grupos_def.append(("CLASSIFICAÇÃO FISCAL (NCM)", ['NCM_NF', 'NCM_WINTHOR', 'Status_NCM']))
+    if inc_icms: super_grupos_def.append(("ALÍQUOTAS DE ICMS E ORIGEM", ['Origem_XML', 'ICMS_NF', 'ICMS_WINTHOR', '%Alíq.Ext. ST Guia_Whintor', 'Status_ICMS_Aliq']))
+    if inc_red: super_grupos_def.append(("REDUÇÃO DE BASE", ['pRedBC_NF', '% ICMS red. Whintor', 'Status_Red_BC']))
+    if inc_st: super_grupos_def.append(("TIPO CÁLCULO ST", ['Tipo_Calculo_ST']))
+
+    df_completo = pd.DataFrame(dados_relatorio)
+    df_final = df_completo[[c for c in colunas_selecionadas if c in df_completo.columns]].copy()
+    excel_bytes = gerar_excel_formatado(df_final, dados_relatorio, super_grupos_def)
+
+    # Filtra EXCLUSIVAMENTE itens com divergência ou sobra (tudo que está 100% OK é descartado da tela)
+    itens_divergentes = [d for d in dados_relatorio if d['_Qtd_Erros'] > 0]
+    # Ordena os produtos com mais divergências primeiro
+    itens_divergentes.sort(key=lambda x: ('SOBRA' in str(x['Status_Geral']), -x['_Qtd_Erros']))
+
+    div_ean = sum(1 for d in itens_divergentes if 'EAN' in d['_Erros_Item'])
+    div_qtd = sum(1 for d in itens_divergentes if 'Quantidade' in d['_Erros_Item'])
+    div_ncm = sum(1 for d in itens_divergentes if 'NCM' in d['_Erros_Item'])
+    div_icms = sum(1 for d in itens_divergentes if 'ICMS' in d['_Erros_Item'])
+    div_red = sum(1 for d in itens_divergentes if 'Redução BC' in d['_Erros_Item'])
+    div_sobras = sum(1 for d in itens_divergentes if 'Sobras' in d['_Erros_Item'])
+    total_ocorrencias = len(ocorrencias_de_para)
+
+    # ==========================================
+    # BARRA DE COMANDO DO TOPO (NF + BUSCA + DOWNLOAD EXCEL + REPROCESSAR)
+    # ==========================================
+    bar_col1, bar_col2, bar_col3, bar_col4 = st.columns([2.6, 1.8, 1.4, 0.9], gap="small")
+
+    with bar_col1:
+        emit_txt = f" • {html.escape(emit_nome)}" if emit_nome else ""
         st.markdown(f"""
-            <div class="kpi-grid">
-                <div class="kpi-card">
-                    <div class="kpi-label">Volumetria (XML vs ERP)</div>
-                    <div class="kpi-value">{res['qtd_xml']} <span style="font-size:0.95rem;color:#7F8C8D;">NF</span> / {res['qtd_csv']} <span style="font-size:0.95rem;color:#7F8C8D;">WinThor</span></div>
-                    <div class="kpi-sub">{len(itens_pareados)} itens pareados linha a linha</div>
-                </div>
-                <div class="kpi-card ok">
-                    <div class="kpi-label">Itens 100% Conformes</div>
-                    <div class="kpi-value" style="color:#196F3D;">{len(itens_100_ok)}</div>
-                    <div class="kpi-sub">Sem nenhuma divergência fiscal ou cadastral</div>
-                </div>
-                <div class="kpi-card div">
-                    <div class="kpi-label">Itens com Divergência</div>
-                    <div class="kpi-value" style="color:#9C0006;">{len(itens_com_div)}</div>
-                    <div class="kpi-sub">Total de {div_ean + div_qtd + div_ncm + div_icms + div_red} ocorrências detectadas</div>
-                </div>
-                <div class="kpi-card sobra">
-                    <div class="kpi-label">Itens Sem Par (Sobras)</div>
-                    <div class="kpi-value" style="color:#D68910;">{len(itens_sobra)}</div>
-                    <div class="kpi-sub">Diferença de linhas entre XML e WinThor</div>
-                </div>
+            <div class="nf-action-bar">
+                <p class="nf-title-line">NF Nº {html.escape(str(numero_nf))} — {len(itens_divergentes)} Produto(s) com Divergência ({total_ocorrencias} erros)</p>
+                <p class="nf-meta-line">Total auditado: {res['qtd_xml']} itens XML vs {res['qtd_csv']} itens WinThor{emit_txt}</p>
             </div>
         """, unsafe_allow_html=True)
 
-        # Pílulas de resumo por categoria de divergência
-        pills_html = [
-            f'<span class="err-pill {"alert" if div_ean > 0 else "zero"}">Código/EAN: {div_ean}</span>',
-            f'<span class="err-pill {"alert" if div_qtd > 0 else "zero"}">Quantidade: {div_qtd}</span>',
-            f'<span class="err-pill {"alert" if div_ncm > 0 else "zero"}">NCM: {div_ncm}</span>',
-            f'<span class="err-pill {"alert" if div_icms > 0 else "zero"}">ICMS Alíquota: {div_icms}</span>',
-            f'<span class="err-pill {"alert" if div_red > 0 else "zero"}">Redução de Base: {div_red}</span>',
-            f'<span class="err-pill {"alert" if len(itens_sobra) > 0 else "zero"}">Sobras: {len(itens_sobra)}</span>',
-        ]
-        st.markdown(f'<div class="pill-bar">{"".join(pills_html)}</div>', unsafe_allow_html=True)
+    with bar_col2:
+        termo_busca = st.text_input(
+            "Buscar nas divergências:",
+            placeholder="🔍 Buscar Cód. WinThor, EAN, NCM ou Produto...",
+            label_visibility="collapsed"
+        ).strip().lower()
 
-        # ==========================================
-        # ABAS INTERATIVAS DE VISUALIZAÇÃO NO FRONT
-        # ==========================================
-        tab_cards, tab_tabela, tab_raiox = st.tabs([
-            f"🚨 Cards de Inspeção por Produto ({len(itens_com_div) + len(itens_sobra)} com alerta)",
-            f"📋 Tabela Comparativa Completa ({total_linhas} linhas)",
-            "🔍 Raio-X Individual do Produto"
-        ])
-
-        # ------------------------------------------
-        # ABA 1: CARDS EXPANSÍVEIS COM DESTAQUE DE DIVERGÊNCIAS
-        # ------------------------------------------
-        with tab_cards:
-            f_col1, f_col2, f_col3, f_col4 = st.columns([1.6, 1.8, 1.8, 1.1])
-            with f_col1:
-                padrao_idx = 0 if (len(itens_com_div) + len(itens_sobra)) > 0 else 1
-                modo_visao = st.selectbox(
-                    "Exibir itens:",
-                    [
-                        "Apenas Divergentes e Sobras",
-                        "Todos os Itens da Nota",
-                        "Apenas Itens 100% OK",
-                        "Apenas Sobras (Sem Par)"
-                    ],
-                    index=padrao_idx
-                )
-            with f_col2:
-                filtro_tipos = st.multiselect(
-                    "Filtrar por tipo de divergência:",
-                    ["EAN", "Quantidade", "NCM", "ICMS Alíquota", "Redução de Base", "Sobra NF", "Sobra WinThor"],
-                    placeholder="Todos os tipos..."
-                )
-            with f_col3:
-                termo_busca = st.text_input(
-                    "Buscar produto (Cód. WinThor, EAN, NCM ou Descrição):",
-                    placeholder="Digite para filtrar..."
-                ).strip().lower()
-            with f_col4:
-                st.write("")
-                expandir_todos = st.checkbox(
-                    "Expandir todos",
-                    value=(len(itens_com_div) + len(itens_sobra) <= 8 and modo_visao == "Apenas Divergentes e Sobras")
-                )
-
-            itens_exibidos = []
-            for d in dados_relatorio:
-                tem_erro = d['_Qtd_Erros'] > 0
-                eh_sobra = 'SOBRA' in str(d['Status_Geral'])
-
-                if modo_visao == "Apenas Divergentes e Sobras" and not tem_erro:
-                    continue
-                elif modo_visao == "Apenas Itens 100% OK" and (tem_erro or eh_sobra):
-                    continue
-                elif modo_visao == "Apenas Sobras (Sem Par)" and not eh_sobra:
-                    continue
-
-                if filtro_tipos:
-                    if not any(tp in d['_Erros_Item'] for tp in filtro_tipos):
-                        continue
-
-                if termo_busca:
-                    texto_item = " ".join([
-                        str(d.get('Linha_NF', '')),
-                        str(d.get('Cod_Produto_WINTHOR', '')),
-                        str(d.get('EAN_NF', '')),
-                        str(d.get('EAN_WINTHOR', '')),
-                        str(d.get('NCM_NF', '')),
-                        str(d.get('Descricao_NF', '')),
-                        str(d.get('Descricao_WINTHOR', ''))
-                    ]).lower()
-                    if termo_busca not in texto_item:
-                        continue
-
-                itens_exibidos.append(d)
-
-            if not itens_exibidos:
-                st.info("🎉 Nenhum item encontrado para os filtros selecionados.")
-            else:
-                st.caption(f"Exibindo **{len(itens_exibidos)}** de **{total_linhas}** itens. Clique em qualquer card abaixo para expandir ou recolher os detalhes do produto:")
-
-                for idx_card, item in enumerate(itens_exibidos):
-                    erros = item['_Erros_Item']
-                    eh_sobra = 'SOBRA' in str(item['Status_Geral'])
-                    linha_nf = item.get('Linha_NF', '-')
-                    linha_win = item.get('Linha_WINTHOR', '-')
-                    cod_win = item.get('Cod_Produto_WINTHOR', '-')
-                    nome_prod = item.get('Descricao_NF') if item.get('Descricao_NF') != '-' else item.get('Descricao_WINTHOR', '-')
-
-                    if eh_sobra:
-                        icone = "🟠"
-                        tag_resumo = f"[{item['Status_Geral']}]"
-                    elif len(erros) > 0:
-                        icone = "🔴"
-                        tag_resumo = f"⚠️ {len(erros)} Divergência(s): {', '.join(erros)}"
-                    else:
-                        icone = "🟢"
-                        tag_resumo = "✓ 100% OK"
-
-                    titulo_card = (
-                        f"{icone} Linha NF #{linha_nf} (ERP #{linha_win}) | "
-                        f"Cód. WinThor: {cod_win} — {nome_prod}   •   {tag_resumo}"
-                    )
-
-                    abrir_card = expandir_todos or (idx_card == 0 and len(erros) > 0 and len(itens_exibidos) <= 15)
-                    with st.expander(titulo_card, expanded=abrir_card):
-                        renderizar_card_produto(item)
-
-        # ------------------------------------------
-        # ABA 2: TABELA COMPARATIVA INTERATIVA COLORIDA
-        # ------------------------------------------
-        with tab_tabela:
-            t_col1, t_col2 = st.columns([1.5, 2.5])
-            with t_col1:
-                filtro_tab = st.radio(
-                    "Filtro rápido da tabela:",
-                    ["Todos os Itens", "Somente com Divergência / Sobra", "Somente 100% OK"],
-                    horizontal=True
-                )
-            with t_col2:
-                busca_tab = st.text_input(
-                    "Filtrar linhas na tabela (Código, EAN ou Descrição):",
-                    placeholder="Digite para filtrar a tabela...",
-                    key="busca_tabela"
-                ).strip().lower()
-
-            indices_filtrados = []
-            for i, d in enumerate(dados_relatorio):
-                if filtro_tab == "Somente com Divergência / Sobra" and d['_Qtd_Erros'] == 0:
-                    continue
-                elif filtro_tab == "Somente 100% OK" and (d['_Qtd_Erros'] > 0 or 'SOBRA' in str(d['Status_Geral'])):
-                    continue
-
-                if busca_tab:
-                    blob = f"{d.get('Cod_Produto_WINTHOR','')} {d.get('EAN_NF','')} {d.get('EAN_WINTHOR','')} {d.get('Descricao_NF','')} {d.get('Descricao_WINTHOR','')}".lower()
-                    if busca_tab not in blob:
-                        continue
-                indices_filtrados.append(i)
-
-            if not indices_filtrados:
-                st.info("Nenhuma linha corresponde ao filtro selecionado.")
-            else:
-                df_tab_view = df_final.iloc[indices_filtrados].reset_index(drop=True)
-                dados_tab_filtrados = [dados_relatorio[i] for i in indices_filtrados]
-                styled_df = estilizar_dataframe_streamlit(df_tab_view, dados_tab_filtrados)
-                st.dataframe(styled_df, use_container_width=True, height=520)
-
-        # ------------------------------------------
-        # ABA 3: RAIO-X INDIVIDUAL DO PRODUTO (MEMÓRIA DE CÁLCULO)
-        # ------------------------------------------
-        with tab_raiox:
-            opcoes_itens = []
-            for i, d in enumerate(dados_relatorio):
-                status_tag = f"🔴 {', '.join(d['_Erros_Item'])}" if d['_Qtd_Erros'] > 0 else "🟢 100% OK"
-                nome_ref = d.get('Descricao_NF') if d.get('Descricao_NF') != '-' else d.get('Descricao_WINTHOR', '-')
-                opcoes_itens.append(
-                    (i, f"Linha NF #{d.get('Linha_NF')} | Cód. ERP: {d.get('Cod_Produto_WINTHOR')} — {nome_ref} ({status_tag})")
-                )
-
-            item_escolhido = st.selectbox(
-                "Selecione um produto da Nota Fiscal para inspecionar todos os critérios e cálculos:",
-                options=opcoes_itens,
-                format_func=lambda x: x[1]
-            )
-
-            if item_escolhido is not None:
-                item_sel = dados_relatorio[item_escolhido[0]]
-                renderizar_card_produto(item_sel)
-
-                st.markdown("#### 🧮 Memória de Cálculo e Critérios Aplicados no Item")
-                linhas_memoria = [
-                    {
-                        "Critério Auditado": "1. Código de Barras (EAN)",
-                        "Valor no XML (NF-e)": f"cEAN: {item_sel.get('EAN_Raw_NF', '-')} | cEANTrib: {item_sel.get('EANTrib_Raw_NF', '-')}",
-                        "Valor no WinThor (ERP)": str(item_sel.get('EAN_WINTHOR', '-')),
-                        "Regra / Cálculo Executado": "Compara EAN limpo (sem zeros à esquerda e ignorando SEM GTIN) contra cEAN ou cEANTrib",
-                        "Resultado": item_sel.get('Status_EAN', '-')
-                    },
-                    {
-                        "Critério Auditado": "2. Quantidade e Embalagem",
-                        "Valor no XML (NF-e)": f"{formatar_num_br(item_sel.get('Qtd_NF'), 2)} ({item_sel.get('Unid_XML', '-')})",
-                        "Valor no WinThor (ERP)": formatar_num_br(item_sel.get('Qtd_WINTHOR'), 2),
-                        "Regra / Cálculo Executado": f"Fator extraído = {formatar_num_br(item_sel.get('_Fator_Embalagem'), 0)} → Qtd Convertida = {formatar_num_br(item_sel.get('_Qtd_Convertida_XML'), 2)}",
-                        "Resultado": item_sel.get('Status_Qtd', '-')
-                    },
-                    {
-                        "Critério Auditado": "3. Classificação Fiscal (NCM)",
-                        "Valor no XML (NF-e)": str(item_sel.get('NCM_NF', '-')),
-                        "Valor no WinThor (ERP)": str(item_sel.get('NCM_WINTHOR', '-')),
-                        "Regra / Cálculo Executado": "Comparação exata dos 8 dígitos numéricos (sem pontuação)",
-                        "Resultado": item_sel.get('Status_NCM', '-')
-                    },
-                    {
-                        "Critério Auditado": "4. Alíquota de ICMS & ST Guia",
-                        "Valor no XML (NF-e)": f"{formatar_num_br(item_sel.get('ICMS_NF'), 2, '%')} ({item_sel.get('Origem_XML', '-')})",
-                        "Valor no WinThor (ERP)": f"%ICMS: {formatar_num_br(item_sel.get('ICMS_WINTHOR'), 2, '%')} | ST Guia: {formatar_num_br(item_sel.get('%Alíq.Ext. ST Guia_Whintor'), 2, '%')}",
-                        "Regra / Cálculo Executado": f"Aprova se ICMS_NF bater com %ICMS ou com %Alíq.Ext.ST Guia (Tipo ST: {item_sel.get('Tipo_Calculo_ST', '-')})",
-                        "Resultado": item_sel.get('Status_ICMS_Aliq', '-')
-                    },
-                    {
-                        "Critério Auditado": "5. Redução de Base de Cálculo",
-                        "Valor no XML (NF-e)": f"pRedBC: {formatar_num_br(item_sel.get('pRedBC_NF'), 4, '%')}",
-                        "Valor no WinThor (ERP)": f"% ICMS red.: {formatar_num_br(item_sel.get('% ICMS red. Whintor'), 4, '%')}",
-                        "Regra / Cálculo Executado": f"Carga Efetiva XML = {formatar_num_br(item_sel.get('_Carga_Efetiva_XML'), 4, '%')} (compara % direto ou Carga Efetiva em 2 e 4 casas)",
-                        "Resultado": item_sel.get('Status_Red_BC', '-')
-                    }
-                ]
-                df_mem = pd.DataFrame(linhas_memoria)
-                st.table(df_mem)
-
-        st.markdown("---")
-        st.success("✨ Auditoria concluída! Você pode inspecionar os cards acima ou baixar a planilha executiva abaixo:")
+    with bar_col3:
         st.download_button(
-            label="📥 Baixar Relatório Executivo em Excel (.xlsx)",
+            label="📥 Baixar Excel Executivo",
             data=excel_bytes,
             file_name=nome_arquivo_saida,
             mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
             use_container_width=True,
-            key="btn_download_bottom"
+            type="primary"
         )
+
+    with bar_col4:
+        if st.button("🔄 Reprocessar", use_container_width=True):
+            st.session_state.pop('resultado_auditoria', None)
+            st.rerun()
+
+    # ==========================================
+    # BOTÕES DE FILTRO RÁPIDO DE DIVERGÊNCIAS (SEM BOTÃO DE ITENS OK)
+    # ==========================================
+    if 'filtro_erro_ativo' not in st.session_state:
+        st.session_state['filtro_erro_ativo'] = 'TODOS'
+
+    f_ativo = st.session_state['filtro_erro_ativo']
+
+    btn_cols = st.columns(7, gap="small")
+    botoes_config = [
+        ('TODOS', f"🔴 Todos os Erros ({len(itens_divergentes)})", len(itens_divergentes)),
+        ('EAN', f"🏷️ EAN ({div_ean})", div_ean),
+        ('Quantidade', f"📦 Quantidade ({div_qtd})", div_qtd),
+        ('NCM', f"🏛️ NCM ({div_ncm})", div_ncm),
+        ('ICMS', f"💰 ICMS ({div_icms})", div_icms),
+        ('Redução BC', f"📉 Redução BC ({div_red})", div_red),
+        ('Sobras', f"⚠️ Sobras ({div_sobras})", div_sobras),
+    ]
+
+    for idx_b, (chave_f, rotulo_f, contagem_f) in enumerate(botoes_config):
+        with btn_cols[idx_b]:
+            tipo_btn = "primary" if f_ativo == chave_f else "secondary"
+            desabilitado = (contagem_f == 0 and chave_f != 'TODOS')
+            if st.button(rotulo_f, key=f"btn_flt_{chave_f}", use_container_width=True, type=tipo_btn, disabled=desabilitado):
+                st.session_state['filtro_erro_ativo'] = chave_f
+                st.rerun()
+
+    # Aplicando filtro selecionado e busca textual sobre os itens divergentes
+    itens_filtrados = []
+    for item in itens_divergentes:
+        if f_ativo != 'TODOS' and f_ativo not in item['_Erros_Item']:
+            continue
+
+        if termo_busca:
+            blob_busca = " ".join([
+                str(item.get('Linha_NF', '')),
+                str(item.get('Cod_Produto_WINTHOR', '')),
+                str(item.get('EAN_NF', '')),
+                str(item.get('EAN_WINTHOR', '')),
+                str(item.get('NCM_NF', '')),
+                str(item.get('NCM_WINTHOR', '')),
+                str(item.get('Descricao_NF', '')),
+                str(item.get('Descricao_WINTHOR', ''))
+            ]).lower()
+            if termo_busca not in blob_busca:
+                continue
+
+        itens_filtrados.append(item)
+
+    if len(itens_divergentes) == 0:
+        st.warning("Nenhuma divergência encontrada entre o XML e a planilha do WinThor.")
+    elif len(itens_filtrados) == 0:
+        st.info("Nenhuma divergência encontrada para o filtro ou termo pesquisado.")
+    else:
+        tab_cards, tab_de_para = st.tabs([
+            f"🚨 Cards de Produtos com Divergência ({len(itens_filtrados)})",
+            f"⚡ Tabela De ➔ Para de Correção ({total_ocorrencias} ocorrências)"
+        ])
+
+        # ------------------------------------------
+        # ABA 1: CARDS DE PRODUTOS COM DIVERGÊNCIA
+        # ------------------------------------------
+        with tab_cards:
+            ctrl_col1, ctrl_col2 = st.columns([4, 1])
+            with ctrl_col1:
+                st.caption(
+                    f"Exibindo **{len(itens_filtrados)}** produto(s) com divergência "
+                    f"(filtro ativo: **{f_ativo}**). Os itens com mais erros aparecem no topo:"
+                )
+            with ctrl_col2:
+                expandir_todos = st.checkbox("Expandir todos os cards", value=(len(itens_filtrados) <= 5))
+
+            for idx_c, item in enumerate(itens_filtrados):
+                erros = item['_Erros_Item']
+                eh_sobra = 'SOBRA' in str(item['Status_Geral'])
+                linha_nf = item.get('Linha_NF', '-')
+                linha_win = item.get('Linha_WINTHOR', '-')
+                cod_win = item.get('Cod_Produto_WINTHOR', '-')
+                nome_prod = item.get('Descricao_WINTHOR') if item.get('Descricao_WINTHOR') not in ('', '-') else item.get('Descricao_NF', '-')
+
+                if eh_sobra:
+                    titulo_card = f"⚠️ {item.get('_Tipo_Sobra', 'SOBRA')} | Linha NF #{linha_nf} / ERP #{linha_win} — {nome_prod}"
+                else:
+                    plural = "Divergências" if len(erros) > 1 else "Divergência"
+                    titulo_card = (
+                        f"🔴 Linha NF #{linha_nf} | Cód. WinThor: {cod_win} — {nome_prod}   "
+                        f"•   [{len(erros)} {plural}: {', '.join(erros)}]"
+                    )
+
+                abrir_card = expandir_todos or (idx_c == 0)
+                with st.expander(titulo_card, expanded=abrir_card):
+                    renderizar_card_divergente(item)
+
+        # ------------------------------------------
+        # ABA 2: TABELA DIRETA DE -> PARA (APENAS ERROS)
+        # ------------------------------------------
+        with tab_de_para:
+            ocorrencias_filtradas = []
+            for oc in ocorrencias_de_para:
+                if f_ativo != 'TODOS':
+                    mapa_crit = {
+                        'EAN': 'EAN',
+                        'Quantidade': 'Quantidade',
+                        'NCM': 'NCM',
+                        'ICMS': 'ICMS',
+                        'Redução BC': 'Redução',
+                        'Sobras': 'Sobra'
+                    }
+                    termo_crit = mapa_crit.get(f_ativo, f_ativo)
+                    if termo_crit.lower() not in oc['Critério Divergente'].lower():
+                        continue
+
+                if termo_busca:
+                    blob_oc = f"{oc['Linha NF']} {oc['Cód. WinThor']} {oc['Produto']} {oc['Valor no XML (NF)']} {oc['Valor no WinThor (ERP)']}".lower()
+                    if termo_busca not in blob_oc:
+                        continue
+
+                ocorrencias_filtradas.append(oc)
+
+            df_de_para = pd.DataFrame(ocorrencias_filtradas)
+
+            def estilizar_de_para(df_dp):
+                def _style_cols(col):
+                    if col.name == 'Critério Divergente':
+                        return ['background-color: #FADBD8; color: #9C0006; font-weight: 700;' for _ in col]
+                    elif col.name == 'Valor no XML (NF)':
+                        return ['background-color: #EBF5FB; color: #1B4F72; font-weight: 700;' for _ in col]
+                    elif col.name == 'Valor no WinThor (ERP)':
+                        return ['background-color: #FDEDEC; color: #9C0006; font-weight: 700;' for _ in col]
+                    return ['' for _ in col]
+                return df_dp.style.apply(_style_cols, axis=0)
+
+            if df_de_para.empty:
+                st.info("Nenhuma ocorrência para o filtro selecionado.")
+            else:
+                st.dataframe(
+                    estilizar_de_para(df_de_para),
+                    use_container_width=True,
+                    hide_index=True,
+                    height=min(120 + len(df_de_para) * 38, 620)
+                )
