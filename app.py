@@ -1,3 +1,4 @@
+import html
 import io
 import os
 import re
@@ -328,6 +329,88 @@ st.markdown("""
         div[data-testid="stDownloadButton"] > button:hover {
             background-color: #145A32 !important;
             border-color: #0E3E22 !important;
+        }
+
+        /* Resumo Minimalista de Divergências */
+        .div-panel {
+            background-color: #FFFFFF;
+            border: 1px solid #E2E8F0;
+            border-radius: 10px;
+            padding: 14px 18px;
+            margin-top: 20px;
+            box-shadow: 0 1px 4px rgba(15, 23, 42, 0.04);
+        }
+        .div-panel-header {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            margin-bottom: 10px;
+            padding-bottom: 8px;
+            border-bottom: 1px solid #EEF2F6;
+            font-size: 0.88rem;
+            font-weight: 700;
+            color: #1B2631;
+        }
+        .div-count-badge {
+            background-color: #FEE2E2;
+            color: #991B1B;
+            border: 1px solid #FECACA;
+            font-size: 0.76rem;
+            font-weight: 700;
+            padding: 2px 10px;
+            border-radius: 12px;
+        }
+        .div-row {
+            display: flex;
+            align-items: center;
+            flex-wrap: wrap;
+            gap: 8px;
+            padding: 8px 10px;
+            border-bottom: 1px solid #F1F5F9;
+            font-size: 0.83rem;
+        }
+        .div-row:last-child {
+            border-bottom: none;
+        }
+        .div-prod {
+            min-width: 140px;
+            font-weight: 700;
+            color: #1B2631;
+            background-color: #F1F5F9;
+            border: 1px solid #CBD5E1;
+            border-radius: 6px;
+            padding: 4px 10px;
+            white-space: nowrap;
+        }
+        .div-tag {
+            display: inline-flex;
+            align-items: center;
+            gap: 5px;
+            background-color: #FEF2F2;
+            border: 1px solid #FECACA;
+            color: #7F1D1D;
+            border-radius: 6px;
+            padding: 4px 10px;
+            font-size: 0.80rem;
+            white-space: nowrap;
+        }
+        .div-tag b {
+            color: #991B1B;
+        }
+        .div-sep {
+            color: #94A3B8;
+            font-weight: 700;
+        }
+        .div-ok-box {
+            text-align: center;
+            background-color: #F0FDF4;
+            border: 1px solid #BBF7D0;
+            color: #166534;
+            border-radius: 8px;
+            padding: 10px 14px;
+            margin-top: 20px;
+            font-size: 0.86rem;
+            font-weight: 600;
         }
     </style>
 """, unsafe_allow_html=True)
@@ -682,17 +765,8 @@ def validar_upload(itens_xml, itens_csv, numero_nf, nome_arquivo_csv):
     return r
 
 
-@st.cache_data(show_spinner=False)
-def gerar_excel_auditoria_cached(
-    itens_xml_tuple, itens_csv_tuple, numero_nf: str,
-    inc_ident: bool, inc_ean: bool, inc_desc: bool, inc_qtd: bool,
-    inc_ncm: bool, inc_icms: bool, inc_red: bool, inc_st: bool
-):
-    itens_xml = [dict(x) for x in itens_xml_tuple]
-    itens_csv = [dict(c) for c in itens_csv_tuple]
-    data_simples = datetime.now().strftime('%Y%m%d')
-    nome_arquivo_saida = f'relatorio_NF_{numero_nf}_{data_simples}.xlsx'
-
+def cruzar_itens_auditoria(itens_xml, itens_csv):
+    """Realiza o cruzamento linha a linha entre XML e WinThor (fonte única para tela e Excel)."""
     dados_relatorio = []
     for item_x, item_c in zip_longest(itens_xml, itens_csv, fillvalue=None):
         linha = {}
@@ -777,6 +851,105 @@ def gerar_excel_auditoria_cached(
                 linha[st_col] = '-'
 
         dados_relatorio.append(linha)
+
+    return dados_relatorio
+
+
+def _fmt_num_curto(valor) -> str:
+    try:
+        v = float(valor)
+        if v.is_integer():
+            return str(int(v))
+        return f"{v:.2f}".rstrip('0').rstrip('.')
+    except (TypeError, ValueError):
+        return str(valor)
+
+
+def renderizar_resumo_divergencias(dados_relatorio):
+    """Exibe apenas produtos com divergência, uma linha por produto, de forma minimalista."""
+    linhas_html = []
+
+    for linha in dados_relatorio:
+        tags = []
+
+        if linha.get('Status_Geral') == 'SOBRA':
+            origem_sobra = 'XML' if linha.get('Linha_NF') != '-' else 'WinThor'
+            tags.append(f'<span class="div-tag"><b>Sobra</b> apenas no {origem_sobra}</span>')
+        else:
+            if linha.get('Status_EAN') == 'DIVERGENTE':
+                ean_x = html.escape(str(linha.get('EAN_NF') or 'vazio'))
+                ean_w = html.escape(str(linha.get('EAN_WINTHOR') or 'vazio'))
+                tags.append(f'<span class="div-tag"><b>EAN</b> {ean_x} <span class="div-sep">×</span> {ean_w}</span>')
+
+            if linha.get('Status_Qtd') == 'DIVERGENTE':
+                q_x = _fmt_num_curto(linha.get('Qtd_NF'))
+                q_w = _fmt_num_curto(linha.get('Qtd_WINTHOR'))
+                tags.append(f'<span class="div-tag"><b>Qtd</b> {q_x} <span class="div-sep">×</span> {q_w}</span>')
+
+            if linha.get('Status_NCM') == 'DIVERGENTE':
+                n_x = html.escape(str(linha.get('NCM_NF') or '-'))
+                n_w = html.escape(str(linha.get('NCM_WINTHOR') or '-'))
+                tags.append(f'<span class="div-tag"><b>NCM</b> {n_x} <span class="div-sep">×</span> {n_w}</span>')
+
+            if linha.get('Status_ICMS_Aliq') == 'DIVERGENTE':
+                i_x = _fmt_num_curto(linha.get('ICMS_NF'))
+                i_w = _fmt_num_curto(linha.get('ICMS_WINTHOR'))
+                tags.append(f'<span class="div-tag"><b>ICMS</b> {i_x}% <span class="div-sep">×</span> {i_w}%</span>')
+
+            if linha.get('Status_Red_BC') == 'DIVERGENTE':
+                r_x = _fmt_num_curto(linha.get('pRedBC_NF'))
+                r_w = _fmt_num_curto(linha.get('% ICMS red. Whintor'))
+                tags.append(f'<span class="div-tag"><b>Red. BC</b> {r_x}% <span class="div-sep">×</span> {r_w}%</span>')
+
+        if tags:
+            cod_prod = str(linha.get('Cod_Produto_WINTHOR') or '').strip()
+            if cod_prod and cod_prod != '-':
+                rotulo_prod = f"Produto {html.escape(cod_prod)}"
+            else:
+                rotulo_prod = f"Item {html.escape(str(linha.get('Linha_NF', '-')))}"
+
+            desc_tooltip = html.escape(
+                str(linha.get('Descricao_WINTHOR') or linha.get('Descricao_NF') or '').strip()
+            )
+            linhas_html.append(
+                f'<div class="div-row">'
+                f'  <span class="div-prod" title="{desc_tooltip}">{rotulo_prod}</span>'
+                f'  {"".join(tags)}'
+                f'</div>'
+            )
+
+    if not linhas_html:
+        st.markdown(
+            '<div class="div-ok-box">✅ Nenhuma divergência encontrada nesta nota (XML × WinThor 100% conferido).</div>',
+            unsafe_allow_html=True
+        )
+        return
+
+    qtd_prods = len(linhas_html)
+    st.markdown(
+        f'<div class="div-panel">'
+        f'  <div class="div-panel-header">'
+        f'    <span>🔎 Resumo de Divergências (XML × WinThor)</span>'
+        f'    <span class="div-count-badge">{qtd_prods} produto(s)</span>'
+        f'  </div>'
+        f'  {"".join(linhas_html)}'
+        f'</div>',
+        unsafe_allow_html=True
+    )
+
+
+@st.cache_data(show_spinner=False)
+def gerar_excel_auditoria_cached(
+    itens_xml_tuple, itens_csv_tuple, numero_nf: str,
+    inc_ident: bool, inc_ean: bool, inc_desc: bool, inc_qtd: bool,
+    inc_ncm: bool, inc_icms: bool, inc_red: bool, inc_st: bool
+):
+    itens_xml = [dict(x) for x in itens_xml_tuple]
+    itens_csv = [dict(c) for c in itens_csv_tuple]
+    data_simples = datetime.now().strftime('%Y%m%d')
+    nome_arquivo_saida = f'relatorio_NF_{numero_nf}_{data_simples}.xlsx'
+
+    dados_relatorio = cruzar_itens_auditoria(itens_xml, itens_csv)
 
     mapa_colunas_blocos = {
         'Identificação': ['Linha_NF', 'Linha_WINTHOR'],
@@ -1213,7 +1386,7 @@ with st.container(border=True):
         inc_red = st.checkbox("Redução Base", key="flag_red")
         inc_st = st.checkbox("Cálculo ST", key="flag_st")
 
-# Validação automática e botão de download centralizado
+# Validação automática, download centralizado e resumo minimalista de divergências
 chave_ativa = st.session_state.get("sb_nf_ativa")
 if lote_xml and arquivo_dados and chave_ativa in lote_xml:
     xml_selecionado = lote_xml[chave_ativa]
@@ -1271,6 +1444,11 @@ if lote_xml and arquivo_dados and chave_ativa in lote_xml:
                     mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
                     use_container_width=True
                 )
+
+            # Resumo minimalista de divergências logo abaixo do botão
+            dados_cruzados = cruzar_itens_auditoria(itens_xml, itens_csv)
+            renderizar_resumo_divergencias(dados_cruzados)
+
 elif lote_xml and not arquivo_dados:
     st.markdown(
         '<div class="empty-hint">📄 Lote de XML pronto. Envie o relatório do <b>WinThor (CSV/XLSX)</b> no passo 2 para gerar a auditoria.</div>',
