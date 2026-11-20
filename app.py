@@ -156,7 +156,7 @@ st.markdown("""
             border-radius: 6px !important;
         }
 
-        /* Lista de arquivos com rolagem controlada (ideal para 30+ XMLs) */
+        /* Lista de arquivos com rolagem controlada */
         [data-testid="stFileUploaderDropzone"] > div:last-child,
         [data-testid="stFileUploaderDropzone"] ul {
             width: 100% !important;
@@ -1032,7 +1032,6 @@ def _remover_nf_ativa():
     chave = st.session_state.get("sb_nf_ativa")
     if chave and chave in st.session_state["xml_lote"]:
         st.session_state["xml_lote"].pop(chave, None)
-        st.session_state["xml_ignorados_sessao"].add(chave)
     restantes = list(st.session_state["xml_lote"].keys())
     if restantes:
         st.session_state["sb_nf_ativa"] = restantes[0]
@@ -1042,7 +1041,6 @@ def _remover_nf_ativa():
 
 def _limpar_lote():
     st.session_state["xml_lote"] = {}
-    st.session_state["xml_ignorados_sessao"] = set()
     st.session_state.pop("sb_nf_ativa", None)
     st.session_state["xml_uploader_key"] += 1
 
@@ -1063,8 +1061,6 @@ st.markdown("""
 # Estado da sessão
 if "xml_lote" not in st.session_state:
     st.session_state["xml_lote"] = {}
-if "xml_ignorados_sessao" not in st.session_state:
-    st.session_state["xml_ignorados_sessao"] = set()
 if "xml_uploader_key" not in st.session_state:
     st.session_state["xml_uploader_key"] = 0
 if "ultimo_csv_assinatura" not in st.session_state:
@@ -1086,21 +1082,20 @@ with col_up1:
         label_visibility="collapsed"
     )
     if arquivos_xml:
-        assinaturas_atuais = {f"{a.name}:{a.size}" for a in arquivos_xml}
-        st.session_state["xml_ignorados_sessao"] &= assinaturas_atuais
-
         for arq_x in arquivos_xml:
             sig_x = f"{arq_x.name}:{arq_x.size}"
-            if sig_x in st.session_state["xml_ignorados_sessao"] or sig_x in st.session_state["xml_lote"]:
-                continue
-            bruto_x = arq_x.getvalue()
-            num_nf_x = extrair_numero_nf_rapido(bruto_x)
-            st.session_state["xml_lote"][sig_x] = {
-                "numero_nf": num_nf_x,
-                "nf_norm": num_nf_x.lstrip('0'),
-                "nome_arquivo": arq_x.name,
-                "bytes": bruto_x,
-            }
+            if sig_x not in st.session_state["xml_lote"]:
+                bruto_x = arq_x.getvalue()
+                num_nf_x = extrair_numero_nf_rapido(bruto_x)
+                st.session_state["xml_lote"][sig_x] = {
+                    "numero_nf": num_nf_x,
+                    "nf_norm": num_nf_x.lstrip('0'),
+                    "nome_arquivo": arq_x.name,
+                    "bytes": bruto_x,
+                }
+        # Limpa a bandeja do uploader imediatamente após incorporar os arquivos ao lote
+        st.session_state["xml_uploader_key"] += 1
+        st.rerun()
 
 with col_up2:
     st.markdown(
