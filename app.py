@@ -55,15 +55,15 @@ st.markdown("""
             max-width: 1200px;
         }
 
-        /* Cabeçalho Executivo Limpo e Integrado ao Tema */
+        /* Cabeçalho Executivo Escuro de Destaque */
         .dashboard-header {
-            background-color: #FFFFFF;
-            border: 1px solid #DCE3EC;
-            border-left: 5px solid #1B2631;
+            background: linear-gradient(135deg, #16202A 0%, #243447 100%);
+            border: 1px solid #1B2631;
+            border-left: 5px solid #27AE60;
             padding: 18px 24px;
             border-radius: 10px;
             margin-bottom: 20px;
-            box-shadow: 0 2px 8px rgba(27, 38, 49, 0.05);
+            box-shadow: 0 4px 12px rgba(22, 32, 42, 0.14);
             display: flex;
             align-items: center;
             justify-content: space-between;
@@ -76,10 +76,10 @@ st.markdown("""
             gap: 4px;
         }
         .dashboard-title {
-            font-size: 1.4rem;
+            font-size: 1.42rem;
             font-weight: 700;
             margin: 0;
-            color: #1B2631;
+            color: #FFFFFF !important;
             letter-spacing: -0.01em;
             display: flex;
             align-items: center;
@@ -87,14 +87,14 @@ st.markdown("""
         }
         .dashboard-subtitle {
             font-size: 0.88rem;
-            color: #5D6D7E;
+            color: #CBD5E1 !important;
             margin: 0;
             font-weight: 400;
         }
         .header-pill {
-            background-color: #F1F5F9;
-            color: #1B2631;
-            border: 1px solid #CBD5E1;
+            background-color: rgba(255, 255, 255, 0.12);
+            color: #FFFFFF !important;
+            border: 1px solid rgba(255, 255, 255, 0.25);
             font-size: 0.75rem;
             font-weight: 700;
             padding: 5px 12px;
@@ -147,7 +147,13 @@ st.markdown("""
             background-color: #DBEAFE !important;
         }
 
-        /* Chip do arquivo anexado expandido para exibir o nome completo sem cortar */
+        /* Chip do arquivo anexado expandido para mostrar o número completo sem truncar */
+        [data-testid="stFileUploaderDropzone"] > div:last-child,
+        [data-testid="stFileUploaderDropzone"] ul {
+            width: 100% !important;
+            max-width: 100% !important;
+            flex: 1 1 100% !important;
+        }
         [data-testid="stFileUploaderFile"],
         [data-testid="stUploadedFile"] {
             background-color: #EEF2F6 !important;
@@ -156,33 +162,44 @@ st.markdown("""
             color: #1B2631 !important;
             width: 100% !important;
             max-width: 100% !important;
-            padding: 6px 10px !important;
+            padding: 8px 12px !important;
+            display: flex !important;
+            align-items: center !important;
         }
         [data-testid="stFileUploaderFile"] > div,
         [data-testid="stUploadedFile"] > div {
             background-color: transparent !important;
             border: none !important;
             color: #1B2631 !important;
-            max-width: none !important;
+            max-width: 100% !important;
             width: 100% !important;
+            flex: 1 1 auto !important;
             overflow: visible !important;
+            text-overflow: unset !important;
         }
         [data-testid="stFileUploaderFileName"],
         [data-testid="stFileUploaderFile"] span,
-        [data-testid="stUploadedFile"] span {
+        [data-testid="stFileUploaderFile"] div,
+        [data-testid="stUploadedFile"] span,
+        [data-testid="stUploadedFile"] div {
             color: #1B2631 !important;
             max-width: none !important;
+            width: auto !important;
             white-space: normal !important;
+            overflow-wrap: anywhere !important;
             word-break: break-all !important;
             overflow: visible !important;
             text-overflow: unset !important;
             font-weight: 600 !important;
             font-size: 0.84rem !important;
+            line-height: 1.35 !important;
         }
         [data-testid="stFileUploaderFile"] small,
         [data-testid="stUploadedFile"] small {
             color: #5D6D7E !important;
             font-size: 0.76rem !important;
+            display: block !important;
+            margin-top: 2px !important;
         }
         [data-testid="stFileUploaderFile"] svg,
         [data-testid="stUploadedFile"] svg {
