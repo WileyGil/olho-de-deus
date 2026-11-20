@@ -222,7 +222,7 @@ st.markdown("""
             border-radius: 50% !important;
         }
 
-        /* Container de seleção de blocos em fundo branco */
+        /* Container de seleção de blocos e lote em fundo branco */
         [data-testid="stVerticalBlockBorderWrapper"] {
             background-color: #FFFFFF !important;
             border-color: #E2E8F0 !important;
@@ -300,6 +300,12 @@ st.markdown("""
         div[data-testid="stDownloadButton"] > button:hover {
             background-color: #145A32 !important;
             border-color: #0E3E22 !important;
+        }
+
+        .lote-resumo {
+            font-size: 0.84rem;
+            color: #334155;
+            font-weight: 500;
         }
     </style>
 """, unsafe_allow_html=True)
@@ -498,8 +504,7 @@ def montar_itens_csv(df):
     return itens
 
 
-def ler_xml_nfe(arquivo):
-    bruto = arquivo.getvalue()
+def ler_xml_nfe_bytes(bruto: bytes):
     root = ET.fromstring(bruto)
 
     nNF = root.find('.//ns:ide/ns:nNF', NS)
@@ -994,16 +999,82 @@ st.markdown("""
     </div>
 """, unsafe_allow_html=True)
 
+# Lote de XMLs armazenados na sessão: {chave_nf: {"numero_nf": str, "nome_arquivo": str, "itens": list}}
+if "xml_lote" not in st.session_state:
+    st.session_state["xml_lote"] = {}
+
 # Linha 1: Uploaders lado a lado em tema claro
 col_up1, col_up2 = st.columns(2, gap="large")
 
 with col_up1:
-    st.markdown('<p class="section-label">📂 1. Nota Fiscal Eletrônica (XML)</p>', unsafe_allow_html=True)
-    arquivo_xml = st.file_uploader("Upload XML", type=["xml"], label_visibility="collapsed")
+    st.markdown('<p class="section-label">📂 1. Lote de Notas Fiscais (XML — adicione vários)</p>', unsafe_allow_html=True)
+    arquivos_xml = st.file_uploader(
+        "Upload XMLs",
+        type=["xml"],
+        accept_multiple_files=True,
+        label_visibility="collapsed"
+    )
+    if arquivos_xml:
+        for arq_x in arquivos_xml:
+            bruto_x = arq_x.getvalue()
+            num_nf_x, itens_x = ler_xml_nfe_bytes(bruto_x)
+            chave_x = str(num_nf_x).strip().lstrip('0') or arq_x.name
+            st.session_state["xml_lote"][chave_x] = {
+                "numero_nf": str(num_nf_x).strip(),
+                "nome_arquivo": arq_x.name,
+                "itens": itens_x,
+            }
 
 with col_up2:
     st.markdown('<p class="section-label">📊 2. Relatório de Pré-Entrada (WinThor)</p>', unsafe_allow_html=True)
     arquivo_dados = st.file_uploader("Upload WinThor", type=["csv", "xlsx"], label_visibility="collapsed")
+
+# Gerenciamento do lote de XMLs armazenados
+lote_xml = st.session_state["xml_lote"]
+if lote_xml:
+    with st.container(border=True):
+        c_info, c_sel, c_rem, c_limp = st.columns([2.2, 2.5, 1.1, 1.1], vertical_alignment="center")
+        chaves_ordenadas = list(lote_xml.keys())
+        opcoes_rotulo = {
+            k: f"NF {lote_xml[k]['numero_nf']} — {lote_xml[k]['nome_arquivo']} ({len(lote_xml[k]['itens'])} itens)"
+            for k in chaves_ordenadas
+        }
+
+        # Detecta automaticamente a NF do CSV/XLSX se o número vier no nome do arquivo
+        chave_padrao = chaves_ordenadas[0]
+        if arquivo_dados is not None:
+            cand_csv = _numeros_do_nome(arquivo_dados.name)
+            for k in chaves_ordenadas:
+                if k in cand_csv:
+                    chave_padrao = k
+                    break
+
+        with c_info:
+            st.markdown(
+                f'<p class="lote-resumo" style="margin:0;">🗂️ <b>{len(lote_xml)}</b> XML(s) armazenado(s)</p>',
+                unsafe_allow_html=True
+            )
+
+        with c_sel:
+            idx_padrao = chaves_ordenadas.index(chave_padrao) if chave_padrao in chaves_ordenadas else 0
+            chave_ativa = st.selectbox(
+                "NF ativa do lote",
+                options=chaves_ordenadas,
+                index=idx_padrao,
+                format_func=lambda k: opcoes_rotulo[k],
+                label_visibility="collapsed"
+            )
+
+        with c_rem:
+            if st.button("🗑️ Remover", use_container_width=True):
+                if chave_ativa in st.session_state["xml_lote"]:
+                    del st.session_state["xml_lote"][chave_ativa]
+                st.rerun()
+
+        with c_limp:
+            if st.button("🧹 Limpar tudo", use_container_width=True):
+                st.session_state["xml_lote"] = {}
+                st.rerun()
 
 # Estado inicial das flags ao carregar/reiniciar a sessão
 _DEFAULTS_FLAGS = {
@@ -1056,50 +1127,53 @@ with st.container(border=True):
         inc_red = st.checkbox("Redução Base", key="flag_red")
         inc_st = st.checkbox("Cálculo ST", key="flag_st")
 
-# Linha 3: Validação automática e botão de download centralizado
-if arquivo_xml and arquivo_dados:
-    numero_nf, itens_xml = ler_xml_nfe(arquivo_xml)
-    df_csv, avisos_prep = ler_csv_winthor(arquivo_dados)
-    itens_csv = montar_itens_csv(df_csv)
-    val = validar_upload(itens_xml, itens_csv, numero_nf, arquivo_dados.name)
+# Linha 3: Validação automática (XML do lote ativo x CSV/XLSX do WinThor) e download centralizado
+if lote_xml and arquivo_dados:
+    xml_selecionado = lote_xml.get(chave_ativa)
+    if xml_selecionado:
+        numero_nf = xml_selecionado["numero_nf"]
+        itens_xml = xml_selecionado["itens"]
+        df_csv, avisos_prep = ler_csv_winthor(arquivo_dados)
+        itens_csv = montar_itens_csv(df_csv)
+        val = validar_upload(itens_xml, itens_csv, numero_nf, arquivo_dados.name)
 
-    tem_bloqueio = len(val['bloqueios']) > 0
-    ignorar_bloqueio_nf = False
+        tem_bloqueio = len(val['bloqueios']) > 0
+        ignorar_bloqueio_nf = False
 
-    if tem_bloqueio or avisos_prep or val['avisos']:
-        for bloq in val['bloqueios']:
-            st.markdown(f'<div class="v-badge err">🚫 {bloq}</div>', unsafe_allow_html=True)
+        if tem_bloqueio or avisos_prep or val['avisos']:
+            for bloq in val['bloqueios']:
+                st.markdown(f'<div class="v-badge err">🚫 {bloq}</div>', unsafe_allow_html=True)
 
-        for av in avisos_prep + val['avisos']:
-            st.markdown(f'<div class="v-badge warn">⚠️ {av}</div>', unsafe_allow_html=True)
+            for av in avisos_prep + val['avisos']:
+                st.markdown(f'<div class="v-badge warn">⚠️ {av}</div>', unsafe_allow_html=True)
 
-        if val['bloqueio_nf']:
-            ignorar_bloqueio_nf = st.checkbox("Confirmar mesmo assim (o arquivo pertence a esta NF)")
+            if val['bloqueio_nf']:
+                ignorar_bloqueio_nf = st.checkbox("Confirmar mesmo assim (o arquivo pertence a esta NF)")
 
-    pode_processar = (not tem_bloqueio) or (val['bloqueio_nf'] and ignorar_bloqueio_nf)
+        pode_processar = (not tem_bloqueio) or (val['bloqueio_nf'] and ignorar_bloqueio_nf)
 
-    if pode_processar:
-        dados_excel, nome_arquivo_saida = gerar_excel_auditoria(
-            itens_xml, itens_csv, numero_nf,
-            inc_ident, inc_ean, inc_desc, inc_qtd, inc_ncm, inc_icms, inc_red, inc_st
-        )
-
-        # Selo fixo centralizado e simetricamente separado acima do botão
-        st.markdown(f"""
-            <div class="temp-notice-wrap">
-                <div class="temp-notice">
-                    ✅ NF {numero_nf} pronta para auditoria
-                </div>
-            </div>
-        """, unsafe_allow_html=True)
-
-        # Botão de download centralizado e simétrico
-        _, col_centro, _ = st.columns([1.4, 1.2, 1.4])
-        with col_centro:
-            st.download_button(
-                label="📥 Baixar Relatório",
-                data=dados_excel,
-                file_name=nome_arquivo_saida,
-                mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
-                use_container_width=True
+        if pode_processar:
+            dados_excel, nome_arquivo_saida = gerar_excel_auditoria(
+                itens_xml, itens_csv, numero_nf,
+                inc_ident, inc_ean, inc_desc, inc_qtd, inc_ncm, inc_icms, inc_red, inc_st
             )
+
+            # Selo fixo centralizado e simetricamente separado acima do botão
+            st.markdown(f"""
+                <div class="temp-notice-wrap">
+                    <div class="temp-notice">
+                        ✅ NF {numero_nf} pronta para auditoria
+                    </div>
+                </div>
+            """, unsafe_allow_html=True)
+
+            # Botão de download centralizado e simétrico
+            _, col_centro, _ = st.columns([1.4, 1.2, 1.4])
+            with col_centro:
+                st.download_button(
+                    label="📥 Baixar Relatório",
+                    data=dados_excel,
+                    file_name=nome_arquivo_saida,
+                    mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+                    use_container_width=True
+                )
