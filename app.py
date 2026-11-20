@@ -50,30 +50,59 @@ st.markdown("""
             color: #2C3E50 !important;
         }
         .block-container {
-            padding-top: 1.5rem;
+            padding-top: 2.2rem !important;
             padding-bottom: 2rem;
             max-width: 1200px;
         }
+
+        /* Cabeçalho Executivo Limpo e Integrado ao Tema */
         .dashboard-header {
-            background: linear-gradient(135deg, #1B2631 0%, #2C3E50 100%);
-            padding: 16px 22px;
-            border-radius: 8px;
-            color: #FFFFFF;
-            margin-bottom: 18px;
-            box-shadow: 0 3px 10px rgba(0,0,0,0.06);
+            background-color: #FFFFFF;
+            border: 1px solid #DCE3EC;
+            border-left: 5px solid #1B2631;
+            padding: 18px 24px;
+            border-radius: 10px;
+            margin-bottom: 20px;
+            box-shadow: 0 2px 8px rgba(27, 38, 49, 0.05);
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            flex-wrap: wrap;
+            gap: 12px;
+        }
+        .header-left {
+            display: flex;
+            flex-direction: column;
+            gap: 4px;
         }
         .dashboard-title {
-            font-size: 1.45rem;
+            font-size: 1.4rem;
             font-weight: 700;
             margin: 0;
-            color: #FFFFFF;
+            color: #1B2631;
+            letter-spacing: -0.01em;
+            display: flex;
+            align-items: center;
+            gap: 10px;
         }
         .dashboard-subtitle {
-            font-size: 0.85rem;
-            color: #BDC3C7;
-            margin-top: 3px;
-            margin-bottom: 0;
+            font-size: 0.88rem;
+            color: #5D6D7E;
+            margin: 0;
+            font-weight: 400;
         }
+        .header-pill {
+            background-color: #F1F5F9;
+            color: #1B2631;
+            border: 1px solid #CBD5E1;
+            font-size: 0.75rem;
+            font-weight: 700;
+            padding: 5px 12px;
+            border-radius: 20px;
+            letter-spacing: 0.04em;
+            text-transform: uppercase;
+        }
+
         .section-label {
             font-size: 0.95rem;
             font-weight: 600;
@@ -118,31 +147,48 @@ st.markdown("""
             background-color: #DBEAFE !important;
         }
 
-        /* Chip do arquivo anexado totalmente claro (sem fundo preto) */
+        /* Chip do arquivo anexado expandido para exibir o nome completo sem cortar */
         [data-testid="stFileUploaderFile"],
         [data-testid="stUploadedFile"] {
             background-color: #EEF2F6 !important;
             border: 1px solid #CBD5E1 !important;
             border-radius: 8px !important;
             color: #1B2631 !important;
+            width: 100% !important;
+            max-width: 100% !important;
+            padding: 6px 10px !important;
         }
-        [data-testid="stFileUploaderFile"] div,
-        [data-testid="stUploadedFile"] div {
+        [data-testid="stFileUploaderFile"] > div,
+        [data-testid="stUploadedFile"] > div {
             background-color: transparent !important;
             border: none !important;
             color: #1B2631 !important;
+            max-width: none !important;
+            width: 100% !important;
+            overflow: visible !important;
         }
         [data-testid="stFileUploaderFileName"],
         [data-testid="stFileUploaderFile"] span,
-        [data-testid="stFileUploaderFile"] small,
-        [data-testid="stUploadedFile"] span,
-        [data-testid="stUploadedFile"] small {
+        [data-testid="stUploadedFile"] span {
             color: #1B2631 !important;
+            max-width: none !important;
+            white-space: normal !important;
+            word-break: break-all !important;
+            overflow: visible !important;
+            text-overflow: unset !important;
+            font-weight: 600 !important;
+            font-size: 0.84rem !important;
+        }
+        [data-testid="stFileUploaderFile"] small,
+        [data-testid="stUploadedFile"] small {
+            color: #5D6D7E !important;
+            font-size: 0.76rem !important;
         }
         [data-testid="stFileUploaderFile"] svg,
         [data-testid="stUploadedFile"] svg {
             fill: #2C3E50 !important;
             color: #2C3E50 !important;
+            flex-shrink: 0 !important;
         }
         [data-testid="stFileUploaderDeleteBtn"] button,
         [data-testid="stFileUploaderFile"] button,
@@ -150,6 +196,7 @@ st.markdown("""
             background-color: transparent !important;
             border: none !important;
             color: #64748B !important;
+            flex-shrink: 0 !important;
         }
         [data-testid="stFileUploaderDeleteBtn"] button:hover,
         [data-testid="stFileUploaderFile"] button:hover,
@@ -922,8 +969,11 @@ def gerar_excel_auditoria(
 # ==========================================
 st.markdown("""
     <div class="dashboard-header">
-        <p class="dashboard-title">📊 Painel de Auditoria de Notas Fiscais</p>
-        <p class="dashboard-subtitle">Cruzamento automatizado entre XML e relatórios WinThor.</p>
+        <div class="header-left">
+            <p class="dashboard-title">📊 Auditoria de Notas Fiscais</p>
+            <p class="dashboard-subtitle">Conferência automatizada entre XML da NF-e e Pré-Entrada WinThor</p>
+        </div>
+        <span class="header-pill">Fiscal • XML × WinThor</span>
     </div>
 """, unsafe_allow_html=True)
 
