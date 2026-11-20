@@ -662,7 +662,7 @@ def gerar_excel_auditoria(
             linha.update({
                 'Linha_NF': '-', 'Descricao_NF': '-', 'EAN_NF': '-', 'NCM_NF': '-',
                 'Qtd_NF': '-', '_Fator_Embalagem': 1.0, 'Vl_Unit_NF': '-', 'Vl_Total_NF': '-',
-                'Origem_XML': '-', 'ICMS_NF': '-', 'pRedBC_NF': '-'
+                'ICMS_NF': '-', 'pRedBC_NF': '-'
             })
 
         if item_c:
@@ -743,7 +743,7 @@ def gerar_excel_auditoria(
         'Descrições': ['Descricao_NF', 'Descricao_WINTHOR'],
         'Quantidades': ['Qtd_NF', 'Qtd_WINTHOR', 'Status_Qtd'],
         'NCM (Fiscal)': ['NCM_NF', 'NCM_WINTHOR', 'Status_NCM'],
-        'ICMS & Origem': ['Origem_XML', 'ICMS_NF', 'ICMS_WINTHOR', '%Alíq.Ext. ST Guia_Whintor', 'Status_ICMS_Aliq'],
+        'ICMS': ['ICMS_NF', 'ICMS_WINTHOR', '%Alíq.Ext. ST Guia_Whintor', 'Status_ICMS_Aliq'],
         'Redução de Base': ['pRedBC_NF', '% ICMS red. Whintor', 'Status_Red_BC'],
         'Tipo Cálculo ST': ['Tipo_Calculo_ST']
     }
@@ -754,7 +754,7 @@ def gerar_excel_auditoria(
     if inc_desc: colunas_selecionadas.extend(mapa_colunas_blocos['Descrições'])
     if inc_qtd: colunas_selecionadas.extend(mapa_colunas_blocos['Quantidades'])
     if inc_ncm: colunas_selecionadas.extend(mapa_colunas_blocos['NCM (Fiscal)'])
-    if inc_icms: colunas_selecionadas.extend(mapa_colunas_blocos['ICMS & Origem'])
+    if inc_icms: colunas_selecionadas.extend(mapa_colunas_blocos['ICMS'])
     if inc_red: colunas_selecionadas.extend(mapa_colunas_blocos['Redução de Base'])
     if inc_st: colunas_selecionadas.extend(mapa_colunas_blocos['Tipo Cálculo ST'])
 
@@ -810,7 +810,7 @@ def gerar_excel_auditoria(
         if inc_desc: super_grupos_def.append(("DESCRIÇÕES", ['Descricao_NF', 'Descricao_WINTHOR']))
         if inc_qtd: super_grupos_def.append(("QUANTIDADES", ['Qtd_NF', 'Qtd_WINTHOR', 'Status_Qtd']))
         if inc_ncm: super_grupos_def.append(("CLASSIFICAÇÃO FISCAL (NCM)", ['NCM_NF', 'NCM_WINTHOR', 'Status_NCM']))
-        if inc_icms: super_grupos_def.append(("ALÍQUOTAS DE ICMS E ORIGEM", ['Origem_XML', 'ICMS_NF', 'ICMS_WINTHOR', '%Alíq.Ext. ST Guia_Whintor', 'Status_ICMS_Aliq']))
+        if inc_icms: super_grupos_def.append(("ALÍQUOTAS DE ICMS", ['ICMS_NF', 'ICMS_WINTHOR', '%Alíq.Ext. ST Guia_Whintor', 'Status_ICMS_Aliq']))
         if inc_red: super_grupos_def.append(("REDUÇÃO DE BASE", ['pRedBC_NF', '% ICMS red. Whintor', 'Status_Red_BC']))
         if inc_st: super_grupos_def.append(("TIPO CÁLCULO ST", ['Tipo_Calculo_ST']))
 
@@ -878,7 +878,7 @@ def gerar_excel_auditoria(
 
         align_center_cols = [
             'Linha_NF', 'Linha_WINTHOR', 'EAN_NF', 'EAN_WINTHOR', 'Qtd_NF', 'Qtd_WINTHOR',
-            'NCM_NF', 'NCM_WINTHOR', 'Origem_XML', 'ICMS_NF', 'ICMS_WINTHOR', '%Alíq.Ext. ST Guia_Whintor',
+            'NCM_NF', 'NCM_WINTHOR', 'ICMS_NF', 'ICMS_WINTHOR', '%Alíq.Ext. ST Guia_Whintor',
             'pRedBC_NF', '% ICMS red. Whintor'
         ]
 
@@ -922,7 +922,7 @@ def gerar_excel_auditoria(
                         cell.number_format = '00000000'
                     except ValueError:
                         pass
-                elif col_name in ('EAN_NF', 'EAN_WINTHOR', 'Origem_XML') and str(cell.value).strip() not in ('', '-'):
+                elif col_name in ('EAN_NF', 'EAN_WINTHOR') and str(cell.value).strip() not in ('', '-'):
                     cell.value = str(cell.value).strip()
                     cell.number_format = '@'
                 elif isinstance(cell.value, (int, float)) and cell.value != '-':
@@ -1005,29 +1005,56 @@ with col_up2:
     st.markdown('<p class="section-label">📊 2. Relatório de Pré-Entrada (WinThor)</p>', unsafe_allow_html=True)
     arquivo_dados = st.file_uploader("Upload WinThor", type=["csv", "xlsx"], label_visibility="collapsed")
 
+# Estado inicial das flags ao carregar/reiniciar a sessão
+_DEFAULTS_FLAGS = {
+    "flag_sel_todos": False,
+    "flag_ident": False,
+    "flag_qtd": False,
+    "flag_ncm": False,
+    "flag_ean": True,
+    "flag_desc": True,
+    "flag_icms": True,
+    "flag_red": True,
+    "flag_st": True,
+}
+for _k, _v in _DEFAULTS_FLAGS.items():
+    if _k not in st.session_state:
+        st.session_state[_k] = _v
+
+
+def _ao_clicar_selecionar_todos():
+    marcar = st.session_state["flag_sel_todos"]
+    for _k in ("flag_ident", "flag_qtd", "flag_ncm", "flag_ean", "flag_desc", "flag_icms", "flag_red", "flag_st"):
+        st.session_state[_k] = marcar
+
+
 # Linha 2: Seleção simétrica de blocos para exportação
 with st.container(border=True):
     top_col1, top_col2 = st.columns([4, 1], vertical_alignment="center")
     with top_col1:
         st.markdown('<p class="section-label" style="margin-bottom:0;">⚙️ Seleção de Blocos para Exportação</p>', unsafe_allow_html=True)
     with top_col2:
-        selecionar_todos = st.checkbox("Selecionar Todos", value=True)
+        selecionar_todos = st.checkbox(
+            "Selecionar Todos",
+            key="flag_sel_todos",
+            on_change=_ao_clicar_selecionar_todos,
+        )
 
     st.markdown("<hr style='margin: 8px 0 12px 0; border-color: #EEF2F6;'>", unsafe_allow_html=True)
 
     b_col1, b_col2, b_col3, b_col4 = st.columns(4, gap="medium")
     with b_col1:
-        inc_ident = st.checkbox("Identificação", value=selecionar_todos)
-        inc_qtd = st.checkbox("Quantidades", value=selecionar_todos)
+        inc_ident = st.checkbox("Identificação", key="flag_ident")
+        inc_qtd = st.checkbox("Quantidades", key="flag_qtd")
     with b_col2:
-        inc_ean = st.checkbox("Código & EAN", value=selecionar_todos)
-        inc_ncm = st.checkbox("NCM (Fiscal)", value=selecionar_todos)
+        inc_ean = st.checkbox("Código & EAN", key="flag_ean")
+        inc_ncm = st.checkbox("NCM (Fiscal)", key="flag_ncm")
     with b_col3:
-        inc_desc = st.checkbox("Descrições", value=selecionar_todos)
-        inc_icms = st.checkbox("ICMS & Origem", value=selecionar_todos)
+        inc_desc = st.checkbox("Descrições", key="flag_desc")
+        inc_icms = st.checkbox("ICMS", key="flag_icms")
     with b_col4:
-        inc_red = st.checkbox("Redução Base", value=selecionar_todos)
-        inc_st = st.checkbox("Cálculo ST", value=selecionar_todos)
+        inc_red = st.checkbox("Redução Base", key="flag_red")
+        inc_st = st.checkbox("Cálculo ST", key="flag_st")
 
 # Linha 3: Validação automática e botão de download centralizado
 if arquivo_xml and arquivo_dados:
