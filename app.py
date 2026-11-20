@@ -344,12 +344,21 @@ _RE_ALPHA = re.compile(r'[^a-z]')
 _RE_TOKENS = re.compile(r'[A-Z0-9]+')
 _RE_EXT = re.compile(r'\.[A-Za-z0-9]+$')
 _RE_NUMS = re.compile(r'\d{3,}')
+_RE_NNF_BYTES = re.compile(rb'<(?:[A-Za-z0-9_]+:)?nNF>\s*(\d+)\s*</(?:[A-Za-z0-9_]+:)?nNF>')
 _IGNORAR = {'COM', 'PARA', 'DOS', 'DAS', 'UNID', 'UND', 'CX', 'KIT', 'PCT', 'FR', 'REF', 'ESC', 'ATIV'}
 
 
 # ==========================================
 # 1. FUNÇÕES DE SANEAMENTO, EAN E LEITURA
 # ==========================================
+def extrair_numero_nf_rapido(bruto: bytes) -> str:
+    """Extrai o número da NF instantaneamente sem parsear o XML inteiro."""
+    m = _RE_NNF_BYTES.search(bruto[:8192]) or _RE_NNF_BYTES.search(bruto)
+    if m:
+        return m.group(1).decode('ascii', errors='ignore').strip()
+    return 'DESCONHECIDO'
+
+
 def _dv_gtin_ok(digitos: str) -> bool:
     d = digitos.zfill(14)
     if len(d) != 14 or not d.isdigit():
@@ -1017,7 +1026,29 @@ def _freeze_itens(itens: list[dict]) -> tuple[tuple[tuple[str, object], ...], ..
 
 
 # ==========================================
-# 2. INTERFACE STREAMLIT (UI/UX OTIMIZADA)
+# 2. CALLBACKS DE GERENCIAMENTO DO LOTE
+# ==========================================
+def _remover_nf_ativa():
+    chave = st.session_state.get("sb_nf_ativa")
+    if chave and chave in st.session_state["xml_lote"]:
+        st.session_state["xml_lote"].pop(chave, None)
+        st.session_state["xml_ignorados_sessao"].add(chave)
+    restantes = list(st.session_state["xml_lote"].keys())
+    if restantes:
+        st.session_state["sb_nf_ativa"] = restantes[0]
+    else:
+        st.session_state.pop("sb_nf_ativa", None)
+
+
+def _limpar_lote():
+    st.session_state["xml_lote"] = {}
+    st.session_state["xml_ignorados_sessao"] = set()
+    st.session_state.pop("sb_nf_ativa", None)
+    st.session_state["xml_uploader_key"] += 1
+
+
+# ==========================================
+# 3. INTERFACE STREAMLIT (UI/UX OTIMIZADA)
 # ==========================================
 st.markdown("""
     <div class="dashboard-header">
@@ -1036,8 +1067,6 @@ if "xml_ignorados_sessao" not in st.session_state:
     st.session_state["xml_ignorados_sessao"] = set()
 if "xml_uploader_key" not in st.session_state:
     st.session_state["xml_uploader_key"] = 0
-if "nf_selecionada_chave" not in st.session_state:
-    st.session_state["nf_selecionada_chave"] = None
 if "ultimo_csv_assinatura" not in st.session_state:
     st.session_state["ultimo_csv_assinatura"] = None
 
@@ -1062,16 +1091,15 @@ with col_up1:
 
         for arq_x in arquivos_xml:
             sig_x = f"{arq_x.name}:{arq_x.size}"
-            if sig_x in st.session_state["xml_ignorados_sessao"]:
+            if sig_x in st.session_state["xml_ignorados_sessao"] or sig_x in st.session_state["xml_lote"]:
                 continue
             bruto_x = arq_x.getvalue()
-            num_nf_x, itens_x = ler_xml_nfe_bytes(bruto_x)
-            chave_x = str(num_nf_x).strip().lstrip('0') or arq_x.name
-            st.session_state["xml_lote"][chave_x] = {
-                "numero_nf": str(num_nf_x).strip(),
+            num_nf_x = extrair_numero_nf_rapido(bruto_x)
+            st.session_state["xml_lote"][sig_x] = {
+                "numero_nf": num_nf_x,
+                "nf_norm": num_nf_x.lstrip('0'),
                 "nome_arquivo": arq_x.name,
-                "assinatura": sig_x,
-                "itens": itens_x,
+                "bytes": bruto_x,
             }
 
 with col_up2:
@@ -1084,26 +1112,31 @@ with col_up2:
 lote_xml = st.session_state["xml_lote"]
 chaves_ordenadas = list(lote_xml.keys())
 
-# Detecção automática da NF apenas quando um novo CSV/XLSX é carregado
+# Detecção automática da NF antes da instanciação do selectbox (quando um novo CSV/XLSX entra)
 if arquivo_dados is not None:
     assinatura_csv = f"{arquivo_dados.name}:{arquivo_dados.size}"
     if assinatura_csv != st.session_state["ultimo_csv_assinatura"]:
         st.session_state["ultimo_csv_assinatura"] = assinatura_csv
         cand_csv = _numeros_do_nome(arquivo_dados.name)
-        match_chave = next((k for k in chaves_ordenadas if k in cand_csv), None)
+        match_chave = next(
+            (k for k in chaves_ordenadas if lote_xml[k]["nf_norm"] and lote_xml[k]["nf_norm"] in cand_csv),
+            None
+        )
         if match_chave:
-            st.session_state["nf_selecionada_chave"] = match_chave
             st.session_state["sb_nf_ativa"] = match_chave
 
-if st.session_state["nf_selecionada_chave"] not in lote_xml:
-    st.session_state["nf_selecionada_chave"] = chaves_ordenadas[0] if chaves_ordenadas else None
+if chaves_ordenadas:
+    if st.session_state.get("sb_nf_ativa") not in lote_xml:
+        st.session_state["sb_nf_ativa"] = chaves_ordenadas[0]
+else:
+    st.session_state.pop("sb_nf_ativa", None)
 
 # Barra de gerenciamento do lote de XMLs
 if lote_xml:
     with st.container(border=True):
         c_info, c_sel, c_rem, c_limp = st.columns([1.8, 3.0, 1.0, 1.1], vertical_alignment="center")
         opcoes_rotulo = {
-            k: f"NF {lote_xml[k]['numero_nf']} — {lote_xml[k]['nome_arquivo']} ({len(lote_xml[k]['itens'])} itens)"
+            k: f"NF {lote_xml[k]['numero_nf']} — {lote_xml[k]['nome_arquivo']}"
             for k in chaves_ordenadas
         }
 
@@ -1114,40 +1147,29 @@ if lote_xml:
             )
 
         with c_sel:
-            if "sb_nf_ativa" not in st.session_state or st.session_state["sb_nf_ativa"] not in chaves_ordenadas:
-                st.session_state["sb_nf_ativa"] = st.session_state["nf_selecionada_chave"]
-
-            chave_ativa = st.selectbox(
+            st.selectbox(
                 "NF ativa do lote",
                 options=chaves_ordenadas,
                 key="sb_nf_ativa",
                 format_func=lambda k: opcoes_rotulo[k],
                 label_visibility="collapsed"
             )
-            st.session_state["nf_selecionada_chave"] = chave_ativa
 
         with c_rem:
-            if st.button("🗑️ Remover", key="btn_remover_nf", use_container_width=True):
-                item_removido = st.session_state["xml_lote"].pop(chave_ativa, None)
-                if item_removido and item_removido.get("assinatura"):
-                    st.session_state["xml_ignorados_sessao"].add(item_removido["assinatura"])
-                restantes = list(st.session_state["xml_lote"].keys())
-                proxima = restantes[0] if restantes else None
-                st.session_state["nf_selecionada_chave"] = proxima
-                if proxima:
-                    st.session_state["sb_nf_ativa"] = proxima
-                else:
-                    st.session_state.pop("sb_nf_ativa", None)
-                st.rerun()
+            st.button(
+                "🗑️ Remover",
+                key="btn_remover_nf",
+                use_container_width=True,
+                on_click=_remover_nf_ativa
+            )
 
         with c_limp:
-            if st.button("🧹 Limpar tudo", key="btn_limpar_lote", use_container_width=True):
-                st.session_state["xml_lote"] = {}
-                st.session_state["xml_ignorados_sessao"] = set()
-                st.session_state["nf_selecionada_chave"] = None
-                st.session_state.pop("sb_nf_ativa", None)
-                st.session_state["xml_uploader_key"] += 1
-                st.rerun()
+            st.button(
+                "🧹 Limpar tudo",
+                key="btn_limpar_lote",
+                use_container_width=True,
+                on_click=_limpar_lote
+            )
 
 # Estado padrão das flags de exportação
 _DEFAULTS_FLAGS = {
@@ -1197,56 +1219,63 @@ with st.container(border=True):
         inc_st = st.checkbox("Cálculo ST", key="flag_st")
 
 # Validação automática e botão de download centralizado
-chave_ativa = st.session_state.get("nf_selecionada_chave")
+chave_ativa = st.session_state.get("sb_nf_ativa")
 if lote_xml and arquivo_dados and chave_ativa in lote_xml:
     xml_selecionado = lote_xml[chave_ativa]
-    numero_nf = xml_selecionado["numero_nf"]
-    itens_xml = xml_selecionado["itens"]
-
-    df_csv, avisos_prep = ler_csv_winthor_cached(arquivo_dados.getvalue(), arquivo_dados.name)
-    itens_csv = montar_itens_csv(df_csv)
-    val = validar_upload(itens_xml, itens_csv, numero_nf, arquivo_dados.name)
-
-    tem_bloqueio = len(val['bloqueios']) > 0
-    ignorar_bloqueio_nf = False
-
-    if tem_bloqueio or avisos_prep or val['avisos']:
-        for bloq in val['bloqueios']:
-            st.markdown(f'<div class="v-badge err">🚫 {bloq}</div>', unsafe_allow_html=True)
-
-        for av in avisos_prep + val['avisos']:
-            st.markdown(f'<div class="v-badge warn">⚠️ {av}</div>', unsafe_allow_html=True)
-
-        if val['bloqueio_nf']:
-            ignorar_bloqueio_nf = st.checkbox("Confirmar mesmo assim (o arquivo pertence a esta NF)")
-
-    pode_processar = (not tem_bloqueio) or (val['bloqueio_nf'] and ignorar_bloqueio_nf)
-
-    if pode_processar:
-        dados_excel, nome_arquivo_saida = gerar_excel_auditoria_cached(
-            _freeze_itens(itens_xml),
-            _freeze_itens(itens_csv),
-            numero_nf,
-            inc_ident, inc_ean, inc_desc, inc_qtd, inc_ncm, inc_icms, inc_red, inc_st
+    try:
+        numero_nf, itens_xml = ler_xml_nfe_bytes(xml_selecionado["bytes"])
+    except ET.ParseError:
+        st.markdown(
+            f'<div class="v-badge err">🚫 O arquivo <b>{xml_selecionado["nome_arquivo"]}</b> não é um XML de NF-e válido.</div>',
+            unsafe_allow_html=True
         )
+        itens_xml = None
 
-        st.markdown(f"""
-            <div class="temp-notice-wrap">
-                <div class="temp-notice">
-                    ✅ NF {numero_nf} pronta para auditoria
-                </div>
-            </div>
-        """, unsafe_allow_html=True)
+    if itens_xml is not None:
+        df_csv, avisos_prep = ler_csv_winthor_cached(arquivo_dados.getvalue(), arquivo_dados.name)
+        itens_csv = montar_itens_csv(df_csv)
+        val = validar_upload(itens_xml, itens_csv, numero_nf, arquivo_dados.name)
 
-        _, col_centro, _ = st.columns([1.4, 1.2, 1.4])
-        with col_centro:
-            st.download_button(
-                label="📥 Baixar Relatório",
-                data=dados_excel,
-                file_name=nome_arquivo_saida,
-                mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
-                use_container_width=True
+        tem_bloqueio = len(val['bloqueios']) > 0
+        ignorar_bloqueio_nf = False
+
+        if tem_bloqueio or avisos_prep or val['avisos']:
+            for bloq in val['bloqueios']:
+                st.markdown(f'<div class="v-badge err">🚫 {bloq}</div>', unsafe_allow_html=True)
+
+            for av in avisos_prep + val['avisos']:
+                st.markdown(f'<div class="v-badge warn">⚠️ {av}</div>', unsafe_allow_html=True)
+
+            if val['bloqueio_nf']:
+                ignorar_bloqueio_nf = st.checkbox("Confirmar mesmo assim (o arquivo pertence a esta NF)")
+
+        pode_processar = (not tem_bloqueio) or (val['bloqueio_nf'] and ignorar_bloqueio_nf)
+
+        if pode_processar:
+            dados_excel, nome_arquivo_saida = gerar_excel_auditoria_cached(
+                _freeze_itens(itens_xml),
+                _freeze_itens(itens_csv),
+                numero_nf,
+                inc_ident, inc_ean, inc_desc, inc_qtd, inc_ncm, inc_icms, inc_red, inc_st
             )
+
+            st.markdown(f"""
+                <div class="temp-notice-wrap">
+                    <div class="temp-notice">
+                        ✅ NF {numero_nf} pronta para auditoria
+                    </div>
+                </div>
+            """, unsafe_allow_html=True)
+
+            _, col_centro, _ = st.columns([1.4, 1.2, 1.4])
+            with col_centro:
+                st.download_button(
+                    label="📥 Baixar Relatório",
+                    data=dados_excel,
+                    file_name=nome_arquivo_saida,
+                    mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+                    use_container_width=True
+                )
 elif lote_xml and not arquivo_dados:
     st.markdown(
         '<div class="empty-hint">📄 Lote de XML pronto. Envie o relatório do <b>WinThor (CSV/XLSX)</b> no passo 2 para gerar a auditoria.</div>',
