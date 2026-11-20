@@ -772,7 +772,7 @@ def gerar_excel_auditoria(
         worksheet = workbook['Comparativo_ICMS_e_EAN']
 
         worksheet.sheet_view.showGridLines = False
-        worksheet.sheet_view.zoomScale = 80
+        worksheet.sheet_view.zoomScale = 70
 
         worksheet.freeze_panes = 'A4'
         worksheet.auto_filter.ref = f"A3:{get_column_letter(len(df_final.columns))}{len(df_final) + 3}"
