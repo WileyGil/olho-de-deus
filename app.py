@@ -118,31 +118,28 @@ st.markdown("""
             font-weight: 500 !important;
         }
 
-        /* Notificação temporária centralizada */
-        @keyframes fadeOutNotice {
-            0%   { opacity: 1; transform: translateY(0); }
-            75%  { opacity: 1; transform: translateY(0); }
-            100% { opacity: 0; transform: translateY(-4px); visibility: hidden; height: 0; margin: 0; padding: 0; }
-        }
+        /* Selo de status fixo e simetricamente separado do botão */
         .temp-notice-wrap {
             display: flex;
             justify-content: center;
             align-items: center;
-            margin-bottom: 10px;
-            animation: fadeOutNotice 4.5s ease-in-out forwards;
+            width: 100%;
+            margin-top: 8px;
+            margin-bottom: 18px;
         }
         .temp-notice {
             display: inline-flex;
             align-items: center;
+            justify-content: center;
             gap: 8px;
             background-color: #EAFAF1;
             color: #145A32;
             border: 1px solid #A9DFBF;
-            padding: 6px 16px;
-            border-radius: 20px;
-            font-size: 0.85rem;
+            padding: 8px 22px;
+            border-radius: 8px;
+            font-size: 0.88rem;
             font-weight: 600;
-            box-shadow: 0 2px 6px rgba(25, 111, 61, 0.08);
+            box-shadow: 0 1px 4px rgba(25, 111, 61, 0.08);
         }
 
         /* Alertas de bloqueio/aviso */
@@ -177,12 +174,11 @@ st.markdown("""
             padding: 10px 24px !important;
             border-radius: 8px !important;
             box-shadow: 0 3px 8px rgba(25, 111, 61, 0.22) !important;
-            transition: all 0.2s ease !important;
+            transition: background-color 0.2s ease, border-color 0.2s ease !important;
         }
         div[data-testid="stDownloadButton"] > button:hover {
             background-color: #145A32 !important;
             border-color: #0E3E22 !important;
-            transform: translateY(-1px);
         }
     </style>
 """, unsafe_allow_html=True)
@@ -937,7 +933,7 @@ if arquivo_xml and arquivo_dados:
             inc_ident, inc_ean, inc_desc, inc_qtd, inc_ncm, inc_icms, inc_red, inc_st
         )
 
-        # Notificação temporária centralizada acima do botão
+        # Selo fixo centralizado e simetricamente separado acima do botão
         st.markdown(f"""
             <div class="temp-notice-wrap">
                 <div class="temp-notice">
@@ -946,8 +942,8 @@ if arquivo_xml and arquivo_dados:
             </div>
         """, unsafe_allow_html=True)
 
-        # Botão de download centralizado
-        _, col_centro, _ = st.columns([1.5, 1, 1.5])
+        # Botão de download centralizado e simétrico
+        _, col_centro, _ = st.columns([1.4, 1.2, 1.4])
         with col_centro:
             st.download_button(
                 label="📥 Baixar Relatório",
