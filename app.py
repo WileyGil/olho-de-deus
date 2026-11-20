@@ -206,4 +206,151 @@ def ler_xml_nfe(
     obter_descricao_origem = obter_descricao_origem or (lambda o: str(o))
 
     bruto = _ler_bytes(arquivo)
-    root
+    root = ET.fromstring(bruto)
+
+    nNF = root.find('.//ns:ide/ns:nNF', NS)
+    numero_nf = nNF.text.strip() if nNF is not None and nNF.text else 'DESCONHECIDO'
+
+    def txt(no, tag):
+        if no is None:
+            return ''
+        e = no.find(f'ns:{tag}', NS)
+        return e.text.strip() if e is not None and e.text else ''
+
+    itens = []
+    for det in root.findall('.//ns:det', NS):
+        prod = det.find('ns:prod', NS)
+        try:
+            n_item = int(det.attrib.get('nItem', '0'))
+        except ValueError:
+            n_item = det.attrib.get('nItem', '')
+
+        ean_raw, ean_trib_raw = txt(prod, 'cEAN'), txt(prod, 'cEANTrib')
+        ean_comp, ean_trib_comp = limpar_ean(ean_raw), limpar_ean(ean_trib_raw)
+        ean_exib = limpar_numero(ean_raw) if ean_comp != '' else limpar_numero(ean_trib_raw)
+        u_com = txt(prod, 'uCom') or 'UN'
+
+        icms, origem = 0.0, '0 - Nacional'
+        icms_node = det.find('.//ns:ICMS', NS)
+        if icms_node is not None and len(icms_node) > 0:
+            sub = icms_node[0]
+            p = sub.find('ns:pICMS', NS)
+            if p is not None and p.text:
+                icms = _to_float(p.text)
+            o = sub.find('ns:orig', NS)
+            if o is not None and o.text:
+                origem = obter_descricao_origem(o.text.strip())
+
+        pred_node = (
+            icms_node[0].find('ns:pRedBC', NS)
+            if icms_node is not None and len(icms_node) > 0
+            else None
+        )
+        pred = _to_float(pred_node.text) if pred_node is not None and pred_node.text else 0.0
+
+        itens.append({
+            'Linha_NF': n_item,
+            'Descricao_NF': txt(prod, 'xProd'),
+            'EAN_NF': ean_exib,
+            'EAN_Comp_NF': ean_comp,
+            'EANTrib_Comp_NF': ean_trib_comp,
+            'NCM_NF': limpar_numero(txt(prod, 'NCM')),
+            'Qtd_NF': _to_float(txt(prod, 'qCom')),
+            '_Fator_Embalagem': extrair_fator_embalagem(u_com),
+            'Vl_Unit_NF': _to_float(txt(prod, 'vUnCom')),
+            'Vl_Total_NF': _to_float(txt(prod, 'vProd')),
+            'Origem_XML': origem,
+            'ICMS_NF': icms,
+            'pRedBC_NF': pred,
+        })
+    return numero_nf, itens
+
+
+# ==========================================================
+# 4. PORTÃO DE VALIDAÇÃO DO UPLOAD
+# ==========================================================
+_IGNORAR = {'COM', 'PARA', 'DOS', 'DAS', 'UNID', 'UND', 'CX', 'KIT', 'PCT', 'FR', 'REF', 'ESC', 'ATIV'}
+
+
+def _tokens(desc):
+    t = _RE_TOKENS.findall(_sem_acento(desc).upper())
+    return {x for x in t if len(x) >= 3 and not any(ch.isdigit() for ch in x) and x not in _IGNORAR}
+
+
+def _numeros_do_nome(nome):
+    stem = _RE_EXT.sub('', str(nome))
+    return {g.lstrip('0') for g in _RE_NUMS.findall(stem)}
+
+
+def validar_upload(itens_xml, itens_csv, numero_nf, nome_arquivo_csv):
+    bloqueios, avisos, infos = [], [], []
+    r = {
+        'bloqueios': bloqueios,
+        'avisos': avisos,
+        'infos': infos,
+        'marca_em_comum': [],
+        'bloqueio_nf': False,
+    }
+
+    n_x, n_c = len(itens_xml), len(itens_csv)
+    if n_x != n_c:
+        bloqueios.append(f"Quantidade de itens diferente: XML tem {n_x} e o arquivo do WinThor tem {n_c}.")
+    else:
+        infos.append(f"Quantidade de itens confere: {n_x}.")
+
+    ilegiveis = [i['Linha_WINTHOR'] for i in itens_csv if i['EAN_Status_WINTHOR'] == 'ilegivel']
+    if ilegiveis:
+        lista = ', '.join(map(str, ilegiveis[:10])) + ('…' if len(ilegiveis) > 10 else '')
+        bloqueios.append(
+            f"{len(ilegiveis)} EAN(s) do WinThor estão em notação científica truncada e não podem ser recuperados "
+            f"(Nº seq.: {lista}). Reexporte com a coluna 'Cód. barra' formatada como texto."
+        )
+
+    if n_x == n_c and n_x > 0:
+        compat = 0
+        cont_x, cont_c = Counter(), Counter()
+        for ix, ic in zip(itens_xml, itens_csv):
+            tx, tc = _tokens(ix['Descricao_NF']), _tokens(ic['Descricao_WINTHOR'])
+            ean_x = ix.get('EAN_Comp_NF', '')
+            ean_c = ic.get('EAN_Comp_WINTHOR', '')
+            mesmo_ean = bool(ean_x and ean_c and ean_x in (ean_c, ix.get('EANTrib_Comp_NF')))
+
+            if (tx & tc) or mesmo_ean:
+                compat += 1
+
+            cont_x.update(tx)
+            cont_c.update(tc)
+
+        pct = compat / n_x
+        comum = [
+            t for t, _ in sorted(
+                ((t, min(cont_x[t], cont_c[t])) for t in cont_x.keys() & cont_c.keys()),
+                key=lambda p: -p[1]
+            )[:4]
+        ]
+        r['marca_em_comum'] = comum
+        if pct < LIMITE_MARCA:
+            bloqueios.append(
+                f"Os produtos não parecem ser da mesma nota: só {compat} de {n_x} itens ({pct:.0%}) "
+                f"têm descrição ou EAN compatível entre XML e WinThor."
+            )
+        else:
+            infos.append(
+                f"Produtos compatíveis em {compat} de {n_x} itens ({pct:.0%})"
+                + (f"; termos em comum: {', '.join(comum)}." if comum else '.')
+            )
+
+    candidatos = _numeros_do_nome(nome_arquivo_csv)
+    nf_norm = str(numero_nf).strip().lstrip('0')
+    if candidatos:
+        if nf_norm in candidatos:
+            infos.append(f"Número da NF confere com o nome do arquivo ({numero_nf}).")
+        else:
+            bloqueios.append(
+                f"O nome do arquivo ({nome_arquivo_csv}) não contém o número da NF do XML ({numero_nf})."
+            )
+            r['bloqueio_nf'] = len(bloqueios) == 1
+    else:
+        avisos.append("O nome do arquivo não traz o número da NF; a conferência foi feita só por itens e produtos.")
+
+    return r
