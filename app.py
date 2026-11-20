@@ -15,29 +15,32 @@ from openpyxl.styles import Alignment, Border, Font, PatternFill, Side
 from openpyxl.utils import get_column_letter
 
 # ==========================================
-# GARANTE TEMA CLARO NATIVO VIA CÓDIGO
-# ==========================================
-os.makedirs(".streamlit", exist_ok=True)
-_config_path = os.path.join(".streamlit", "config.toml")
-if not os.path.exists(_config_path):
-    with open(_config_path, "w", encoding="utf-8") as _f:
-        _f.write(
-            '[theme]\n'
-            'base = "light"\n'
-            'primaryColor = "#1B2631"\n'
-            'backgroundColor = "#F4F6F9"\n'
-            'secondaryBackgroundColor = "#FFFFFF"\n'
-            'textColor = "#2C3E50"\n'
-        )
-
-# ==========================================
 # CONFIGURAÇÃO DA PÁGINA E ESTILO
 # ==========================================
 st.set_page_config(page_title="Auditoria de Notas | Dashboard", page_icon="📊", layout="wide")
 
+
+@st.cache_resource
+def _garantir_tema_claro():
+    os.makedirs(".streamlit", exist_ok=True)
+    config_path = os.path.join(".streamlit", "config.toml")
+    if not os.path.exists(config_path):
+        with open(config_path, "w", encoding="utf-8") as f:
+            f.write(
+                '[theme]\n'
+                'base = "light"\n'
+                'primaryColor = "#1B2631"\n'
+                'backgroundColor = "#F4F6F9"\n'
+                'secondaryBackgroundColor = "#FFFFFF"\n'
+                'textColor = "#2C3E50"\n'
+            )
+    return True
+
+
+_garantir_tema_claro()
+
 st.markdown("""
     <style>
-        /* Força esquema e variáveis de tema claro em todo o app */
         :root {
             color-scheme: light !important;
             --primary-color: #1B2631 !important;
@@ -54,8 +57,6 @@ st.markdown("""
             padding-bottom: 2rem;
             max-width: 1200px;
         }
-
-        /* Cabeçalho Executivo Escuro de Destaque */
         .dashboard-header {
             background: linear-gradient(135deg, #16202A 0%, #243447 100%);
             border: 1px solid #1B2631;
@@ -102,7 +103,6 @@ st.markdown("""
             letter-spacing: 0.04em;
             text-transform: uppercase;
         }
-
         .section-label {
             font-size: 0.95rem;
             font-weight: 600;
@@ -112,8 +112,6 @@ st.markdown("""
             align-items: center;
             gap: 6px;
         }
-
-        /* Uploaders em cores claras e modernas */
         [data-testid="stFileUploader"],
         [data-testid="stFileUploader"] > div,
         [data-testid="stFileUploaderDropzone"] {
@@ -124,11 +122,6 @@ st.markdown("""
             border: 1.5px dashed #CBD5E1 !important;
             border-radius: 8px !important;
             padding: 14px 16px !important;
-            transition: border-color 0.2s ease, background-color 0.2s ease;
-        }
-        [data-testid="stFileUploaderDropzone"]:hover {
-            border-color: #2C3E50 !important;
-            background-color: #F8FAFC !important;
         }
         [data-testid="stFileUploaderDropzone"] div,
         [data-testid="stFileUploaderDropzone"] span,
@@ -143,11 +136,6 @@ st.markdown("""
             font-weight: 600 !important;
             border-radius: 6px !important;
         }
-        [data-testid="stFileUploaderDropzone"] button:hover {
-            background-color: #DBEAFE !important;
-        }
-
-        /* Chip do arquivo anexado expandido para mostrar o número completo sem truncar */
         [data-testid="stFileUploaderDropzone"] > div:last-child,
         [data-testid="stFileUploaderDropzone"] ul {
             width: 100% !important;
@@ -202,34 +190,21 @@ st.markdown("""
             margin-top: 2px !important;
         }
         [data-testid="stFileUploaderFile"] svg,
-        [data-testid="stUploadedFile"] svg {
-            fill: #2C3E50 !important;
-            color: #2C3E50 !important;
-            flex-shrink: 0 !important;
-        }
+        [data-testid="stUploadedFile"] svg,
         [data-testid="stFileUploaderDeleteBtn"] button,
         [data-testid="stFileUploaderFile"] button,
         [data-testid="stUploadedFile"] button {
+            color: #2C3E50 !important;
+            fill: #2C3E50 !important;
             background-color: transparent !important;
             border: none !important;
-            color: #64748B !important;
             flex-shrink: 0 !important;
         }
-        [data-testid="stFileUploaderDeleteBtn"] button:hover,
-        [data-testid="stFileUploaderFile"] button:hover,
-        [data-testid="stUploadedFile"] button:hover {
-            background-color: #E2E8F0 !important;
-            border-radius: 50% !important;
-        }
-
-        /* Container de seleção de blocos e lote em fundo branco */
         [data-testid="stVerticalBlockBorderWrapper"] {
             background-color: #FFFFFF !important;
             border-color: #E2E8F0 !important;
             border-radius: 8px !important;
         }
-
-        /* Caixa de seleção de blocos simétrica */
         div[data-testid="stCheckbox"] {
             margin-bottom: 6px;
         }
@@ -238,8 +213,6 @@ st.markdown("""
             color: #2C3E50 !important;
             font-weight: 500 !important;
         }
-
-        /* Selo de status fixo e simetricamente separado do botão */
         .temp-notice-wrap {
             display: flex;
             justify-content: center;
@@ -262,8 +235,6 @@ st.markdown("""
             font-weight: 600;
             box-shadow: 0 1px 4px rgba(25, 111, 61, 0.08);
         }
-
-        /* Alertas de bloqueio/aviso */
         .v-badge {
             display: flex;
             align-items: center;
@@ -284,8 +255,6 @@ st.markdown("""
             color: #78281F;
             border: 1px solid #F5B7B1;
         }
-
-        /* Botão de Download em Verde Executivo */
         div[data-testid="stDownloadButton"] > button {
             background-color: #196F3D !important;
             color: #FFFFFF !important;
@@ -295,13 +264,11 @@ st.markdown("""
             padding: 10px 24px !important;
             border-radius: 8px !important;
             box-shadow: 0 3px 8px rgba(25, 111, 61, 0.22) !important;
-            transition: background-color 0.2s ease, border-color 0.2s ease !important;
         }
         div[data-testid="stDownloadButton"] > button:hover {
             background-color: #145A32 !important;
             border-color: #0E3E22 !important;
         }
-
         .lote-resumo {
             font-size: 0.84rem;
             color: #334155;
@@ -435,10 +402,10 @@ def _achar_coluna_seq(colunas):
     return None
 
 
-def ler_csv_winthor(arquivo):
+@st.cache_data(show_spinner=False)
+def ler_csv_winthor_cached(bruto: bytes, nome_arquivo: str):
     avisos = []
-    nome = getattr(arquivo, 'name', '').lower()
-    bruto = arquivo.getvalue()
+    nome = (nome_arquivo or '').lower()
 
     if nome.endswith(('.xlsx', '.xls')):
         df = pd.read_excel(io.BytesIO(bruto), dtype=str, engine='openpyxl')
@@ -504,6 +471,7 @@ def montar_itens_csv(df):
     return itens
 
 
+@st.cache_data(show_spinner=False)
 def ler_xml_nfe_bytes(bruto: bytes):
     root = ET.fromstring(bruto)
 
@@ -650,10 +618,14 @@ def validar_upload(itens_xml, itens_csv, numero_nf, nome_arquivo_csv):
     return r
 
 
-def gerar_excel_auditoria(
-    itens_xml, itens_csv, numero_nf,
-    inc_ident, inc_ean, inc_desc, inc_qtd, inc_ncm, inc_icms, inc_red, inc_st
+@st.cache_data(show_spinner=False)
+def gerar_excel_auditoria_cached(
+    itens_xml_tuple, itens_csv_tuple, numero_nf: str,
+    inc_ident: bool, inc_ean: bool, inc_desc: bool, inc_qtd: bool,
+    inc_ncm: bool, inc_icms: bool, inc_red: bool, inc_st: bool
 ):
+    itens_xml = [dict(x) for x in itens_xml_tuple]
+    itens_csv = [dict(c) for c in itens_csv_tuple]
     data_simples = datetime.now().strftime('%Y%m%d')
     nome_arquivo_saida = f'relatorio_NF_{numero_nf}_{data_simples}.xlsx'
 
@@ -850,8 +822,7 @@ def gerar_excel_auditoria(
         def obter_fill_cabecalho(col_name):
             if 'WINTHOR' in col_name or 'Whintor' in col_name or 'Status' in col_name:
                 return fill_win
-            else:
-                return fill_xml
+            return fill_xml
 
         for idx, col_name in enumerate(headers, 1):
             cell = worksheet.cell(row=3, column=idx)
@@ -986,6 +957,10 @@ def gerar_excel_auditoria(
     return excel_buffer.getvalue(), nome_arquivo_saida
 
 
+def _freeze_itens(itens: list[dict]) -> tuple[tuple[tuple[str, object], ...], ...]:
+    return tuple(tuple(sorted(item.items())) for item in itens)
+
+
 # ==========================================
 # 2. INTERFACE STREAMLIT (DASHBOARD COMPACTO)
 # ==========================================
@@ -999,11 +974,15 @@ st.markdown("""
     </div>
 """, unsafe_allow_html=True)
 
-# Lote de XMLs armazenados na sessão: {chave_nf: {"numero_nf": str, "nome_arquivo": str, "itens": list}}
 if "xml_lote" not in st.session_state:
     st.session_state["xml_lote"] = {}
+if "xml_uploader_key" not in st.session_state:
+    st.session_state["xml_uploader_key"] = 0
+if "nf_selecionada_chave" not in st.session_state:
+    st.session_state["nf_selecionada_chave"] = None
+if "ultimo_csv_assinatura" not in st.session_state:
+    st.session_state["ultimo_csv_assinatura"] = None
 
-# Linha 1: Uploaders lado a lado em tema claro
 col_up1, col_up2 = st.columns(2, gap="large")
 
 with col_up1:
@@ -1012,6 +991,7 @@ with col_up1:
         "Upload XMLs",
         type=["xml"],
         accept_multiple_files=True,
+        key=f"xml_uploader_{st.session_state['xml_uploader_key']}",
         label_visibility="collapsed"
     )
     if arquivos_xml:
@@ -1029,25 +1009,29 @@ with col_up2:
     st.markdown('<p class="section-label">📊 2. Relatório de Pré-Entrada (WinThor)</p>', unsafe_allow_html=True)
     arquivo_dados = st.file_uploader("Upload WinThor", type=["csv", "xlsx"], label_visibility="collapsed")
 
-# Gerenciamento do lote de XMLs armazenados
 lote_xml = st.session_state["xml_lote"]
+chaves_ordenadas = list(lote_xml.keys())
+
+# Sincroniza chave selecionada apenas quando um novo CSV/XLSX entra ou quando a chave atual sumiu
+if arquivo_dados is not None:
+    assinatura_csv = f"{arquivo_dados.name}:{arquivo_dados.size}"
+    if assinatura_csv != st.session_state["ultimo_csv_assinatura"]:
+        st.session_state["ultimo_csv_assinatura"] = assinatura_csv
+        cand_csv = _numeros_do_nome(arquivo_dados.name)
+        match_chave = next((k for k in chaves_ordenadas if k in cand_csv), None)
+        if match_chave:
+            st.session_state["nf_selecionada_chave"] = match_chave
+
+if st.session_state["nf_selecionada_chave"] not in lote_xml:
+    st.session_state["nf_selecionada_chave"] = chaves_ordenadas[0] if chaves_ordenadas else None
+
 if lote_xml:
     with st.container(border=True):
-        c_info, c_sel, c_rem, c_limp = st.columns([2.2, 2.5, 1.1, 1.1], vertical_alignment="center")
-        chaves_ordenadas = list(lote_xml.keys())
+        c_info, c_sel, c_rem, c_limp = st.columns([2.0, 2.7, 1.1, 1.1], vertical_alignment="center")
         opcoes_rotulo = {
             k: f"NF {lote_xml[k]['numero_nf']} — {lote_xml[k]['nome_arquivo']} ({len(lote_xml[k]['itens'])} itens)"
             for k in chaves_ordenadas
         }
-
-        # Detecta automaticamente a NF do CSV/XLSX se o número vier no nome do arquivo
-        chave_padrao = chaves_ordenadas[0]
-        if arquivo_dados is not None:
-            cand_csv = _numeros_do_nome(arquivo_dados.name)
-            for k in chaves_ordenadas:
-                if k in cand_csv:
-                    chave_padrao = k
-                    break
 
         with c_info:
             st.markdown(
@@ -1056,27 +1040,31 @@ if lote_xml:
             )
 
         with c_sel:
-            idx_padrao = chaves_ordenadas.index(chave_padrao) if chave_padrao in chaves_ordenadas else 0
+            chave_atual = st.session_state["nf_selecionada_chave"]
+            idx_atual = chaves_ordenadas.index(chave_atual) if chave_atual in chaves_ordenadas else 0
             chave_ativa = st.selectbox(
                 "NF ativa do lote",
                 options=chaves_ordenadas,
-                index=idx_padrao,
+                index=idx_atual,
                 format_func=lambda k: opcoes_rotulo[k],
                 label_visibility="collapsed"
             )
+            st.session_state["nf_selecionada_chave"] = chave_ativa
 
         with c_rem:
-            if st.button("🗑️ Remover", use_container_width=True):
-                if chave_ativa in st.session_state["xml_lote"]:
-                    del st.session_state["xml_lote"][chave_ativa]
+            if st.button("🗑️ Remover", key="btn_remover_nf", use_container_width=True):
+                st.session_state["xml_lote"].pop(chave_ativa, None)
+                restantes = list(st.session_state["xml_lote"].keys())
+                st.session_state["nf_selecionada_chave"] = restantes[0] if restantes else None
                 st.rerun()
 
         with c_limp:
-            if st.button("🧹 Limpar tudo", use_container_width=True):
+            if st.button("🧹 Limpar tudo", key="btn_limpar_lote", use_container_width=True):
                 st.session_state["xml_lote"] = {}
+                st.session_state["nf_selecionada_chave"] = None
+                st.session_state["xml_uploader_key"] += 1
                 st.rerun()
 
-# Estado inicial das flags ao carregar/reiniciar a sessão
 _DEFAULTS_FLAGS = {
     "flag_sel_todos": False,
     "flag_ident": False,
@@ -1099,7 +1087,6 @@ def _ao_clicar_selecionar_todos():
         st.session_state[_k] = marcar
 
 
-# Linha 2: Seleção simétrica de blocos para exportação
 with st.container(border=True):
     top_col1, top_col2 = st.columns([4, 1], vertical_alignment="center")
     with top_col1:
@@ -1127,53 +1114,53 @@ with st.container(border=True):
         inc_red = st.checkbox("Redução Base", key="flag_red")
         inc_st = st.checkbox("Cálculo ST", key="flag_st")
 
-# Linha 3: Validação automática (XML do lote ativo x CSV/XLSX do WinThor) e download centralizado
-if lote_xml and arquivo_dados:
-    xml_selecionado = lote_xml.get(chave_ativa)
-    if xml_selecionado:
-        numero_nf = xml_selecionado["numero_nf"]
-        itens_xml = xml_selecionado["itens"]
-        df_csv, avisos_prep = ler_csv_winthor(arquivo_dados)
-        itens_csv = montar_itens_csv(df_csv)
-        val = validar_upload(itens_xml, itens_csv, numero_nf, arquivo_dados.name)
+chave_ativa = st.session_state.get("nf_selecionada_chave")
+if lote_xml and arquivo_dados and chave_ativa in lote_xml:
+    xml_selecionado = lote_xml[chave_ativa]
+    numero_nf = xml_selecionado["numero_nf"]
+    itens_xml = xml_selecionado["itens"]
 
-        tem_bloqueio = len(val['bloqueios']) > 0
-        ignorar_bloqueio_nf = False
+    df_csv, avisos_prep = ler_csv_winthor_cached(arquivo_dados.getvalue(), arquivo_dados.name)
+    itens_csv = montar_itens_csv(df_csv)
+    val = validar_upload(itens_xml, itens_csv, numero_nf, arquivo_dados.name)
 
-        if tem_bloqueio or avisos_prep or val['avisos']:
-            for bloq in val['bloqueios']:
-                st.markdown(f'<div class="v-badge err">🚫 {bloq}</div>', unsafe_allow_html=True)
+    tem_bloqueio = len(val['bloqueios']) > 0
+    ignorar_bloqueio_nf = False
 
-            for av in avisos_prep + val['avisos']:
-                st.markdown(f'<div class="v-badge warn">⚠️ {av}</div>', unsafe_allow_html=True)
+    if tem_bloqueio or avisos_prep or val['avisos']:
+        for bloq in val['bloqueios']:
+            st.markdown(f'<div class="v-badge err">🚫 {bloq}</div>', unsafe_allow_html=True)
 
-            if val['bloqueio_nf']:
-                ignorar_bloqueio_nf = st.checkbox("Confirmar mesmo assim (o arquivo pertence a esta NF)")
+        for av in avisos_prep + val['avisos']:
+            st.markdown(f'<div class="v-badge warn">⚠️ {av}</div>', unsafe_allow_html=True)
 
-        pode_processar = (not tem_bloqueio) or (val['bloqueio_nf'] and ignorar_bloqueio_nf)
+        if val['bloqueio_nf']:
+            ignorar_bloqueio_nf = st.checkbox("Confirmar mesmo assim (o arquivo pertence a esta NF)")
 
-        if pode_processar:
-            dados_excel, nome_arquivo_saida = gerar_excel_auditoria(
-                itens_xml, itens_csv, numero_nf,
-                inc_ident, inc_ean, inc_desc, inc_qtd, inc_ncm, inc_icms, inc_red, inc_st
-            )
+    pode_processar = (not tem_bloqueio) or (val['bloqueio_nf'] and ignorar_bloqueio_nf)
 
-            # Selo fixo centralizado e simetricamente separado acima do botão
-            st.markdown(f"""
-                <div class="temp-notice-wrap">
-                    <div class="temp-notice">
-                        ✅ NF {numero_nf} pronta para auditoria
-                    </div>
+    if pode_processar:
+        dados_excel, nome_arquivo_saida = gerar_excel_auditoria_cached(
+            _freeze_itens(itens_xml),
+            _freeze_itens(itens_csv),
+            numero_nf,
+            inc_ident, inc_ean, inc_desc, inc_qtd, inc_ncm, inc_icms, inc_red, inc_st
+        )
+
+        st.markdown(f"""
+            <div class="temp-notice-wrap">
+                <div class="temp-notice">
+                    ✅ NF {numero_nf} pronta para auditoria
                 </div>
-            """, unsafe_allow_html=True)
+            </div>
+        """, unsafe_allow_html=True)
 
-            # Botão de download centralizado e simétrico
-            _, col_centro, _ = st.columns([1.4, 1.2, 1.4])
-            with col_centro:
-                st.download_button(
-                    label="📥 Baixar Relatório",
-                    data=dados_excel,
-                    file_name=nome_arquivo_saida,
-                    mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
-                    use_container_width=True
-                )
+        _, col_centro, _ = st.columns([1.4, 1.2, 1.4])
+        with col_centro:
+            st.download_button(
+                label="📥 Baixar Relatório",
+                data=dados_excel,
+                file_name=nome_arquivo_saida,
+                mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+                use_container_width=True
+            )
