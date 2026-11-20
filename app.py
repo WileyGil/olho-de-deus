@@ -68,32 +68,23 @@ st.markdown("""
             border: 1px solid #DCE1E7;
             border-left: 4px solid #196F3D;
             border-radius: 6px;
-            padding: 10px 14px;
+            padding: 7px 12px;
             display: flex;
-            flex-wrap: wrap;
             align-items: center;
-            justify-content: space-between;
-            gap: 10px;
-            margin-bottom: 8px;
             box-shadow: 0 1px 3px rgba(0,0,0,0.03);
+            min-height: 40px;
         }
         .val-strip.bloqueado {
             border-left-color: #C0392B;
             background-color: #FDEDEC;
         }
-        .val-badges {
-            display: flex;
-            flex-wrap: wrap;
-            align-items: center;
-            gap: 8px;
-        }
         .v-badge {
             display: inline-flex;
             align-items: center;
-            gap: 5px;
-            font-size: 0.80rem;
-            font-weight: 500;
-            padding: 4px 10px;
+            gap: 6px;
+            font-size: 0.82rem;
+            font-weight: 600;
+            padding: 3px 10px;
             border-radius: 4px;
             background-color: #F4F6F9;
             color: #2C3E50;
@@ -113,6 +104,17 @@ st.markdown("""
             background-color: #FADBD8;
             color: #78281F;
             border-color: #F5B7B1;
+        }
+        /* Botão de Download em Verde Executivo */
+        div[data-testid="stDownloadButton"] > button {
+            background-color: #196F3D !important;
+            color: #FFFFFF !important;
+            border: 1px solid #145A32 !important;
+            font-weight: 600 !important;
+        }
+        div[data-testid="stDownloadButton"] > button:hover {
+            background-color: #145A32 !important;
+            border-color: #0E3E22 !important;
         }
     </style>
 """, unsafe_allow_html=True)
@@ -527,27 +529,24 @@ if arquivo_xml and arquivo_dados:
 
     pode_processar = (not tem_bloqueio) or (val['bloqueio_nf'] and ignorar_bloqueio_nf)
 
-    # Faixa única e limpa: status + botão Processar
-    col_strip, col_btn = st.columns([4.2, 1], vertical_alignment="center")
+    # Linha única compacta: [Status NF menor] [Botão Processar] [Botão Baixar Relatório] [Espaço livre]
+    col_strip, col_btn_proc, col_btn_dl, _ = st.columns([1.4, 0.9, 1.3, 1.4], vertical_alignment="center")
+
     with col_strip:
         if pode_processar:
             st.markdown(f"""
                 <div class="val-strip">
-                    <div class="val-badges">
-                        <span class="v-badge ok">✅ NF {numero_nf} pronta para auditoria</span>
-                    </div>
+                    <span class="v-badge ok">✅ NF {numero_nf} pronta para auditoria</span>
                 </div>
             """, unsafe_allow_html=True)
         else:
             st.markdown("""
                 <div class="val-strip bloqueado">
-                    <div class="val-badges">
-                        <span class="v-badge err">⛔ Processamento bloqueado — corrija a divergência acima</span>
-                    </div>
+                    <span class="v-badge err">⛔ Bloqueado</span>
                 </div>
             """, unsafe_allow_html=True)
 
-    with col_btn:
+    with col_btn_proc:
         processar = st.button(
             "🚀 Processar",
             use_container_width=True,
@@ -556,7 +555,7 @@ if arquivo_xml and arquivo_dados:
         )
 
     if pode_processar and processar:
-        with st.spinner("Analisando itens e cruzando tributações com base no XML..."):
+        with st.spinner("Gerando relatório..."):
             data_simples = datetime.now().strftime('%Y%m%d')
             nome_arquivo_saida = f'relatorio_NF_{numero_nf}_{data_simples}.xlsx'
 
@@ -887,12 +886,11 @@ if arquivo_xml and arquivo_dados:
 
             excel_buffer.seek(0)
 
-            st.markdown("---")
-            st.success("✨ Relatório gerado com sucesso com base nas suas preferências!")
-            st.download_button(
-                label="📥 Baixar Relatório Executivo em Excel",
-                data=excel_buffer.getvalue(),
-                file_name=nome_arquivo_saida,
-                mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
-                use_container_width=True
-            )
+            with col_btn_dl:
+                st.download_button(
+                    label="📥 Baixar Relatório",
+                    data=excel_buffer.getvalue(),
+                    file_name=nome_arquivo_saida,
+                    mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+                    use_container_width=True
+                )
