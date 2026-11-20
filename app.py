@@ -1,8 +1,3 @@
-"""
-preparo_upload.py
-Leitura, saneamento e "portão" de validação do upload (XML da NF-e x CSV/XLSX do WinThor).
-Compatível com Streamlit Community Cloud (Linux) e execução local (Windows).
-"""
 import io
 import re
 import unicodedata
