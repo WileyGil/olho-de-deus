@@ -15,7 +15,7 @@ from openpyxl.styles import Alignment, Border, Font, PatternFill, Side
 from openpyxl.utils import get_column_letter
 
 # ==========================================
-# CONFIGURAÇÃO DA PÁGINA E ESTILO
+# CONFIGURAÇÃO DA PÁGINA E TEMA CLARO
 # ==========================================
 st.set_page_config(page_title="Auditoria de Notas | Dashboard", page_icon="📊", layout="wide")
 
@@ -53,17 +53,19 @@ st.markdown("""
             color: #2C3E50 !important;
         }
         .block-container {
-            padding-top: 2.2rem !important;
+            padding-top: 2rem !important;
             padding-bottom: 2rem;
-            max-width: 1200px;
+            max-width: 1180px;
         }
+
+        /* Cabeçalho Executivo */
         .dashboard-header {
             background: linear-gradient(135deg, #16202A 0%, #243447 100%);
             border: 1px solid #1B2631;
             border-left: 5px solid #27AE60;
-            padding: 18px 24px;
+            padding: 16px 22px;
             border-radius: 10px;
-            margin-bottom: 20px;
+            margin-bottom: 18px;
             box-shadow: 0 4px 12px rgba(22, 32, 42, 0.14);
             display: flex;
             align-items: center;
@@ -74,44 +76,56 @@ st.markdown("""
         .header-left {
             display: flex;
             flex-direction: column;
-            gap: 4px;
+            gap: 3px;
         }
         .dashboard-title {
-            font-size: 1.42rem;
+            font-size: 1.38rem;
             font-weight: 700;
             margin: 0;
             color: #FFFFFF !important;
             letter-spacing: -0.01em;
-            display: flex;
-            align-items: center;
-            gap: 10px;
         }
         .dashboard-subtitle {
-            font-size: 0.88rem;
+            font-size: 0.86rem;
             color: #CBD5E1 !important;
             margin: 0;
-            font-weight: 400;
         }
         .header-pill {
             background-color: rgba(255, 255, 255, 0.12);
             color: #FFFFFF !important;
             border: 1px solid rgba(255, 255, 255, 0.25);
-            font-size: 0.75rem;
+            font-size: 0.72rem;
             font-weight: 700;
             padding: 5px 12px;
             border-radius: 20px;
-            letter-spacing: 0.04em;
+            letter-spacing: 0.05em;
             text-transform: uppercase;
         }
+
+        /* Títulos de seção com indicador de etapa */
         .section-label {
-            font-size: 0.95rem;
+            font-size: 0.92rem;
             font-weight: 600;
             color: #1B2631;
             margin-bottom: 6px;
             display: flex;
             align-items: center;
-            gap: 6px;
+            gap: 8px;
         }
+        .step-num {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            width: 22px;
+            height: 22px;
+            border-radius: 50%;
+            background-color: #1B2631;
+            color: #FFFFFF;
+            font-size: 0.75rem;
+            font-weight: 700;
+        }
+
+        /* Uploaders claros e compactos */
         [data-testid="stFileUploader"],
         [data-testid="stFileUploader"] > div,
         [data-testid="stFileUploaderDropzone"] {
@@ -121,7 +135,12 @@ st.markdown("""
         [data-testid="stFileUploaderDropzone"] {
             border: 1.5px dashed #CBD5E1 !important;
             border-radius: 8px !important;
-            padding: 14px 16px !important;
+            padding: 12px 14px !important;
+            transition: border-color 0.2s ease, background-color 0.2s ease;
+        }
+        [data-testid="stFileUploaderDropzone"]:hover {
+            border-color: #2C3E50 !important;
+            background-color: #F8FAFC !important;
         }
         [data-testid="stFileUploaderDropzone"] div,
         [data-testid="stFileUploaderDropzone"] span,
@@ -136,10 +155,14 @@ st.markdown("""
             font-weight: 600 !important;
             border-radius: 6px !important;
         }
+
+        /* Lista de arquivos com rolagem controlada (ideal para 30+ XMLs) */
         [data-testid="stFileUploaderDropzone"] > div:last-child,
         [data-testid="stFileUploaderDropzone"] ul {
             width: 100% !important;
             max-width: 100% !important;
+            max-height: 145px !important;
+            overflow-y: auto !important;
             flex: 1 1 100% !important;
         }
         [data-testid="stFileUploaderFile"],
@@ -150,7 +173,8 @@ st.markdown("""
             color: #1B2631 !important;
             width: 100% !important;
             max-width: 100% !important;
-            padding: 8px 12px !important;
+            padding: 7px 10px !important;
+            margin-bottom: 4px !important;
             display: flex !important;
             align-items: center !important;
         }
@@ -179,13 +203,13 @@ st.markdown("""
             overflow: visible !important;
             text-overflow: unset !important;
             font-weight: 600 !important;
-            font-size: 0.84rem !important;
-            line-height: 1.35 !important;
+            font-size: 0.82rem !important;
+            line-height: 1.3 !important;
         }
         [data-testid="stFileUploaderFile"] small,
         [data-testid="stUploadedFile"] small {
             color: #5D6D7E !important;
-            font-size: 0.76rem !important;
+            font-size: 0.74rem !important;
             display: block !important;
             margin-top: 2px !important;
         }
@@ -200,26 +224,46 @@ st.markdown("""
             border: none !important;
             flex-shrink: 0 !important;
         }
+
+        /* Containers em fundo branco */
         [data-testid="stVerticalBlockBorderWrapper"] {
             background-color: #FFFFFF !important;
             border-color: #E2E8F0 !important;
             border-radius: 8px !important;
         }
+
+        /* Checkboxes compactos */
         div[data-testid="stCheckbox"] {
-            margin-bottom: 6px;
+            margin-bottom: 4px;
         }
         div[data-testid="stCheckbox"] label p {
-            font-size: 0.90rem !important;
+            font-size: 0.88rem !important;
             color: #2C3E50 !important;
             font-weight: 500 !important;
         }
+
+        /* Barra do lote */
+        .lote-pill {
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+            background-color: #EEF2F6;
+            color: #1B2631;
+            border: 1px solid #CBD5E1;
+            padding: 5px 12px;
+            border-radius: 20px;
+            font-size: 0.82rem;
+            font-weight: 600;
+        }
+
+        /* Selo de status fixo e separado do botão */
         .temp-notice-wrap {
             display: flex;
             justify-content: center;
             align-items: center;
             width: 100%;
             margin-top: 8px;
-            margin-bottom: 18px;
+            margin-bottom: 16px;
         }
         .temp-notice {
             display: inline-flex;
@@ -235,6 +279,20 @@ st.markdown("""
             font-weight: 600;
             box-shadow: 0 1px 4px rgba(25, 111, 61, 0.08);
         }
+
+        /* Estado vazio discreto */
+        .empty-hint {
+            text-align: center;
+            color: #64748B;
+            font-size: 0.86rem;
+            padding: 12px;
+            background-color: #FFFFFF;
+            border: 1px dashed #CBD5E1;
+            border-radius: 8px;
+            margin-top: 6px;
+        }
+
+        /* Alertas de bloqueio/aviso */
         .v-badge {
             display: flex;
             align-items: center;
@@ -255,6 +313,8 @@ st.markdown("""
             color: #78281F;
             border: 1px solid #F5B7B1;
         }
+
+        /* Botão de Download em Verde Executivo */
         div[data-testid="stDownloadButton"] > button {
             background-color: #196F3D !important;
             color: #FFFFFF !important;
@@ -268,11 +328,6 @@ st.markdown("""
         div[data-testid="stDownloadButton"] > button:hover {
             background-color: #145A32 !important;
             border-color: #0E3E22 !important;
-        }
-        .lote-resumo {
-            font-size: 0.84rem;
-            color: #334155;
-            font-weight: 500;
         }
     </style>
 """, unsafe_allow_html=True)
@@ -962,7 +1017,7 @@ def _freeze_itens(itens: list[dict]) -> tuple[tuple[tuple[str, object], ...], ..
 
 
 # ==========================================
-# 2. INTERFACE STREAMLIT (DASHBOARD COMPACTO)
+# 2. INTERFACE STREAMLIT (UI/UX OTIMIZADA)
 # ==========================================
 st.markdown("""
     <div class="dashboard-header">
@@ -974,8 +1029,11 @@ st.markdown("""
     </div>
 """, unsafe_allow_html=True)
 
+# Estado da sessão
 if "xml_lote" not in st.session_state:
     st.session_state["xml_lote"] = {}
+if "xml_ignorados_sessao" not in st.session_state:
+    st.session_state["xml_ignorados_sessao"] = set()
 if "xml_uploader_key" not in st.session_state:
     st.session_state["xml_uploader_key"] = 0
 if "nf_selecionada_chave" not in st.session_state:
@@ -983,10 +1041,14 @@ if "nf_selecionada_chave" not in st.session_state:
 if "ultimo_csv_assinatura" not in st.session_state:
     st.session_state["ultimo_csv_assinatura"] = None
 
+# Etapa 1 e 2: Uploaders lado a lado
 col_up1, col_up2 = st.columns(2, gap="large")
 
 with col_up1:
-    st.markdown('<p class="section-label">📂 1. Lote de Notas Fiscais (XML — adicione vários)</p>', unsafe_allow_html=True)
+    st.markdown(
+        '<p class="section-label"><span class="step-num">1</span> Lote de Notas Fiscais (XML)</p>',
+        unsafe_allow_html=True
+    )
     arquivos_xml = st.file_uploader(
         "Upload XMLs",
         type=["xml"],
@@ -995,24 +1057,34 @@ with col_up1:
         label_visibility="collapsed"
     )
     if arquivos_xml:
+        assinaturas_atuais = {f"{a.name}:{a.size}" for a in arquivos_xml}
+        st.session_state["xml_ignorados_sessao"] &= assinaturas_atuais
+
         for arq_x in arquivos_xml:
+            sig_x = f"{arq_x.name}:{arq_x.size}"
+            if sig_x in st.session_state["xml_ignorados_sessao"]:
+                continue
             bruto_x = arq_x.getvalue()
             num_nf_x, itens_x = ler_xml_nfe_bytes(bruto_x)
             chave_x = str(num_nf_x).strip().lstrip('0') or arq_x.name
             st.session_state["xml_lote"][chave_x] = {
                 "numero_nf": str(num_nf_x).strip(),
                 "nome_arquivo": arq_x.name,
+                "assinatura": sig_x,
                 "itens": itens_x,
             }
 
 with col_up2:
-    st.markdown('<p class="section-label">📊 2. Relatório de Pré-Entrada (WinThor)</p>', unsafe_allow_html=True)
+    st.markdown(
+        '<p class="section-label"><span class="step-num">2</span> Relatório de Pré-Entrada (WinThor)</p>',
+        unsafe_allow_html=True
+    )
     arquivo_dados = st.file_uploader("Upload WinThor", type=["csv", "xlsx"], label_visibility="collapsed")
 
 lote_xml = st.session_state["xml_lote"]
 chaves_ordenadas = list(lote_xml.keys())
 
-# Sincroniza chave selecionada apenas quando um novo CSV/XLSX entra ou quando a chave atual sumiu
+# Detecção automática da NF apenas quando um novo CSV/XLSX é carregado
 if arquivo_dados is not None:
     assinatura_csv = f"{arquivo_dados.name}:{arquivo_dados.size}"
     if assinatura_csv != st.session_state["ultimo_csv_assinatura"]:
@@ -1021,13 +1093,15 @@ if arquivo_dados is not None:
         match_chave = next((k for k in chaves_ordenadas if k in cand_csv), None)
         if match_chave:
             st.session_state["nf_selecionada_chave"] = match_chave
+            st.session_state["sb_nf_ativa"] = match_chave
 
 if st.session_state["nf_selecionada_chave"] not in lote_xml:
     st.session_state["nf_selecionada_chave"] = chaves_ordenadas[0] if chaves_ordenadas else None
 
+# Barra de gerenciamento do lote de XMLs
 if lote_xml:
     with st.container(border=True):
-        c_info, c_sel, c_rem, c_limp = st.columns([2.0, 2.7, 1.1, 1.1], vertical_alignment="center")
+        c_info, c_sel, c_rem, c_limp = st.columns([1.8, 3.0, 1.0, 1.1], vertical_alignment="center")
         opcoes_rotulo = {
             k: f"NF {lote_xml[k]['numero_nf']} — {lote_xml[k]['nome_arquivo']} ({len(lote_xml[k]['itens'])} itens)"
             for k in chaves_ordenadas
@@ -1035,17 +1109,18 @@ if lote_xml:
 
         with c_info:
             st.markdown(
-                f'<p class="lote-resumo" style="margin:0;">🗂️ <b>{len(lote_xml)}</b> XML(s) armazenado(s)</p>',
+                f'<span class="lote-pill">🗂️ {len(lote_xml)} XML(s) no lote</span>',
                 unsafe_allow_html=True
             )
 
         with c_sel:
-            chave_atual = st.session_state["nf_selecionada_chave"]
-            idx_atual = chaves_ordenadas.index(chave_atual) if chave_atual in chaves_ordenadas else 0
+            if "sb_nf_ativa" not in st.session_state or st.session_state["sb_nf_ativa"] not in chaves_ordenadas:
+                st.session_state["sb_nf_ativa"] = st.session_state["nf_selecionada_chave"]
+
             chave_ativa = st.selectbox(
                 "NF ativa do lote",
                 options=chaves_ordenadas,
-                index=idx_atual,
+                key="sb_nf_ativa",
                 format_func=lambda k: opcoes_rotulo[k],
                 label_visibility="collapsed"
             )
@@ -1053,18 +1128,28 @@ if lote_xml:
 
         with c_rem:
             if st.button("🗑️ Remover", key="btn_remover_nf", use_container_width=True):
-                st.session_state["xml_lote"].pop(chave_ativa, None)
+                item_removido = st.session_state["xml_lote"].pop(chave_ativa, None)
+                if item_removido and item_removido.get("assinatura"):
+                    st.session_state["xml_ignorados_sessao"].add(item_removido["assinatura"])
                 restantes = list(st.session_state["xml_lote"].keys())
-                st.session_state["nf_selecionada_chave"] = restantes[0] if restantes else None
+                proxima = restantes[0] if restantes else None
+                st.session_state["nf_selecionada_chave"] = proxima
+                if proxima:
+                    st.session_state["sb_nf_ativa"] = proxima
+                else:
+                    st.session_state.pop("sb_nf_ativa", None)
                 st.rerun()
 
         with c_limp:
             if st.button("🧹 Limpar tudo", key="btn_limpar_lote", use_container_width=True):
                 st.session_state["xml_lote"] = {}
+                st.session_state["xml_ignorados_sessao"] = set()
                 st.session_state["nf_selecionada_chave"] = None
+                st.session_state.pop("sb_nf_ativa", None)
                 st.session_state["xml_uploader_key"] += 1
                 st.rerun()
 
+# Estado padrão das flags de exportação
 _DEFAULTS_FLAGS = {
     "flag_sel_todos": False,
     "flag_ident": False,
@@ -1087,18 +1172,15 @@ def _ao_clicar_selecionar_todos():
         st.session_state[_k] = marcar
 
 
+# Seleção simétrica de blocos
 with st.container(border=True):
     top_col1, top_col2 = st.columns([4, 1], vertical_alignment="center")
     with top_col1:
-        st.markdown('<p class="section-label" style="margin-bottom:0;">⚙️ Seleção de Blocos para Exportação</p>', unsafe_allow_html=True)
+        st.markdown('<p class="section-label" style="margin-bottom:0;">⚙️ Blocos para Exportação</p>', unsafe_allow_html=True)
     with top_col2:
-        selecionar_todos = st.checkbox(
-            "Selecionar Todos",
-            key="flag_sel_todos",
-            on_change=_ao_clicar_selecionar_todos,
-        )
+        st.checkbox("Selecionar Todos", key="flag_sel_todos", on_change=_ao_clicar_selecionar_todos)
 
-    st.markdown("<hr style='margin: 8px 0 12px 0; border-color: #EEF2F6;'>", unsafe_allow_html=True)
+    st.markdown("<hr style='margin: 6px 0 10px 0; border-color: #EEF2F6;'>", unsafe_allow_html=True)
 
     b_col1, b_col2, b_col3, b_col4 = st.columns(4, gap="medium")
     with b_col1:
@@ -1114,6 +1196,7 @@ with st.container(border=True):
         inc_red = st.checkbox("Redução Base", key="flag_red")
         inc_st = st.checkbox("Cálculo ST", key="flag_st")
 
+# Validação automática e botão de download centralizado
 chave_ativa = st.session_state.get("nf_selecionada_chave")
 if lote_xml and arquivo_dados and chave_ativa in lote_xml:
     xml_selecionado = lote_xml[chave_ativa]
@@ -1164,3 +1247,13 @@ if lote_xml and arquivo_dados and chave_ativa in lote_xml:
                 mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
                 use_container_width=True
             )
+elif lote_xml and not arquivo_dados:
+    st.markdown(
+        '<div class="empty-hint">📄 Lote de XML pronto. Envie o relatório do <b>WinThor (CSV/XLSX)</b> no passo 2 para gerar a auditoria.</div>',
+        unsafe_allow_html=True
+    )
+elif arquivo_dados and not lote_xml:
+    st.markdown(
+        '<div class="empty-hint">📂 Relatório do WinThor carregado. Envie os <b>XMLs das NF-e</b> no passo 1 para iniciar o cruzamento.</div>',
+        unsafe_allow_html=True
+    )
