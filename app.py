@@ -20,9 +20,13 @@ st.set_page_config(page_title="Auditoria de Notas | Dashboard", page_icon="📊"
 
 st.markdown("""
     <style>
+        /* Força esquema de cores claro em todo o app */
+        :root {
+            color-scheme: light !important;
+        }
         .stApp {
-            background-color: #F4F6F9;
-            color: #2C3E50;
+            background-color: #F4F6F9 !important;
+            color: #2C3E50 !important;
         }
         .block-container {
             padding-top: 1.5rem;
@@ -60,8 +64,13 @@ st.markdown("""
         }
 
         /* Uploaders em cores claras e modernas */
+        [data-testid="stFileUploader"],
+        [data-testid="stFileUploader"] > div,
         [data-testid="stFileUploaderDropzone"] {
             background-color: #FFFFFF !important;
+            color: #1B2631 !important;
+        }
+        [data-testid="stFileUploaderDropzone"] {
             border: 1.5px dashed #CBD5E1 !important;
             border-radius: 8px !important;
             padding: 14px 16px !important;
@@ -73,7 +82,8 @@ st.markdown("""
         }
         [data-testid="stFileUploaderDropzone"] div,
         [data-testid="stFileUploaderDropzone"] span,
-        [data-testid="stFileUploaderDropzone"] small {
+        [data-testid="stFileUploaderDropzone"] small,
+        [data-testid="stFileUploaderDropzone"] p {
             color: #334155 !important;
         }
         [data-testid="stFileUploaderDropzone"] button {
@@ -86,29 +96,50 @@ st.markdown("""
         [data-testid="stFileUploaderDropzone"] button:hover {
             background-color: #DBEAFE !important;
         }
-        /* Chip do arquivo anexado em tom claro */
-        [data-testid="stFileUploaderFile"] {
-            background-color: #F1F5F9 !important;
-            border: 1px solid #E2E8F0 !important;
-            border-radius: 6px !important;
-            padding: 6px 10px !important;
+
+        /* Remove qualquer fundo preto do chip do arquivo anexado */
+        [data-testid="stFileUploaderFile"],
+        [data-testid="stFileUploaderFile"] > div,
+        [data-testid="stUploadedFile"],
+        [data-testid="stUploadedFile"] > div {
+            background-color: #EEF2F6 !important;
+            border: 1px solid #CBD5E1 !important;
+            border-radius: 8px !important;
+            color: #1B2631 !important;
         }
-        [data-testid="stFileUploaderFile"] div,
+        [data-testid="stFileUploaderFile"] > div,
+        [data-testid="stUploadedFile"] > div {
+            border: none !important;
+            background-color: transparent !important;
+        }
+        [data-testid="stFileUploaderFileName"],
         [data-testid="stFileUploaderFile"] span,
-        [data-testid="stFileUploaderFile"] small {
-            color: #1E293B !important;
+        [data-testid="stFileUploaderFile"] small,
+        [data-testid="stFileUploaderFile"] div,
+        [data-testid="stUploadedFile"] span,
+        [data-testid="stUploadedFile"] small,
+        [data-testid="stUploadedFile"] div {
+            color: #1B2631 !important;
+        }
+        /* Ícone do arquivo e botão X de remover */
+        [data-testid="stFileUploaderFile"] svg,
+        [data-testid="stUploadedFile"] svg {
+            fill: #2C3E50 !important;
+            color: #2C3E50 !important;
+        }
+        [data-testid="stFileUploaderDeleteBtn"] button,
+        [data-testid="stFileUploaderFile"] button {
+            background-color: transparent !important;
+            border: none !important;
+            color: #64748B !important;
+        }
+        [data-testid="stFileUploaderDeleteBtn"] button:hover,
+        [data-testid="stFileUploaderFile"] button:hover {
+            background-color: #E2E8F0 !important;
+            border-radius: 50% !important;
         }
 
         /* Caixa de seleção de blocos simétrica */
-        .blocos-box {
-            background-color: #FFFFFF;
-            border: 1px solid #E2E8F0;
-            border-radius: 8px;
-            padding: 14px 18px 6px 18px;
-            margin-top: 14px;
-            margin-bottom: 18px;
-            box-shadow: 0 1px 3px rgba(0,0,0,0.03);
-        }
         div[data-testid="stCheckbox"] {
             margin-bottom: 6px;
         }
