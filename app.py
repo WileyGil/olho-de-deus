@@ -1,4 +1,5 @@
 import io
+import os
 import re
 import unicodedata
 import xml.etree.ElementTree as ET
@@ -14,17 +15,37 @@ from openpyxl.styles import Alignment, Border, Font, PatternFill, Side
 from openpyxl.utils import get_column_letter
 
 # ==========================================
+# GARANTE TEMA CLARO NATIVO VIA CÓDIGO
+# ==========================================
+os.makedirs(".streamlit", exist_ok=True)
+_config_path = os.path.join(".streamlit", "config.toml")
+if not os.path.exists(_config_path):
+    with open(_config_path, "w", encoding="utf-8") as _f:
+        _f.write(
+            '[theme]\n'
+            'base = "light"\n'
+            'primaryColor = "#1B2631"\n'
+            'backgroundColor = "#F4F6F9"\n'
+            'secondaryBackgroundColor = "#FFFFFF"\n'
+            'textColor = "#2C3E50"\n'
+        )
+
+# ==========================================
 # CONFIGURAÇÃO DA PÁGINA E ESTILO
 # ==========================================
 st.set_page_config(page_title="Auditoria de Notas | Dashboard", page_icon="📊", layout="wide")
 
 st.markdown("""
     <style>
-        /* Força esquema de cores claro em todo o app */
+        /* Força esquema e variáveis de tema claro em todo o app */
         :root {
             color-scheme: light !important;
+            --primary-color: #1B2631 !important;
+            --background-color: #F4F6F9 !important;
+            --secondary-background-color: #FFFFFF !important;
+            --text-color: #2C3E50 !important;
         }
-        .stApp {
+        html, body, [data-testid="stAppViewContainer"], [data-testid="stHeader"], .stApp {
             background-color: #F4F6F9 !important;
             color: #2C3E50 !important;
         }
@@ -97,46 +118,51 @@ st.markdown("""
             background-color: #DBEAFE !important;
         }
 
-        /* Remove qualquer fundo preto do chip do arquivo anexado */
+        /* Chip do arquivo anexado totalmente claro (sem fundo preto) */
         [data-testid="stFileUploaderFile"],
-        [data-testid="stFileUploaderFile"] > div,
-        [data-testid="stUploadedFile"],
-        [data-testid="stUploadedFile"] > div {
+        [data-testid="stUploadedFile"] {
             background-color: #EEF2F6 !important;
             border: 1px solid #CBD5E1 !important;
             border-radius: 8px !important;
             color: #1B2631 !important;
         }
-        [data-testid="stFileUploaderFile"] > div,
-        [data-testid="stUploadedFile"] > div {
-            border: none !important;
+        [data-testid="stFileUploaderFile"] div,
+        [data-testid="stUploadedFile"] div {
             background-color: transparent !important;
+            border: none !important;
+            color: #1B2631 !important;
         }
         [data-testid="stFileUploaderFileName"],
         [data-testid="stFileUploaderFile"] span,
         [data-testid="stFileUploaderFile"] small,
-        [data-testid="stFileUploaderFile"] div,
         [data-testid="stUploadedFile"] span,
-        [data-testid="stUploadedFile"] small,
-        [data-testid="stUploadedFile"] div {
+        [data-testid="stUploadedFile"] small {
             color: #1B2631 !important;
         }
-        /* Ícone do arquivo e botão X de remover */
         [data-testid="stFileUploaderFile"] svg,
         [data-testid="stUploadedFile"] svg {
             fill: #2C3E50 !important;
             color: #2C3E50 !important;
         }
         [data-testid="stFileUploaderDeleteBtn"] button,
-        [data-testid="stFileUploaderFile"] button {
+        [data-testid="stFileUploaderFile"] button,
+        [data-testid="stUploadedFile"] button {
             background-color: transparent !important;
             border: none !important;
             color: #64748B !important;
         }
         [data-testid="stFileUploaderDeleteBtn"] button:hover,
-        [data-testid="stFileUploaderFile"] button:hover {
+        [data-testid="stFileUploaderFile"] button:hover,
+        [data-testid="stUploadedFile"] button:hover {
             background-color: #E2E8F0 !important;
             border-radius: 50% !important;
+        }
+
+        /* Container de seleção de blocos em fundo branco */
+        [data-testid="stVerticalBlockBorderWrapper"] {
+            background-color: #FFFFFF !important;
+            border-color: #E2E8F0 !important;
+            border-radius: 8px !important;
         }
 
         /* Caixa de seleção de blocos simétrica */
