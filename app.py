@@ -413,6 +413,12 @@ st.markdown("""
             color: #1B2631;
             min-width: 145px;
         }
+        .div-table tbody td.cell-prod .cell-desc {
+            font-weight: 500;
+            color: #475569;
+            font-size: 0.78rem;
+            margin-left: 6px;
+        }
         .div-table tbody td.cell-div {
             background-color: #FEE2E2;
             color: #991B1B;
@@ -948,12 +954,14 @@ def renderizar_resumo_divergencias(dados_relatorio):
             else:
                 rotulo_ean = f"Sem EAN (Item {html.escape(str(linha.get('Linha_NF', '-')))})"
 
-            desc_tooltip = html.escape(
-                str(linha.get('Descricao_NF') or linha.get('Descricao_WINTHOR') or '').strip()
-            )
+            desc_completa = str(linha.get('Descricao_NF') or linha.get('Descricao_WINTHOR') or '').strip()
+            desc_resumida = (desc_completa[:38].rstrip() + '…') if len(desc_completa) > 38 else desc_completa
+            desc_html = f'<span class="cell-desc">— {html.escape(desc_resumida)}</span>' if desc_resumida else ''
+
             registros.append({
                 'ean': rotulo_ean,
-                'tooltip': desc_tooltip,
+                'desc_html': desc_html,
+                'tooltip': html.escape(desc_completa),
                 'celulas': celulas,
             })
 
@@ -967,10 +975,10 @@ def renderizar_resumo_divergencias(dados_relatorio):
     ordem_colunas = ['EAN', 'NCM', 'ICMS', 'Base Reduzida', 'Sobra']
     colunas_ativas = [c for c in ordem_colunas if colunas_encontradas[c]]
 
-    ths = ['<th>EAN (NF)</th>'] + [f'<th>{col}</th>' for col in colunas_ativas]
+    ths = ['<th>EAN (NF) + Descrição</th>'] + [f'<th>{col}</th>' for col in colunas_ativas]
     trs = []
     for reg in registros:
-        tds = [f'<td class="cell-prod" title="{reg["tooltip"]}">{reg["ean"]}</td>']
+        tds = [f'<td class="cell-prod" title="{reg["tooltip"]}">{reg["ean"]}{reg["desc_html"]}</td>']
         for col in colunas_ativas:
             val = reg['celulas'].get(col)
             if val is not None:
