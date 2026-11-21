@@ -904,8 +904,8 @@ def _fmt_num_curto(valor) -> str:
         return str(valor)
 
 
-def renderizar_resumo_divergencias(dados_relatorio):
-    """Exibe divergências em planilha moderna com colunas dinâmicas (desconsiderando Quantidade)."""
+def preparar_dados_resumo_divergencias(dados_relatorio):
+    """Extrai registros e colunas ativas do resumo de divergências (fonte única para tela e Excel)."""
     registros = []
     colunas_encontradas = {
         'EAN': False,
@@ -916,54 +916,73 @@ def renderizar_resumo_divergencias(dados_relatorio):
     }
 
     for linha in dados_relatorio:
-        celulas = {}
+        celulas_texto = {}
+        celulas_html = {}
 
         if linha.get('Status_Geral') == 'SOBRA':
             origem_sobra = 'XML' if linha.get('Linha_NF') != '-' else 'WinThor'
-            celulas['Sobra'] = f'Apenas {origem_sobra}'
+            txt_sobra = f'Apenas {origem_sobra}'
+            celulas_texto['Sobra'] = txt_sobra
+            celulas_html['Sobra'] = txt_sobra
             colunas_encontradas['Sobra'] = True
         else:
             if linha.get('Status_EAN') == 'DIVERGENTE':
-                ean_x = html.escape(str(linha.get('EAN_NF') or 'vazio'))
-                ean_w = html.escape(str(linha.get('EAN_WINTHOR') or 'vazio'))
-                celulas['EAN'] = f'{ean_x}<span class="div-sep">×</span>{ean_w}'
+                ean_x = str(linha.get('EAN_NF') or 'vazio')
+                ean_w = str(linha.get('EAN_WINTHOR') or 'vazio')
+                celulas_texto['EAN'] = f'{ean_x} × {ean_w}'
+                celulas_html['EAN'] = f'{html.escape(ean_x)}<span class="div-sep">×</span>{html.escape(ean_w)}'
                 colunas_encontradas['EAN'] = True
 
             if linha.get('Status_NCM') == 'DIVERGENTE':
-                n_x = html.escape(str(linha.get('NCM_NF') or '-'))
-                n_w = html.escape(str(linha.get('NCM_WINTHOR') or '-'))
-                celulas['NCM'] = f'{n_x}<span class="div-sep">×</span>{n_w}'
+                n_x = str(linha.get('NCM_NF') or '-')
+                n_w = str(linha.get('NCM_WINTHOR') or '-')
+                celulas_texto['NCM'] = f'{n_x} × {n_w}'
+                celulas_html['NCM'] = f'{html.escape(n_x)}<span class="div-sep">×</span>{html.escape(n_w)}'
                 colunas_encontradas['NCM'] = True
 
             if linha.get('Status_ICMS_Aliq') == 'DIVERGENTE':
                 i_x = _fmt_num_curto(linha.get('ICMS_NF'))
                 i_w = _fmt_num_curto(linha.get('ICMS_WINTHOR'))
-                celulas['ICMS'] = f'{i_x}%<span class="div-sep">×</span>{i_w}%'
+                celulas_texto['ICMS'] = f'{i_x}% × {i_w}%'
+                celulas_html['ICMS'] = f'{i_x}%<span class="div-sep">×</span>{i_w}%'
                 colunas_encontradas['ICMS'] = True
 
             if linha.get('Status_Red_BC') == 'DIVERGENTE':
                 r_x = _fmt_num_curto(linha.get('pRedBC_NF'))
                 r_w = _fmt_num_curto(linha.get('% ICMS red. Whintor'))
-                celulas['Base Reduzida'] = f'{r_x}%<span class="div-sep">×</span>{r_w}%'
+                celulas_texto['Base Reduzida'] = f'{r_x}% × {r_w}%'
+                celulas_html['Base Reduzida'] = f'{r_x}%<span class="div-sep">×</span>{r_w}%'
                 colunas_encontradas['Base Reduzida'] = True
 
-        if celulas:
+        if celulas_texto:
             ean_nf = str(linha.get('EAN_NF') or '').strip()
             if ean_nf and ean_nf != '-':
-                rotulo_ean = html.escape(ean_nf)
+                rotulo_ean = ean_nf
             else:
-                rotulo_ean = f"Sem EAN (Item {html.escape(str(linha.get('Linha_NF', '-')))})"
+                rotulo_ean = f"Sem EAN (Item {linha.get('Linha_NF', '-')})"
 
             desc_completa = str(linha.get('Descricao_NF') or linha.get('Descricao_WINTHOR') or '').strip()
             desc_resumida = (desc_completa[:38].rstrip() + '…') if len(desc_completa) > 38 else desc_completa
+            texto_ean_desc = f"{rotulo_ean} — {desc_resumida}" if desc_resumida else rotulo_ean
             desc_html = f'<span class="cell-desc">— {html.escape(desc_resumida)}</span>' if desc_resumida else ''
 
             registros.append({
-                'ean': rotulo_ean,
+                'ean': html.escape(rotulo_ean),
                 'desc_html': desc_html,
+                'texto_ean_desc': texto_ean_desc,
                 'tooltip': html.escape(desc_completa),
-                'celulas': celulas,
+                'celulas_texto': celulas_texto,
+                'celulas_html': celulas_html,
             })
+
+    ordem_colunas = ['EAN', 'NCM', 'ICMS', 'Base Reduzida', 'Sobra']
+    colunas_ativas = [c for c in ordem_colunas if colunas_encontradas[c]]
+    return registros, colunas_ativas
+
+
+def renderizar_resumo_divergencias(dados_relatorio):
+    """Exibe divergências em planilha moderna com colunas dinâmicas (desconsiderando Quantidade)."""
+    registros, colunas_ativas = preparar_dados_resumo_divergencias(dados_relatorio)
 
     if not registros:
         st.markdown(
@@ -972,15 +991,12 @@ def renderizar_resumo_divergencias(dados_relatorio):
         )
         return
 
-    ordem_colunas = ['EAN', 'NCM', 'ICMS', 'Base Reduzida', 'Sobra']
-    colunas_ativas = [c for c in ordem_colunas if colunas_encontradas[c]]
-
     ths = ['<th>EAN (NF) + Descrição</th>'] + [f'<th>{col}</th>' for col in colunas_ativas]
     trs = []
     for reg in registros:
         tds = [f'<td class="cell-prod" title="{reg["tooltip"]}">{reg["ean"]}{reg["desc_html"]}</td>']
         for col in colunas_ativas:
-            val = reg['celulas'].get(col)
+            val = reg['celulas_html'].get(col)
             if val is not None:
                 tds.append(f'<td class="cell-div">{val}</td>')
             else:
@@ -1002,6 +1018,120 @@ def renderizar_resumo_divergencias(dados_relatorio):
         f'</div>',
         unsafe_allow_html=True
     )
+
+
+def _montar_aba_resumo_excel(workbook, dados_relatorio, numero_nf: str):
+    """Cria a aba 'Resumo_Divergencias' no Excel idêntica ao resumo exibido no front."""
+    ws = workbook.create_sheet(title='Resumo_Divergencias', index=0)
+    ws.sheet_view.showGridLines = False
+    ws.sheet_view.zoomScale = 70
+
+    registros, colunas_ativas = preparar_dados_resumo_divergencias(dados_relatorio)
+
+    fill_titulo = PatternFill(start_color="1B2631", end_color="1B2631", fill_type="solid")
+    fill_header = PatternFill(start_color="212F3D", end_color="212F3D", fill_type="solid")
+    fill_zebra_par = PatternFill(start_color="E8EFF7", end_color="E8EFF7", fill_type="solid")
+    fill_zebra_impar = PatternFill(start_color="FFFFFF", end_color="FFFFFF", fill_type="solid")
+    fill_div_impar = PatternFill(start_color="FEE2E2", end_color="FEE2E2", fill_type="solid")
+    fill_div_par = PatternFill(start_color="FECACA", end_color="FECACA", fill_type="solid")
+    fill_ok_box = PatternFill(start_color="DCFCE7", end_color="DCFCE7", fill_type="solid")
+
+    font_titulo = Font(bold=True, size=11, color="FFFFFF")
+    font_header = Font(bold=True, size=10, color="FFFFFF")
+    font_prod = Font(bold=True, size=10, color="1B2631")
+    font_div = Font(bold=True, size=10, color="991B1B")
+    font_ok_dash = Font(bold=False, size=10, color="94A3B8")
+    font_ok_box = Font(bold=True, size=11, color="14532D")
+
+    side_cinza = Side(style='thin', color='CBD5E1')
+    borda_celula = Border(left=side_cinza, right=side_cinza, top=side_cinza, bottom=side_cinza)
+
+    if not registros:
+        ws.merge_cells('A1:E1')
+        c_tit = ws['A1']
+        c_tit.value = f"🔎 Resumo de Divergências — NF {numero_nf} (XML × WinThor)"
+        c_tit.font = font_titulo
+        c_tit.fill = fill_titulo
+        c_tit.alignment = Alignment(horizontal='center', vertical='center')
+        ws.row_dimensions[1].height = 28
+
+        ws.merge_cells('A3:E3')
+        c_ok = ws['A3']
+        c_ok.value = "✅ Nenhuma divergência encontrada nesta nota (EAN, NCM, ICMS e Base Reduzida 100% conferidos)."
+        c_ok.font = font_ok_box
+        c_ok.fill = fill_ok_box
+        c_ok.alignment = Alignment(horizontal='center', vertical='center')
+        ws.row_dimensions[3].height = 30
+        for col_i in range(1, 6):
+            ws.column_dimensions[get_column_letter(col_i)].width = 22
+        return
+
+    cabecalhos = ['EAN (NF) + Descrição'] + colunas_ativas
+    total_cols = len(cabecalhos)
+
+    # Faixa de título (Linha 1)
+    ws.merge_cells(start_row=1, start_column=1, end_row=1, end_column=total_cols)
+    c_tit = ws.cell(row=1, column=1)
+    c_tit.value = f"🔎 Resumo de Divergências — NF {numero_nf} (XML × WinThor)  |  {len(registros)} produto(s)"
+    c_tit.font = font_titulo
+    c_tit.alignment = Alignment(horizontal='left', vertical='center')
+    for col_i in range(1, total_cols + 1):
+        ws.cell(row=1, column=col_i).fill = fill_titulo
+    ws.row_dimensions[1].height = 28
+    ws.row_dimensions[2].height = 8
+
+    # Cabeçalhos da tabela (Linha 3)
+    for col_i, nome_col in enumerate(cabecalhos, start=1):
+        cell = ws.cell(row=3, column=col_i, value=nome_col.upper())
+        cell.font = font_header
+        cell.fill = fill_header
+        cell.border = borda_celula
+        cell.alignment = Alignment(horizontal='left' if col_i == 1 else 'center', vertical='center')
+    ws.row_dimensions[3].height = 24
+
+    # Linhas de divergência (a partir da Linha 4)
+    for idx_reg, reg in enumerate(registros, start=4):
+        eh_par = (idx_reg % 2 == 0)
+        fill_linha = fill_zebra_par if eh_par else fill_zebra_impar
+        fill_div = fill_div_par if eh_par else fill_div_impar
+
+        c_prod = ws.cell(row=idx_reg, column=1, value=reg['texto_ean_desc'])
+        c_prod.font = font_prod
+        c_prod.fill = fill_linha
+        c_prod.border = borda_celula
+        c_prod.alignment = Alignment(horizontal='left', vertical='center')
+        c_prod.number_format = '@'
+
+        for offset, col_nome in enumerate(colunas_ativas, start=2):
+            val = reg['celulas_texto'].get(col_nome)
+            cell = ws.cell(row=idx_reg, column=offset)
+            cell.border = borda_celula
+            cell.alignment = Alignment(horizontal='center', vertical='center')
+            cell.number_format = '@'
+
+            if val is not None:
+                cell.value = val
+                cell.font = font_div
+                cell.fill = fill_div
+            else:
+                cell.value = '—'
+                cell.font = font_ok_dash
+                cell.fill = fill_linha
+
+        ws.row_dimensions[idx_reg].height = 21
+
+    ws.freeze_panes = 'A4'
+    ws.auto_filter.ref = f"A3:{get_column_letter(total_cols)}{len(registros) + 3}"
+
+    # Ajuste automático da largura das colunas
+    for col_i in range(1, total_cols + 1):
+        col_letter = get_column_letter(col_i)
+        max_len = len(cabecalhos[col_i - 1])
+        for row_i in range(4, len(registros) + 4):
+            val = ws.cell(row=row_i, column=col_i).value
+            if val is not None:
+                max_len = max(max_len, len(str(val)))
+        ws.column_dimensions[col_letter].width = max(max_len + 5, 16)
 
 
 @st.cache_data(show_spinner=False)
@@ -1050,6 +1180,9 @@ def gerar_excel_auditoria_cached(
 
         workbook = writer.book
         worksheet = workbook['Comparativo_ICMS_e_EAN']
+
+        # Adiciona a aba de resumo idêntica ao front como primeira guia
+        _montar_aba_resumo_excel(workbook, dados_relatorio, numero_nf)
 
         worksheet.sheet_view.showGridLines = False
         worksheet.sheet_view.zoomScale = 70
