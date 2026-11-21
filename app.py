@@ -942,17 +942,17 @@ def renderizar_resumo_divergencias(dados_relatorio):
                 colunas_encontradas['Base Reduzida'] = True
 
         if celulas:
-            cod_prod = str(linha.get('Cod_Produto_WINTHOR') or '').strip()
-            if cod_prod and cod_prod != '-':
-                rotulo_prod = f"Produto {html.escape(cod_prod)}"
+            ean_nf = str(linha.get('EAN_NF') or '').strip()
+            if ean_nf and ean_nf != '-':
+                rotulo_ean = html.escape(ean_nf)
             else:
-                rotulo_prod = f"Item {html.escape(str(linha.get('Linha_NF', '-')))}"
+                rotulo_ean = f"Sem EAN (Item {html.escape(str(linha.get('Linha_NF', '-')))})"
 
             desc_tooltip = html.escape(
-                str(linha.get('Descricao_WINTHOR') or linha.get('Descricao_NF') or '').strip()
+                str(linha.get('Descricao_NF') or linha.get('Descricao_WINTHOR') or '').strip()
             )
             registros.append({
-                'prod': rotulo_prod,
+                'ean': rotulo_ean,
                 'tooltip': desc_tooltip,
                 'celulas': celulas,
             })
@@ -967,10 +967,10 @@ def renderizar_resumo_divergencias(dados_relatorio):
     ordem_colunas = ['EAN', 'NCM', 'ICMS', 'Base Reduzida', 'Sobra']
     colunas_ativas = [c for c in ordem_colunas if colunas_encontradas[c]]
 
-    ths = ['<th>Produto</th>'] + [f'<th>{col}</th>' for col in colunas_ativas]
+    ths = ['<th>EAN (NF)</th>'] + [f'<th>{col}</th>' for col in colunas_ativas]
     trs = []
     for reg in registros:
-        tds = [f'<td class="cell-prod" title="{reg["tooltip"]}">{reg["prod"]}</td>']
+        tds = [f'<td class="cell-prod" title="{reg["tooltip"]}">{reg["ean"]}</td>']
         for col in colunas_ativas:
             val = reg['celulas'].get(col)
             if val is not None:
