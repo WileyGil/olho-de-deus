@@ -331,86 +331,119 @@ st.markdown("""
             border-color: #0E3E22 !important;
         }
 
-        /* Resumo Minimalista de Divergências */
+        /* Resumo de Divergências em Formato de Planilha Moderna */
         .div-panel {
             background-color: #FFFFFF;
-            border: 1px solid #E2E8F0;
+            border: 1px solid #CBD5E1;
             border-radius: 10px;
-            padding: 14px 18px;
+            padding: 14px 16px 16px 16px;
             margin-top: 20px;
-            box-shadow: 0 1px 4px rgba(15, 23, 42, 0.04);
+            box-shadow: 0 3px 10px rgba(15, 23, 42, 0.06);
         }
         .div-panel-header {
             display: flex;
             align-items: center;
             justify-content: space-between;
-            margin-bottom: 10px;
-            padding-bottom: 8px;
-            border-bottom: 1px solid #EEF2F6;
-            font-size: 0.88rem;
+            margin-bottom: 12px;
+            font-size: 0.90rem;
             font-weight: 700;
             color: #1B2631;
         }
         .div-count-badge {
-            background-color: #FEE2E2;
-            color: #991B1B;
-            border: 1px solid #FECACA;
+            background-color: #DC2626;
+            color: #FFFFFF;
             font-size: 0.76rem;
             font-weight: 700;
-            padding: 2px 10px;
-            border-radius: 12px;
+            padding: 3px 11px;
+            border-radius: 14px;
         }
-        .div-row {
-            display: flex;
-            align-items: center;
-            flex-wrap: wrap;
-            gap: 8px;
-            padding: 8px 10px;
-            border-bottom: 1px solid #F1F5F9;
-            font-size: 0.83rem;
+        .div-table-wrap {
+            width: 100%;
+            overflow-x: auto;
+            border: 1px solid #CBD5E1;
+            border-radius: 8px;
         }
-        .div-row:last-child {
-            border-bottom: none;
+        .div-table {
+            width: 100%;
+            border-collapse: collapse;
+            font-size: 0.84rem;
+            background-color: #FFFFFF;
         }
-        .div-prod {
-            min-width: 140px;
+        .div-table thead th {
+            background-color: #1B2631;
+            color: #FFFFFF;
+            font-weight: 700;
+            text-align: center;
+            padding: 10px 12px;
+            border-right: 1px solid #334155;
+            letter-spacing: 0.03em;
+            text-transform: uppercase;
+            font-size: 0.76rem;
+            white-space: nowrap;
+        }
+        .div-table thead th:first-child {
+            text-align: left;
+        }
+        .div-table thead th:last-child {
+            border-right: none;
+        }
+        .div-table tbody tr {
+            background-color: #FFFFFF;
+            transition: background-color 0.15s ease;
+        }
+        .div-table tbody tr:nth-child(even) {
+            background-color: #E8EFF7;
+        }
+        .div-table tbody tr:hover {
+            background-color: #DBEAFE;
+        }
+        .div-table tbody td {
+            padding: 9px 12px;
+            border-top: 1px solid #CBD5E1;
+            border-right: 1px solid #CBD5E1;
+            text-align: center;
+            white-space: nowrap;
+        }
+        .div-table tbody td:last-child {
+            border-right: none;
+        }
+        .div-table tbody td.cell-prod {
+            text-align: left;
             font-weight: 700;
             color: #1B2631;
-            background-color: #F1F5F9;
-            border: 1px solid #CBD5E1;
-            border-radius: 6px;
-            padding: 4px 10px;
-            white-space: nowrap;
+            min-width: 145px;
         }
-        .div-tag {
-            display: inline-flex;
-            align-items: center;
-            gap: 5px;
-            background-color: #FEF2F2;
-            border: 1px solid #FECACA;
-            color: #7F1D1D;
-            border-radius: 6px;
-            padding: 4px 10px;
-            font-size: 0.80rem;
-            white-space: nowrap;
-        }
-        .div-tag b {
+        .div-table tbody td.cell-div {
+            background-color: #FEE2E2;
             color: #991B1B;
+            font-weight: 700;
+        }
+        .div-table tbody tr:nth-child(even) td.cell-div {
+            background-color: #FECACA;
+        }
+        .div-table tbody tr:hover td.cell-div {
+            background-color: #FCA5A5;
+            color: #7F1D1D;
+        }
+        .div-table tbody td.cell-ok {
+            color: #94A3B8;
+            font-weight: 500;
         }
         .div-sep {
-            color: #94A3B8;
-            font-weight: 700;
+            color: #DC2626;
+            font-weight: 800;
+            margin: 0 3px;
         }
         .div-ok-box {
             text-align: center;
-            background-color: #F0FDF4;
-            border: 1px solid #BBF7D0;
-            color: #166534;
+            background-color: #DCFCE7;
+            border: 1px solid #86EFAC;
+            color: #14532D;
             border-radius: 8px;
-            padding: 10px 14px;
+            padding: 11px 14px;
             margin-top: 20px;
-            font-size: 0.86rem;
-            font-weight: 600;
+            font-size: 0.87rem;
+            font-weight: 700;
         }
     </style>
 """, unsafe_allow_html=True)
@@ -866,42 +899,49 @@ def _fmt_num_curto(valor) -> str:
 
 
 def renderizar_resumo_divergencias(dados_relatorio):
-    """Exibe apenas produtos com divergência, uma linha por produto, de forma minimalista."""
-    linhas_html = []
+    """Exibe divergências em planilha moderna com colunas dinâmicas (desconsiderando Quantidade)."""
+    registros = []
+    colunas_encontradas = {
+        'EAN': False,
+        'NCM': False,
+        'ICMS': False,
+        'Base Reduzida': False,
+        'Sobra': False,
+    }
 
     for linha in dados_relatorio:
-        tags = []
+        celulas = {}
 
         if linha.get('Status_Geral') == 'SOBRA':
             origem_sobra = 'XML' if linha.get('Linha_NF') != '-' else 'WinThor'
-            tags.append(f'<span class="div-tag"><b>Sobra</b> apenas no {origem_sobra}</span>')
+            celulas['Sobra'] = f'Apenas {origem_sobra}'
+            colunas_encontradas['Sobra'] = True
         else:
             if linha.get('Status_EAN') == 'DIVERGENTE':
                 ean_x = html.escape(str(linha.get('EAN_NF') or 'vazio'))
                 ean_w = html.escape(str(linha.get('EAN_WINTHOR') or 'vazio'))
-                tags.append(f'<span class="div-tag"><b>EAN</b> {ean_x} <span class="div-sep">×</span> {ean_w}</span>')
-
-            if linha.get('Status_Qtd') == 'DIVERGENTE':
-                q_x = _fmt_num_curto(linha.get('Qtd_NF'))
-                q_w = _fmt_num_curto(linha.get('Qtd_WINTHOR'))
-                tags.append(f'<span class="div-tag"><b>Qtd</b> {q_x} <span class="div-sep">×</span> {q_w}</span>')
+                celulas['EAN'] = f'{ean_x}<span class="div-sep">×</span>{ean_w}'
+                colunas_encontradas['EAN'] = True
 
             if linha.get('Status_NCM') == 'DIVERGENTE':
                 n_x = html.escape(str(linha.get('NCM_NF') or '-'))
                 n_w = html.escape(str(linha.get('NCM_WINTHOR') or '-'))
-                tags.append(f'<span class="div-tag"><b>NCM</b> {n_x} <span class="div-sep">×</span> {n_w}</span>')
+                celulas['NCM'] = f'{n_x}<span class="div-sep">×</span>{n_w}'
+                colunas_encontradas['NCM'] = True
 
             if linha.get('Status_ICMS_Aliq') == 'DIVERGENTE':
                 i_x = _fmt_num_curto(linha.get('ICMS_NF'))
                 i_w = _fmt_num_curto(linha.get('ICMS_WINTHOR'))
-                tags.append(f'<span class="div-tag"><b>ICMS</b> {i_x}% <span class="div-sep">×</span> {i_w}%</span>')
+                celulas['ICMS'] = f'{i_x}%<span class="div-sep">×</span>{i_w}%'
+                colunas_encontradas['ICMS'] = True
 
             if linha.get('Status_Red_BC') == 'DIVERGENTE':
                 r_x = _fmt_num_curto(linha.get('pRedBC_NF'))
                 r_w = _fmt_num_curto(linha.get('% ICMS red. Whintor'))
-                tags.append(f'<span class="div-tag"><b>Red. BC</b> {r_x}% <span class="div-sep">×</span> {r_w}%</span>')
+                celulas['Base Reduzida'] = f'{r_x}%<span class="div-sep">×</span>{r_w}%'
+                colunas_encontradas['Base Reduzida'] = True
 
-        if tags:
+        if celulas:
             cod_prod = str(linha.get('Cod_Produto_WINTHOR') or '').strip()
             if cod_prod and cod_prod != '-':
                 rotulo_prod = f"Produto {html.escape(cod_prod)}"
@@ -911,28 +951,46 @@ def renderizar_resumo_divergencias(dados_relatorio):
             desc_tooltip = html.escape(
                 str(linha.get('Descricao_WINTHOR') or linha.get('Descricao_NF') or '').strip()
             )
-            linhas_html.append(
-                f'<div class="div-row">'
-                f'  <span class="div-prod" title="{desc_tooltip}">{rotulo_prod}</span>'
-                f'  {"".join(tags)}'
-                f'</div>'
-            )
+            registros.append({
+                'prod': rotulo_prod,
+                'tooltip': desc_tooltip,
+                'celulas': celulas,
+            })
 
-    if not linhas_html:
+    if not registros:
         st.markdown(
-            '<div class="div-ok-box">✅ Nenhuma divergência encontrada nesta nota (XML × WinThor 100% conferido).</div>',
+            '<div class="div-ok-box">✅ Nenhuma divergência encontrada nesta nota (EAN, NCM, ICMS e Base Reduzida 100% conferidos).</div>',
             unsafe_allow_html=True
         )
         return
 
-    qtd_prods = len(linhas_html)
+    ordem_colunas = ['EAN', 'NCM', 'ICMS', 'Base Reduzida', 'Sobra']
+    colunas_ativas = [c for c in ordem_colunas if colunas_encontradas[c]]
+
+    ths = ['<th>Produto</th>'] + [f'<th>{col}</th>' for col in colunas_ativas]
+    trs = []
+    for reg in registros:
+        tds = [f'<td class="cell-prod" title="{reg["tooltip"]}">{reg["prod"]}</td>']
+        for col in colunas_ativas:
+            val = reg['celulas'].get(col)
+            if val is not None:
+                tds.append(f'<td class="cell-div">{val}</td>')
+            else:
+                tds.append('<td class="cell-ok">—</td>')
+        trs.append(f'<tr>{"".join(tds)}</tr>')
+
     st.markdown(
         f'<div class="div-panel">'
         f'  <div class="div-panel-header">'
         f'    <span>🔎 Resumo de Divergências (XML × WinThor)</span>'
-        f'    <span class="div-count-badge">{qtd_prods} produto(s)</span>'
+        f'    <span class="div-count-badge">{len(registros)} produto(s)</span>'
         f'  </div>'
-        f'  {"".join(linhas_html)}'
+        f'  <div class="div-table-wrap">'
+        f'    <table class="div-table">'
+        f'      <thead><tr>{"".join(ths)}</tr></thead>'
+        f'      <tbody>{"".join(trs)}</tbody>'
+        f'    </table>'
+        f'  </div>'
         f'</div>',
         unsafe_allow_html=True
     )
@@ -1386,7 +1444,7 @@ with st.container(border=True):
         inc_red = st.checkbox("Redução Base", key="flag_red")
         inc_st = st.checkbox("Cálculo ST", key="flag_st")
 
-# Validação automática, download centralizado e resumo minimalista de divergências
+# Validação automática, download centralizado e resumo de divergências em planilha
 chave_ativa = st.session_state.get("sb_nf_ativa")
 if lote_xml and arquivo_dados and chave_ativa in lote_xml:
     xml_selecionado = lote_xml[chave_ativa]
@@ -1445,7 +1503,7 @@ if lote_xml and arquivo_dados and chave_ativa in lote_xml:
                     use_container_width=True
                 )
 
-            # Resumo minimalista de divergências logo abaixo do botão
+            # Resumo de divergências em planilha moderna (sem Quantidade)
             dados_cruzados = cruzar_itens_auditoria(itens_xml, itens_csv)
             renderizar_resumo_divergencias(dados_cruzados)
 
