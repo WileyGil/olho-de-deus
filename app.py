@@ -27,11 +27,11 @@ st.markdown("""
         --primary-color: #1B2631 !important;
         --background-color: #F4F6F9 !important;
         --secondary-background-color: #FFFFFF !important;
-        --text-color: #2C3E50 !important;
+        --text-color: #1B2631 !important;
     }
     html, body, [data-testid="stAppViewContainer"], [data-testid="stHeader"], .stApp {
         background-color: #F4F6F9 !important;
-        color: #2C3E50 !important;
+        color: #1B2631 !important;
     }
     .block-container {
         padding-top: 2rem !important;
@@ -111,7 +111,7 @@ st.markdown("""
     [data-testid="stFileUploader"] > div,
     [data-testid="stFileUploaderDropzone"] {
         background-color: #FFFFFF !important;
-        color: #1B2631 !important;
+        color: #0F172A !important;
     }
     [data-testid="stFileUploaderDropzone"] {
         border: 1.5px dashed #CBD5E1 !important;
@@ -127,7 +127,7 @@ st.markdown("""
     [data-testid="stFileUploaderDropzone"] span,
     [data-testid="stFileUploaderDropzone"] small,
     [data-testid="stFileUploaderDropzone"] p {
-        color: #334155 !important;
+        color: #1E293B !important;
     }
     [data-testid="stFileUploaderDropzone"] button {
         background-color: #EFF6FF !important;
@@ -137,7 +137,7 @@ st.markdown("""
         border-radius: 6px !important;
     }
 
-    /* Lista de arquivos e cartão de arquivo enviado sempre claros */
+    /* Lista de arquivos e cartão de upload do CSV/XLSX sempre claros */
     [data-testid="stFileUploaderDropzone"] > div:last-child,
     [data-testid="stFileUploaderDropzone"] ul {
         width: 100% !important;
@@ -151,10 +151,11 @@ st.markdown("""
     [data-testid="stUploadedFile"] > div,
     [data-testid="stUploadedFile"] > div > div,
     [data-testid="stUploadedFile"] > div > div > div,
+    [data-testid="stUploadedFile"] > div > div > div > div,
     [data-testid="stFileUploaderFile"] > div,
     [data-testid="stFileUploaderFile"] > div > div {
         background-color: #EEF2F6 !important;
-        color: #1B2631 !important;
+        color: #0F172A !important;
     }
     [data-testid="stFileUploaderFile"],
     [data-testid="stUploadedFile"] {
@@ -180,9 +181,12 @@ st.markdown("""
     [data-testid="stFileUploaderFileName"],
     [data-testid="stFileUploaderFile"] span,
     [data-testid="stFileUploaderFile"] div,
+    [data-testid="stFileUploaderFile"] a,
     [data-testid="stUploadedFile"] span,
-    [data-testid="stUploadedFile"] div {
-        color: #1B2631 !important;
+    [data-testid="stUploadedFile"] div,
+    [data-testid="stUploadedFile"] a {
+        color: #0F172A !important;
+        -webkit-text-fill-color: #0F172A !important;
         max-width: none !important;
         width: auto !important;
         white-space: normal !important;
@@ -190,13 +194,14 @@ st.markdown("""
         word-break: break-all !important;
         overflow: visible !important;
         text-overflow: unset !important;
-        font-weight: 600 !important;
+        font-weight: 700 !important;
         font-size: 0.82rem !important;
         line-height: 1.3 !important;
     }
     [data-testid="stFileUploaderFile"] small,
     [data-testid="stUploadedFile"] small {
-        color: #475569 !important;
+        color: #334155 !important;
+        -webkit-text-fill-color: #334155 !important;
         font-size: 0.74rem !important;
         display: block !important;
         margin-top: 2px !important;
@@ -206,8 +211,8 @@ st.markdown("""
     [data-testid="stFileUploaderDeleteBtn"] button,
     [data-testid="stFileUploaderFile"] button,
     [data-testid="stUploadedFile"] button {
-        color: #1B2631 !important;
-        fill: #1B2631 !important;
+        color: #0F172A !important;
+        fill: #0F172A !important;
         background-color: transparent !important;
         border: none !important;
         flex-shrink: 0 !important;
@@ -220,15 +225,16 @@ st.markdown("""
         background-color: #FFFFFF !important;
         border-color: #E2E8F0 !important;
         border-radius: 8px !important;
-        color: #1B2631 !important;
+        color: #0F172A !important;
     }
 
-    /* Selectbox da NF ativa sempre claro */
+    /* Selectbox da NF ativa: fundo claro e fonte escura tanto fechado quanto aberto */
     [data-testid="stSelectbox"],
     [data-testid="stSelectbox"] > div,
     [data-testid="stSelectbox"] > div > div,
     [data-testid="stSelectbox"] [data-baseweb="select"],
     [data-testid="stSelectbox"] [data-baseweb="select"] > div,
+    [data-testid="stSelectbox"] [data-baseweb="select"] > div > div,
     [data-baseweb="popover"],
     [data-baseweb="popover"] > div,
     [data-baseweb="popover"] ul,
@@ -236,23 +242,28 @@ st.markdown("""
     [role="listbox"],
     [role="option"] {
         background-color: #FFFFFF !important;
-        color: #1B2631 !important;
+        color: #0F172A !important;
         border-color: #CBD5E1 !important;
     }
     [data-testid="stSelectbox"] span,
     [data-testid="stSelectbox"] div,
+    [data-testid="stSelectbox"] [data-baseweb="select"] *,
     [role="option"] span,
-    [role="option"] div {
-        color: #1B2631 !important;
+    [role="option"] div,
+    [role="option"] * {
+        color: #0F172A !important;
+        -webkit-text-fill-color: #0F172A !important;
+        opacity: 1 !important;
+        font-weight: 700 !important;
     }
     [role="option"]:hover,
     [role="option"][aria-selected="true"] {
         background-color: #E8EFF7 !important;
-        color: #1B2631 !important;
+        color: #0F172A !important;
     }
     [data-testid="stSelectbox"] svg {
-        color: #1B2631 !important;
-        fill: #1B2631 !important;
+        color: #0F172A !important;
+        fill: #0F172A !important;
     }
 
     /* Botões padrão (Remover / Limpar tudo / tags) sempre claros */
@@ -260,7 +271,7 @@ st.markdown("""
     div[data-testid="stButton"] > button[kind="secondary"],
     button[kind="secondary"] {
         background-color: #FFFFFF !important;
-        color: #1B2631 !important;
+        color: #0F172A !important;
         border: 1px solid #CBD5E1 !important;
         font-weight: 600 !important;
         border-radius: 8px !important;
@@ -275,19 +286,35 @@ st.markdown("""
     div[data-testid="stButton"] > button span,
     div[data-testid="stButton"] > button div,
     div[data-testid="stButton"] > button p {
-        color: #1B2631 !important;
+        color: #0F172A !important;
+        -webkit-text-fill-color: #0F172A !important;
     }
 
-    /* Checkboxes e flags do relatório sempre claros */
+    /* Flags (checkboxes do relatório): caixa e rótulo sempre claros e legíveis */
     div[data-testid="stCheckbox"],
     div[data-testid="stCheckbox"] > label,
     div[data-testid="stCheckbox"] > label > div,
     div[data-testid="stCheckbox"] label span,
-    div[data-testid="stCheckbox"] label p {
+    div[data-testid="stCheckbox"] label p,
+    div[data-testid="stCheckbox"] label * {
         margin-bottom: 4px;
-        color: #1B2631 !important;
+        color: #0F172A !important;
+        -webkit-text-fill-color: #0F172A !important;
         font-size: 0.88rem !important;
-        font-weight: 500 !important;
+        font-weight: 600 !important;
+        opacity: 1 !important;
+    }
+    div[data-testid="stCheckbox"] input[type="checkbox"] {
+        accent-color: #1B2631 !important;
+    }
+    div[data-testid="stCheckbox"] [data-baseweb="checkbox"] > div:first-child {
+        background-color: #FFFFFF !important;
+        border-color: #64748B !important;
+    }
+    div[data-testid="stCheckbox"] input:checked + div,
+    div[data-testid="stCheckbox"] [data-baseweb="checkbox"] input:checked ~ div:first-child {
+        background-color: #1B2631 !important;
+        border-color: #1B2631 !important;
     }
 
     /* Barra do lote */
@@ -296,12 +323,12 @@ st.markdown("""
         align-items: center;
         gap: 6px;
         background-color: #EEF2F6;
-        color: #1B2631;
+        color: #0F172A;
         border: 1px solid #CBD5E1;
         padding: 5px 12px;
         border-radius: 20px;
         font-size: 0.82rem;
-        font-weight: 600;
+        font-weight: 700;
     }
 
     /* Selo de status fixo e separado do botão */
@@ -331,7 +358,7 @@ st.markdown("""
     /* Estado vazio discreto */
     .empty-hint {
         text-align: center;
-        color: #64748B;
+        color: #475569;
         font-size: 0.86rem;
         padding: 12px;
         background-color: #FFFFFF;
@@ -366,6 +393,7 @@ st.markdown("""
     div[data-testid="stDownloadButton"] > button {
         background-color: #196F3D !important;
         color: #FFFFFF !important;
+        -webkit-text-fill-color: #FFFFFF !important;
         border: 1px solid #145A32 !important;
         font-weight: 600 !important;
         font-size: 0.95rem !important;
