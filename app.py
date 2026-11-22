@@ -147,11 +147,18 @@ st.markdown("""
         flex: 1 1 100% !important;
     }
     [data-testid="stFileUploaderFile"],
-    [data-testid="stUploadedFile"] {
+    [data-testid="stUploadedFile"],
+    [data-testid="stFileUploaderFile"] > div,
+    [data-testid="stUploadedFile"] > div,
+    [data-testid="stFileUploaderFile"] > div > div,
+    [data-testid="stUploadedFile"] > div > div {
         background-color: #EEF2F6 !important;
+        color: #1B2631 !important;
+    }
+    [data-testid="stFileUploaderFile"],
+    [data-testid="stUploadedFile"] {
         border: 1px solid #CBD5E1 !important;
         border-radius: 8px !important;
-        color: #1B2631 !important;
         width: 100% !important;
         max-width: 100% !important;
         padding: 7px 10px !important;
@@ -163,7 +170,6 @@ st.markdown("""
     [data-testid="stUploadedFile"] > div {
         background-color: transparent !important;
         border: none !important;
-        color: #1B2631 !important;
         max-width: 100% !important;
         width: 100% !important;
         flex: 1 1 auto !important;
@@ -189,7 +195,7 @@ st.markdown("""
     }
     [data-testid="stFileUploaderFile"] small,
     [data-testid="stUploadedFile"] small {
-        color: #5D6D7E !important;
+        color: #475569 !important;
         font-size: 0.74rem !important;
         display: block !important;
         margin-top: 2px !important;
@@ -199,8 +205,8 @@ st.markdown("""
     [data-testid="stFileUploaderDeleteBtn"] button,
     [data-testid="stFileUploaderFile"] button,
     [data-testid="stUploadedFile"] button {
-        color: #2C3E50 !important;
-        fill: #2C3E50 !important;
+        color: #1B2631 !important;
+        fill: #1B2631 !important;
         background-color: transparent !important;
         border: none !important;
         flex-shrink: 0 !important;
@@ -211,6 +217,55 @@ st.markdown("""
         background-color: #FFFFFF !important;
         border-color: #E2E8F0 !important;
         border-radius: 8px !important;
+    }
+
+    /* Selectbox da NF ativa sempre claro */
+    [data-testid="stSelectbox"] > div,
+    [data-testid="stSelectbox"] [data-baseweb="select"],
+    [data-testid="stSelectbox"] [data-baseweb="select"] > div,
+    [data-baseweb="popover"] ul,
+    [data-baseweb="popover"] li,
+    [role="listbox"],
+    [role="option"] {
+        background-color: #FFFFFF !important;
+        color: #1B2631 !important;
+        border-color: #CBD5E1 !important;
+    }
+    [data-testid="stSelectbox"] span,
+    [data-testid="stSelectbox"] div,
+    [role="option"] span,
+    [role="option"] div {
+        color: #1B2631 !important;
+    }
+    [role="option"]:hover,
+    [role="option"][aria-selected="true"] {
+        background-color: #E8EFF7 !important;
+        color: #1B2631 !important;
+    }
+    [data-testid="stSelectbox"] svg {
+        color: #1B2631 !important;
+        fill: #1B2631 !important;
+    }
+
+    /* Botões padrão (Remover / Limpar tudo / tags) sempre claros */
+    div[data-testid="stButton"] > button,
+    button[kind="secondary"] {
+        background-color: #FFFFFF !important;
+        color: #1B2631 !important;
+        border: 1px solid #CBD5E1 !important;
+        font-weight: 600 !important;
+        border-radius: 8px !important;
+    }
+    div[data-testid="stButton"] > button:hover,
+    button[kind="secondary"]:hover {
+        background-color: #F1F5F9 !important;
+        color: #0F172A !important;
+        border-color: #94A3B8 !important;
+    }
+    div[data-testid="stButton"] > button span,
+    div[data-testid="stButton"] > button div,
+    div[data-testid="stButton"] > button p {
+        color: #1B2631 !important;
     }
 
     /* Checkboxes compactos */
