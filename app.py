@@ -1,4 +1,3 @@
-import hashlib
 import html
 import io
 import math
@@ -526,13 +525,26 @@ st.markdown("""
         flex-wrap: wrap;
         gap: 8px;
     }
-    .rodape-highlight {
-        background-color: #FDE047;
+    .rodape-alert-bar {
+        background-color: #FEF3C7;
+        border: 1px solid #F59E0B;
+        color: #92400E;
+        border-radius: 6px;
+        padding: 8px 12px;
+        font-size: 0.82rem;
+        font-weight: 600;
+        margin-bottom: 10px;
+    }
+    .rodape-tag {
+        display: inline-block;
+        background-color: #FDE68A;
         color: #78350F;
+        border: 1px solid #F59E0B;
+        border-radius: 12px;
+        padding: 1px 8px;
+        font-size: 0.75rem;
         font-weight: 700;
-        padding: 1px 4px;
-        border-radius: 3px;
-        border-bottom: 2px solid #D97706;
+        margin: 2px 4px 2px 0;
     }
     .rodape-sec-title {
         font-size: 0.76rem;
@@ -559,8 +571,7 @@ st.markdown("""
 # ==========================================
 # CONSTANTES E REGEX PRÉ-COMPILADAS
 # ==========================================
-NS_URI = 'http://www.portalfiscal.inf.br/nfe'
-NS = {'ns': NS_URI}
+NS = {'ns': 'http://www.portalfiscal.inf.br/nfe'}
 LIMITE_MARCA = 0.70
 
 _RE_SCI = re.compile(r'^[0-9.,]+E[+-]?[0-9]+$')
@@ -573,7 +584,7 @@ _RE_NNF_BYTES = re.compile(rb'<(?:[A-Za-z0-9]+:)?nNF>\s*(\d+)\s*</(?:[A-Za-z0-9]
 _RE_EMB = re.compile(r'\b(?:CX|DP|FD|PCT|EMB|PC|UN)X?(\d+)\b', re.IGNORECASE)
 _IGNORAR = {'COM', 'PARA', 'DOS', 'DAS', 'UNID', 'UND', 'CX', 'KIT', 'PCT', 'FR', 'REF', 'ESC', 'ATIV'}
 
-_PONTOS_IMPORTANTES_PADROES = [
+_ALERTAS_RODAPE_PADROES = [
     ("ICMS-ST / ST", re.compile(r'\b(?:icms[\s-]*st|st|b\.?calc\.?st)\b|substituicao\s+tributaria', re.IGNORECASE)),
     ("GNRE", re.compile(r'\bgnre\b|guia\s+nacional', re.IGNORECASE)),
     ("Redução de Base", re.compile(r'reducao\s+(?:de\s+|da\s+)?base|\bred\.?\s*bc\b|base\s+de\s+calculo\s+reduzida', re.IGNORECASE)),
@@ -583,21 +594,7 @@ _PONTOS_IMPORTANTES_PADROES = [
     ("Diferimento / Isenção / Benefício", re.compile(r'\b(?:diferimento|isencao|isento|beneficio|desonerado|desoneracao)\b', re.IGNORECASE)),
     ("Simples Nacional", re.compile(r'simples\s+nacional', re.IGNORECASE)),
     ("Crédito de ICMS", re.compile(r'credito\s+(?:de\s+)?icms|aproveitamento\s+(?:de\s+|do\s+)?credito', re.IGNORECASE)),
-    ("Bonificação / Brinde", re.compile(r'\b(?:bonificacao|brinde)\b', re.IGNORECASE)),
-    ("Refaturamento", re.compile(r'\b(?:refaturamento|refaturada|refatura|reemissao)\b', re.IGNORECASE)),
-    (
-        "Substituição / NF Anterior",
-        re.compile(
-            r'\b(?:substitui\s+nf|substituicao\s+de\s+nota|nota\s+anterior|nf\s+referenciada|'
-            r'cancelamento|cancelada|estorno|nf\s+complementar)\b',
-            re.IGNORECASE
-        )
-    ),
-    ("Devolução / Retorno", re.compile(r'\b(?:devolucao|retorno|recusa)\b', re.IGNORECASE)),
-    (
-        "Avaria / Falta / Reclamação",
-        re.compile(r'(?:^|[^a-zA-Z0-9])(?:avaria|falta|divergencia|reclamac[a-z]*|prazo\s+de\s+reclamacao)(?:$|[^a-zA-Z0-9])', re.IGNORECASE)
-    ),
+    ("Bonificação / Devolução", re.compile(r'\b(?:bonificacao|devolucao|brinde)\b', re.IGNORECASE)),
 ]
 
 
@@ -606,9 +603,7 @@ _PONTOS_IMPORTANTES_PADROES = [
 # ==========================================
 def extrair_numero_nf_rapido(bruto: bytes) -> str:
     """Extrai o número da NF instantaneamente sem parsear o XML inteiro."""
-    if not bruto:
-        return 'DESCONHECIDO'
-    m = _RE_NNF_BYTES.search(bruto[:16384]) or _RE_NNF_BYTES.search(bruto)
+    m = _RE_NNF_BYTES.search(bruto[:8192]) or _RE_NNF_BYTES.search(bruto)
     if m:
         return m.group(1).decode('ascii', errors='ignore').strip()
     return 'DESCONHECIDO'
@@ -637,10 +632,7 @@ def normalizar_ean(valor):
         inteiro = format(dec, 'f').split('.')[0]
         mantissa, expo = s.split('E', 1)
         digitos_mantissa = len(_RE_DIGITS.sub('', mantissa))
-        try:
-            total_digitos = int(expo) + 1
-        except ValueError:
-            return '', 'ilegivel'
+        total_digitos = int(expo) + 1
         if digitos_mantissa < total_digitos and not _dv_gtin_ok(inteiro):
             return '', 'ilegivel'
         return inteiro.lstrip('0'), 'ok'
@@ -660,28 +652,18 @@ def limpar_numero(valor):
     return _RE_DIGITS.sub('', val_str)
 
 
-def converte_float_br(valor) -> float:
+def converte_float_br(valor):
     if valor is None or (isinstance(valor, float) and pd.isna(valor)):
         return 0.0
-    if isinstance(valor, (int, float)):
-        return float(valor) if math.isfinite(float(valor)) else 0.0
-    val_str = str(valor).strip().replace('\u00a0', '')
-    if val_str == '' or val_str.upper() in ('NAN', 'NONE', '-'):
-        return 0.0
-    val_str = re.sub(r'[^\d,.\-]', '', val_str)
-    if not val_str:
+    val_str = str(valor).strip()
+    if val_str == '' or val_str.upper() in ('NAN', 'NONE'):
         return 0.0
     try:
         if '.' in val_str and ',' in val_str:
-            if val_str.rfind(',') > val_str.rfind('.'):
-                val_str = val_str.replace('.', '').replace(',', '.')
-            else:
-                val_str = val_str.replace(',', '')
-        elif ',' in val_str:
-            partes = val_str.split(',')
-            val_str = partes[0].replace('.', '') + '.' + ''.join(partes[1:])
-        val = float(val_str)
-        return val if math.isfinite(val) else 0.0
+            val_str = val_str.replace('.', '').replace(',', '.')
+        else:
+            val_str = val_str.replace(',', '.')
+        return float(val_str)
     except ValueError:
         return 0.0
 
@@ -831,69 +813,29 @@ def montar_itens_csv(df):
     return itens
 
 
-def _xml_find(parent, path: str, ns_prefix: str = 'ns:'):
-    if parent is None:
-        return None
-    if ns_prefix:
-        return parent.find(path.replace('__P__', ns_prefix))
-    return parent.find(path.replace('__P__', ''))
-
-
-def _xml_findall(parent, path: str, ns_prefix: str = 'ns:'):
-    if parent is None:
-        return []
-    if ns_prefix:
-        return parent.findall(path.replace('__P__', ns_prefix))
-    return parent.findall(path.replace('__P__', ''))
-
-
 @st.cache_data(show_spinner=False)
 def ler_xml_nfe_bytes(bruto: bytes):
     root = ET.fromstring(bruto)
-    tem_ns_nfe = (root.tag == f"{{{NS_URI}}}nfeProc" or root.tag == f"{{{NS_URI}}}NFe" or root.find('.//ns:ide', NS) is not None)
-    ns_prefix = 'ns:' if tem_ns_nfe else ''
-    ns_map = NS if tem_ns_nfe else {}
 
-    def find_el(parent, rel_path):
-        if parent is None:
-            return None
-        if ns_prefix:
-            prefixed = '/'.join(
-                part if part in ('.', '..') else f"{ns_prefix}{part}"
-                for part in rel_path.split('/')
-            )
-            return parent.find(prefixed, ns_map)
-        return parent.find(rel_path)
-
-    def findall_el(parent, rel_path):
-        if parent is None:
-            return []
-        if ns_prefix:
-            prefixed = '/'.join(
-                part if part in ('.', '..') else f"{ns_prefix}{part}"
-                for part in rel_path.split('/')
-            )
-            return parent.findall(prefixed, ns_map)
-        return parent.findall(rel_path)
+    nNF = root.find('.//ns:ide/ns:nNF', NS)
+    numero_nf = nNF.text.strip() if nNF is not None and nNF.text else 'DESCONHECIDO'
 
     def txt(no, tag):
         if no is None:
             return ''
-        e = find_el(no, tag)
+        e = no.find(f'ns:{tag}', NS)
         return e.text.strip() if e is not None and e.text else ''
 
-    nNF = find_el(root, './/ide/nNF')
-    numero_nf = nNF.text.strip() if nNF is not None and nNF.text else 'DESCONHECIDO'
-
-    inf_adic = find_el(root, './/infAdic')
+    # Extração do rodapé / Dados Adicionais (<infAdic>)
+    inf_adic = root.find('.//ns:infAdic', NS)
     dados_adicionais = {
         'infAdFisco': txt(inf_adic, 'infAdFisco'),
         'infCpl': txt(inf_adic, 'infCpl'),
     }
 
     itens = []
-    for det in findall_el(root, './/det'):
-        prod = find_el(det, 'prod')
+    for det in root.findall('.//ns:det', NS):
+        prod = det.find('ns:prod', NS)
         try:
             n_item = int(det.attrib.get('nItem', '0'))
         except ValueError:
@@ -906,18 +848,18 @@ def ler_xml_nfe_bytes(bruto: bytes):
         u_com = txt(prod, 'uCom') or 'UN'
 
         icms, origem = 0.0, 'NAC'
-        icms_node = find_el(det, './/ICMS')
+        icms_node = det.find('.//ns:ICMS', NS)
         if icms_node is not None and len(icms_node) > 0:
             sub = icms_node[0]
-            p = find_el(sub, 'pICMS')
+            p = sub.find('ns:pICMS', NS)
             if p is not None and p.text:
                 icms = converte_float_br(p.text)
-            o = find_el(sub, 'orig')
+            o = sub.find('ns:orig', NS)
             if o is not None and o.text:
                 origem = obter_sigla_origem(o.text.strip())
 
         pred_node = (
-            find_el(icms_node[0], 'pRedBC')
+            icms_node[0].find('ns:pRedBC', NS)
             if icms_node is not None and len(icms_node) > 0
             else None
         )
@@ -941,98 +883,8 @@ def ler_xml_nfe_bytes(bruto: bytes):
     return numero_nf, itens, dados_adicionais
 
 
-def _texto_e_mapa_normalizado(texto: str) -> tuple[str, list[int]]:
-    """Normaliza acentos para regex preservando o índice exato na string original."""
-    chars_norm = []
-    mapa_idx = []
-    for idx, ch in enumerate(texto):
-        decomposed = unicodedata.normalize('NFKD', ch)
-        for dch in decomposed:
-            if not unicodedata.combining(dch):
-                chars_norm.append(dch)
-                mapa_idx.append(idx)
-    return ''.join(chars_norm), mapa_idx
-
-
-def _expandir_trecho_inteiro(texto: str, start_idx: int, end_idx: int) -> tuple[int, int]:
-    """Expande o intervalo [start_idx, end_idx) até os delimitadores da frase/trecho."""
-    separadores = set('\n\r;•|')
-    esq = start_idx
-    while esq > 0 and texto[esq - 1] not in separadores:
-        esq -= 1
-
-    dir_pos = end_idx
-    n = len(texto)
-    while dir_pos < n:
-        ch = texto[dir_pos]
-        if ch in ('\n', '\r', ';', '•', '|'):
-            break
-        if ch == '-' and dir_pos > 0 and dir_pos + 1 < n and texto[dir_pos - 1] == ' ' and texto[dir_pos + 1] == ' ':
-            break
-        dir_pos += 1
-
-    while esq < dir_pos and texto[esq] in (' ', '-', '\t'):
-        esq += 1
-
-    while dir_pos > esq and texto[dir_pos - 1] in (' ', '\t'):
-        dir_pos -= 1
-
-    return esq, dir_pos
-
-
-def destacar_trechos_rodape_html(texto: str, ponto_ativo: str | None) -> str:
-    """Retorna HTML seguro com os trechos/frases inteiras correspondentes ao ponto destacado."""
-    if not texto:
-        return ''
-    if not ponto_ativo:
-        return html.escape(texto)
-
-    padrao = next((p for rotulo, p in _PONTOS_IMPORTANTES_PADROES if rotulo == ponto_ativo), None)
-    if padrao is None:
-        return html.escape(texto)
-
-    texto_norm, mapa_idx = _texto_e_mapa_normalizado(texto)
-    if not mapa_idx:
-        return html.escape(texto)
-
-    intervalos = []
-    for m in padrao.finditer(texto_norm):
-        s_norm, e_norm = m.span()
-        if s_norm >= len(mapa_idx):
-            continue
-        orig_start = mapa_idx[s_norm]
-        orig_end = mapa_idx[min(e_norm - 1, len(mapa_idx) - 1)] + 1
-        t_start, t_end = _expandir_trecho_inteiro(texto, orig_start, orig_end)
-        if t_start < t_end:
-            intervalos.append((t_start, t_end))
-
-    if not intervalos:
-        return html.escape(texto)
-
-    intervalos.sort()
-    mesclados = [intervalos[0]]
-    for s, e in intervalos[1:]:
-        prev_s, prev_e = mesclados[-1]
-        if s <= prev_e + 1:
-            mesclados[-1] = (prev_s, max(prev_e, e))
-        else:
-            mesclados.append((s, e))
-
-    partes = []
-    cursor = 0
-    for s, e in mesclados:
-        if cursor < s:
-            partes.append(html.escape(texto[cursor:s]))
-        partes.append(f'<mark class="rodape-highlight">{html.escape(texto[s:e])}</mark>')
-        cursor = e
-    if cursor < len(texto):
-        partes.append(html.escape(texto[cursor:]))
-
-    return ''.join(partes)
-
-
 def analisar_rodape_nfe(dados_adicionais: dict | None) -> dict:
-    """Analisa infAdFisco e infCpl e identifica pontos importantes no rodapé."""
+    """Analisa infAdFisco e infCpl e identifica alertas fiscais relevantes."""
     if not dados_adicionais:
         return {'tem_texto': False, 'infAdFisco': '', 'infCpl': '', 'alertas': []}
 
@@ -1042,8 +894,8 @@ def analisar_rodape_nfe(dados_adicionais: dict | None) -> dict:
     if not texto_completo:
         return {'tem_texto': False, 'infAdFisco': '', 'infCpl': '', 'alertas': []}
 
-    texto_norm, _ = _texto_e_mapa_normalizado(texto_completo)
-    alertas = [rotulo for rotulo, padrao in _PONTOS_IMPORTANTES_PADROES if padrao.search(texto_norm)]
+    texto_norm = _sem_acento(texto_completo)
+    alertas = [rotulo for rotulo, padrao in _ALERTAS_RODAPE_PADROES if padrao.search(texto_norm)]
 
     return {
         'tem_texto': True,
@@ -1152,8 +1004,6 @@ def validar_upload(itens_xml, itens_csv, numero_nf, nome_arquivo_csv, colunas_fa
 def _fmt_num_curto(valor, max_dec: int = 2) -> str:
     try:
         v = float(valor)
-        if not math.isfinite(v):
-            return str(valor)
         if v.is_integer():
             return str(int(v))
         return f"{v:.{max_dec}f}".rstrip('0').rstrip('.')
@@ -1193,6 +1043,7 @@ def cruzar_itens_auditoria(itens_xml, itens_csv):
         if item_x and item_c:
             linha['Status_Geral'] = 'PAREADO'
 
+            # 1. Conferência de EAN (com alerta laranja quando ambos vazios)
             ean_x_comp = item_x.get('EAN_Comp_NF', '')
             eantrib_x_comp = item_x.get('EANTrib_Comp_NF', '')
             ean_win_comp = item_c.get('EAN_Comp_WINTHOR', '')
@@ -1207,6 +1058,7 @@ def cruzar_itens_auditoria(itens_xml, itens_csv):
             else:
                 linha['Status_EAN'] = 'DIVERGENTE'
 
+            # 2. Tipo de Cálculo ST
             tipo_calc = str(item_c.get('Tipo_Calculo_WINTHOR', '')).strip().upper()
             if tipo_calc == 'N':
                 linha['Tipo_Calculo_ST'] = 'NOTA FISCAL'
@@ -1215,6 +1067,7 @@ def cruzar_itens_auditoria(itens_xml, itens_csv):
             else:
                 linha['Tipo_Calculo_ST'] = item_c['Tipo_Calculo_WINTHOR']
 
+            # 3. Conferência de ICMS guiada pelo Tipo de Cálculo ST
             icms_xml = round(item_x['ICMS_NF'], 2)
             icms_csv = round(item_c['ICMS_WINTHOR'], 2)
             st_guia = round(item_c['%Alíq.Ext. ST Guia_Whintor'], 2)
@@ -1237,6 +1090,7 @@ def cruzar_itens_auditoria(itens_xml, itens_csv):
                 else:
                     linha['Status_ICMS_Aliq'] = 'DIVERGENTE'
 
+            # 4. Conferência de Redução de Base (ICMS Efetivo XML x % ICMS red. WinThor)
             pred_xml = round(item_x['pRedBC_NF'], 4)
             red_csv = round(item_c['% ICMS red. Whintor'], 4)
             carga_efetiva_xml = round(item_x['ICMS_NF'] * (1.0 - (item_x['pRedBC_NF'] / 100.0)), 4)
@@ -1253,12 +1107,14 @@ def cruzar_itens_auditoria(itens_xml, itens_csv):
             else:
                 linha['Status_Red_BC'] = 'DIVERGENTE'
 
+            # 5. Conferência de NCM (padronizado em 8 dígitos)
             ncm_x = str(item_x['NCM_NF']).strip()
             ncm_w = str(item_c['NCM_WINTHOR']).strip()
             ncm_x_norm = ncm_x.zfill(8) if ncm_x else ''
             ncm_w_norm = ncm_w.zfill(8) if ncm_w else ''
             linha['Status_NCM'] = 'OK' if ncm_x_norm == ncm_w_norm else 'DIVERGENTE'
 
+            # 6. Conferência de Quantidade
             qtd_xml_pura = item_x['Qtd_NF']
             qtd_win = item_c['Qtd_WINTHOR']
             fator = item_x['_Fator_Embalagem']
@@ -1297,7 +1153,7 @@ def preparar_dados_resumo_divergencias(dados_relatorio):
     for linha in dados_relatorio:
         celulas_texto = {}
         celulas_html = {}
-        celulas_tipo = {}
+        celulas_tipo = {}  # 'div', 'warn', 'obs'
         observacoes = []
         tem_div = False
         tem_warn = False
@@ -1311,6 +1167,7 @@ def preparar_dados_resumo_divergencias(dados_relatorio):
             colunas_encontradas['Sobra'] = True
             tem_div = True
         else:
+            # EAN: divergente (vermelho) ou ambos vazios (laranja)
             if linha.get('Status_EAN') == 'DIVERGENTE':
                 ean_x = str(linha.get('EAN_NF') or 'vazio')
                 ean_w = str(linha.get('EAN_WINTHOR') or 'vazio')
@@ -1327,6 +1184,7 @@ def preparar_dados_resumo_divergencias(dados_relatorio):
                 observacoes.append('Produto sem código de barras no XML e no WinThor — verificar.')
                 tem_warn = True
 
+            # NCM
             if linha.get('Status_NCM') == 'DIVERGENTE':
                 n_x = str(linha.get('NCM_NF') or '-')
                 n_w = str(linha.get('NCM_WINTHOR') or '-')
@@ -1336,6 +1194,7 @@ def preparar_dados_resumo_divergencias(dados_relatorio):
                 colunas_encontradas['NCM'] = True
                 tem_div = True
 
+            # ICMS (guiado por Tipo Cálculo ST: N ou G)
             tipo_calc = str(linha.get('Tipo_Calculo_WINTHOR', '')).strip().upper()
             if linha.get('Status_ICMS_Aliq') == 'DIVERGENTE':
                 i_x = _fmt_num_curto(linha.get('ICMS_NF'))
@@ -1361,6 +1220,7 @@ def preparar_dados_resumo_divergencias(dados_relatorio):
                     observacoes.append(linha['ICMS_Obs'])
                 tem_warn = True
 
+            # Base Reduzida (exibe ICMS Efetivo × WinThor + ICMS e Redução da NF)
             if linha.get('Status_Red_BC') == 'DIVERGENTE':
                 ef_x = _fmt_num_curto(linha.get('ICMS_Efetivo_NF'), max_dec=4)
                 r_w = _fmt_num_curto(linha.get('% ICMS red. Whintor'), max_dec=4)
@@ -1403,7 +1263,7 @@ def preparar_dados_resumo_divergencias(dados_relatorio):
                 'ean': html.escape(rotulo_ean),
                 'desc_html': desc_html,
                 'texto_ean_desc': texto_ean_desc,
-                'tooltip': html.escape(desc_completa, quote=True),
+                'tooltip': html.escape(desc_completa),
                 'celulas_texto': celulas_texto,
                 'celulas_html': celulas_html,
                 'celulas_tipo': celulas_tipo,
@@ -1414,74 +1274,39 @@ def preparar_dados_resumo_divergencias(dados_relatorio):
     return registros, colunas_ativas, qtd_divergencias, qtd_alertas
 
 
-def _alternar_ponto_rodape(ponto_rotulo: str):
-    atual = st.session_state.get("ponto_rodape_ativo")
-    st.session_state["ponto_rodape_ativo"] = None if atual == ponto_rotulo else ponto_rotulo
-
-
-def _hash_curto(texto: str) -> str:
-    return hashlib.md5(texto.encode('utf-8')).hexdigest()[:10]
-
-
 def renderizar_rodape_nfe(dados_adicionais: dict | None):
-    """Renderiza o bloco de Dados Adicionais / Rodapé da NF-e na tela com tags interativas."""
+    """Renderiza o bloco de Dados Adicionais / Rodapé da NF-e na tela."""
     info = analisar_rodape_nfe(dados_adicionais)
     if not info['tem_texto']:
         return
 
-    ponto_ativo = st.session_state.get("ponto_rodape_ativo")
-    if ponto_ativo and ponto_ativo not in info['alertas']:
-        ponto_ativo = None
-        st.session_state["ponto_rodape_ativo"] = None
-
-    st.markdown(
-        '<div class="rodape-panel">'
-        '  <div class="rodape-header">'
-        '    <span>📌 Dados Adicionais / Rodapé da NF-e</span>'
-        '  </div>'
-        '</div>',
-        unsafe_allow_html=True
-    )
-
+    alerta_html = ''
     if info['alertas']:
-        n_tags = len(info['alertas'])
-        with st.container(border=True):
-            st.markdown(
-                '<div style="font-size:0.82rem;font-weight:700;color:#92400E;margin-bottom:6px;">'
-                '⚠️ Pontos importantes <span style="font-weight:500;color:#78350F;">(clique para destacar no texto)</span>:'
-                '</div>',
-                unsafe_allow_html=True
-            )
-            cols_tags = st.columns(min(max(n_tags, 1), 4))
-            for idx_p, ponto_rotulo in enumerate(info['alertas']):
-                ativo = (ponto_ativo == ponto_rotulo)
-                prefixo = "✔️ " if ativo else "⚠️ "
-                with cols_tags[idx_p % len(cols_tags)]:
-                    st.button(
-                        f"{prefixo}{ponto_rotulo}",
-                        key=f"btn_ponto_rodape_{idx_p}_{_hash_curto(ponto_rotulo)}",
-                        use_container_width=True,
-                        type="primary" if ativo else "secondary",
-                        on_click=_alternar_ponto_rodape,
-                        args=(ponto_rotulo,)
-                    )
+        tags = ''.join(f'<span class="rodape-tag">⚠️ {html.escape(a)}</span>' for a in info['alertas'])
+        alerta_html = (
+            f'<div class="rodape-alert-bar">'
+            f'Pontos fiscais citados no rodapé: {tags}'
+            f'</div>'
+        )
 
     blocos_texto = []
     if info['infAdFisco']:
-        fisco_html = destacar_trechos_rodape_html(info["infAdFisco"], ponto_ativo)
         blocos_texto.append(
             f'<div class="rodape-sec-title">Informações ao Fisco (infAdFisco)</div>'
-            f'<div class="rodape-text">{fisco_html}</div>'
+            f'<div class="rodape-text">{html.escape(info["infAdFisco"])}</div>'
         )
     if info['infCpl']:
-        cpl_html = destacar_trechos_rodape_html(info["infCpl"], ponto_ativo)
         blocos_texto.append(
             f'<div class="rodape-sec-title">Informações Complementares (infCpl)</div>'
-            f'<div class="rodape-text">{cpl_html}</div>'
+            f'<div class="rodape-text">{html.escape(info["infCpl"])}</div>'
         )
 
     st.markdown(
-        f'<div class="rodape-panel" style="margin-top:6px;">'
+        f'<div class="rodape-panel">'
+        f'  <div class="rodape-header">'
+        f'    <span>📌 Dados Adicionais / Rodapé da NF-e</span>'
+        f'  </div>'
+        f'  {alerta_html}'
         f'  {"".join(blocos_texto)}'
         f'</div>',
         unsafe_allow_html=True
@@ -1506,7 +1331,7 @@ def renderizar_resumo_divergencias(dados_relatorio, dados_adicionais: dict | Non
     if qtd_warn > 0:
         badges.append(f'<span class="div-warn-badge">⚠️ {qtd_warn} alerta(s)</span>')
 
-    ths = ['<th>EAN (NF) + Descrição</th>'] + [f'<th>{html.escape(col)}</th>' for col in colunas_ativas]
+    ths = ['<th>EAN (NF) + Descrição</th>'] + [f'<th>{col}</th>' for col in colunas_ativas]
     trs = []
     for reg in registros:
         tds = [f'<td class="cell-prod" title="{reg["tooltip"]}">{reg["ean"]}{reg["desc_html"]}</td>']
@@ -1563,6 +1388,7 @@ def _adicionar_bloco_rodape_excel(ws, start_row: int, total_cols: int, dados_adi
 
     r = start_row
 
+    # Cabeçalho do bloco
     ws.merge_cells(start_row=r, start_column=1, end_row=r, end_column=end_col)
     c_hdr = ws.cell(row=r, column=1, value="📌 Dados Adicionais / Rodapé da NF-e")
     c_hdr.font = font_hdr
@@ -1572,9 +1398,10 @@ def _adicionar_bloco_rodape_excel(ws, start_row: int, total_cols: int, dados_adi
     ws.row_dimensions[r].height = 24
     r += 1
 
+    # Faixa de alertas fiscais encontrados
     if info['alertas']:
         ws.merge_cells(start_row=r, start_column=1, end_row=r, end_column=end_col)
-        txt_alerta = "⚠️ Pontos importantes: " + "  •  ".join(info['alertas'])
+        txt_alerta = "⚠️ Pontos fiscais citados no rodapé: " + "  •  ".join(info['alertas'])
         c_al = ws.cell(row=r, column=1, value=txt_alerta)
         c_al.font = font_alerta
         c_al.alignment = Alignment(horizontal='left', vertical='center', wrap_text=True)
@@ -1585,6 +1412,7 @@ def _adicionar_bloco_rodape_excel(ws, start_row: int, total_cols: int, dados_adi
         ws.row_dimensions[r].height = 24
         r += 1
 
+    # Estima largura total disponível para calcular altura das linhas de texto
     largura_total = sum(
         (ws.column_dimensions[get_column_letter(ci)].width or 18) for ci in range(1, end_col + 1)
     )
@@ -1592,7 +1420,6 @@ def _adicionar_bloco_rodape_excel(ws, start_row: int, total_cols: int, dados_adi
 
     def _escrever_secao(titulo_sec: str, texto_sec: str):
         nonlocal r
-        texto_limpo = texto_sec.replace('\r\n', '\n').replace('\r', '\n')
         ws.merge_cells(start_row=r, start_column=1, end_row=r, end_column=end_col)
         c_s = ws.cell(row=r, column=1, value=titulo_sec)
         c_s.font = font_sec
@@ -1605,15 +1432,14 @@ def _adicionar_bloco_rodape_excel(ws, start_row: int, total_cols: int, dados_adi
         r += 1
 
         ws.merge_cells(start_row=r, start_column=1, end_row=r, end_column=end_col)
-        c_t = ws.cell(row=r, column=1, value=texto_limpo)
+        c_t = ws.cell(row=r, column=1, value=texto_sec)
         c_t.font = font_txt
         c_t.alignment = Alignment(horizontal='left', vertical='top', wrap_text=True)
         for ci in range(1, end_col + 1):
             cell_t = ws.cell(row=r, column=ci)
             cell_t.fill = fill_rodape_txt
             cell_t.border = borda_cinza
-        linhas_txt = texto_limpo.splitlines() or [texto_limpo]
-        n_linhas = sum(max(1, math.ceil(len(p) / chars_por_linha)) for p in linhas_txt)
+        n_linhas = sum(max(1, math.ceil(len(p) / chars_por_linha)) for p in texto_sec.splitlines())
         ws.row_dimensions[r].height = max(24, min(n_linhas * 16 + 10, 409))
         r += 1
 
@@ -1627,7 +1453,7 @@ def _montar_aba_resumo_excel(workbook, dados_relatorio, numero_nf: str, dados_ad
     """Cria a aba 'Resumo_Divergencias' no Excel idêntica ao resumo exibido no front."""
     ws = workbook.create_sheet(title='Resumo_Divergencias', index=0)
     ws.sheet_view.showGridLines = False
-    ws.sheet_view.zoomScale = 80
+    ws.sheet_view.zoomScale = 70
 
     registros, colunas_ativas, qtd_div, qtd_warn = preparar_dados_resumo_divergencias(dados_relatorio)
 
@@ -1691,6 +1517,7 @@ def _montar_aba_resumo_excel(workbook, dados_relatorio, numero_nf: str, dados_ad
         partes_resumo.append(f"{qtd_warn} alerta(s)")
     resumo_contagem = "  •  ".join(partes_resumo)
 
+    # Faixa de título (Linha 1)
     ws.merge_cells(start_row=1, start_column=1, end_row=1, end_column=total_cols)
     c_tit = ws.cell(row=1, column=1)
     c_tit.value = f"🔎 Resumo de Divergências e Alertas — NF {numero_nf} (XML × WinThor)  |  {resumo_contagem}"
@@ -1701,6 +1528,7 @@ def _montar_aba_resumo_excel(workbook, dados_relatorio, numero_nf: str, dados_ad
     ws.row_dimensions[1].height = 28
     ws.row_dimensions[2].height = 8
 
+    # Cabeçalhos da tabela (Linha 3)
     for col_i, nome_col in enumerate(cabecalhos, start=1):
         cell = ws.cell(row=3, column=col_i, value=nome_col.upper())
         cell.font = font_header
@@ -1709,6 +1537,7 @@ def _montar_aba_resumo_excel(workbook, dados_relatorio, numero_nf: str, dados_ad
         cell.alignment = Alignment(horizontal='left' if col_i in (1,) or nome_col == 'Observação' else 'center', vertical='center')
     ws.row_dimensions[3].height = 24
 
+    # Linhas de divergência e alerta (a partir da Linha 4)
     for idx_reg, reg in enumerate(registros, start=4):
         eh_par = (idx_reg % 2 == 0)
         fill_linha = fill_zebra_par if eh_par else fill_zebra_impar
@@ -1755,6 +1584,7 @@ def _montar_aba_resumo_excel(workbook, dados_relatorio, numero_nf: str, dados_ad
     ws.freeze_panes = 'A4'
     ws.auto_filter.ref = f"A3:{get_column_letter(total_cols)}{len(registros) + 3}"
 
+    # Ajuste automático da largura das colunas antes do rodapé
     for col_i in range(1, total_cols + 1):
         col_letter = get_column_letter(col_i)
         max_len = len(cabecalhos[col_i - 1])
@@ -1764,6 +1594,7 @@ def _montar_aba_resumo_excel(workbook, dados_relatorio, numero_nf: str, dados_ad
                 max_len = max(max_len, len(str(val)))
         ws.column_dimensions[col_letter].width = min(max(max_len + 5, 16), 65)
 
+    # Rodapé / Dados Adicionais abaixo da tabela
     _adicionar_bloco_rodape_excel(
         ws,
         start_row=len(registros) + 6,
@@ -1823,10 +1654,11 @@ def gerar_excel_auditoria_cached(
         workbook = writer.book
         worksheet = workbook['Comparativo_ICMS_e_EAN']
 
+        # Adiciona a aba de resumo idêntica ao front como primeira guia
         _montar_aba_resumo_excel(workbook, dados_relatorio, numero_nf, dados_adicionais)
 
         worksheet.sheet_view.showGridLines = False
-        worksheet.sheet_view.zoomScale = 80
+        worksheet.sheet_view.zoomScale = 70
 
         worksheet.freeze_panes = 'A4'
         worksheet.auto_filter.ref = f"A3:{get_column_letter(len(df_final.columns))}{len(df_final) + 3}"
@@ -1979,23 +1811,22 @@ def gerar_excel_auditoria_cached(
                     wrap_text=current_align.wrap_text
                 )
 
-                raw_str = str(cell.value).strip() if cell.value is not None else ''
-                if col_name == 'Cod_Produto_WINTHOR' and raw_str not in ('', '-'):
+                if col_name == 'Cod_Produto_WINTHOR' and str(cell.value).strip() not in ('', '-'):
                     try:
-                        cell.value = int(float(raw_str))
+                        cell.value = int(float(cell.value))
                         cell.number_format = '0'
                     except ValueError:
                         pass
-                elif col_name in ('NCM_NF', 'NCM_WINTHOR') and raw_str not in ('', '-'):
+                elif col_name in ('NCM_NF', 'NCM_WINTHOR') and str(cell.value).strip() not in ('', '-'):
                     try:
-                        cell.value = int(float(raw_str))
+                        cell.value = int(float(cell.value))
                         cell.number_format = '00000000'
                     except ValueError:
                         pass
-                elif col_name in ('EAN_NF', 'EAN_WINTHOR') and raw_str not in ('', '-'):
-                    cell.value = raw_str
+                elif col_name in ('EAN_NF', 'EAN_WINTHOR') and str(cell.value).strip() not in ('', '-'):
+                    cell.value = str(cell.value).strip()
                     cell.number_format = '@'
-                elif isinstance(cell.value, (int, float)) and not isinstance(cell.value, bool):
+                elif isinstance(cell.value, (int, float)) and cell.value != '-':
                     if 'pRedBC' in col_name or 'ICMS_Efetivo' in col_name or 'red. Whintor' in col_name:
                         cell.number_format = '#,##0.0000'
                     elif 'Qtd' in col_name or 'ICMS' in col_name or 'Whintor' in col_name:
@@ -2044,6 +1875,7 @@ def gerar_excel_auditoria_cached(
                                 cell_dado = worksheet.cell(row=row, column=headers.index(col_afetada) + 1)
                                 cell_dado.font = font_normal
 
+        # Zebrado condicional apenas nas colunas que não possuem preenchimento de status/alerta
         letras_nao_status = [
             get_column_letter(idx)
             for idx, col_name in enumerate(headers, 1)
@@ -2053,6 +1885,7 @@ def gerar_excel_auditoria_cached(
             rule = FormulaRule(formula=['MOD(ROW(),2)=0'], stopIfTrue=True, fill=fill_zebrado)
             worksheet.conditional_formatting.add(f'{l_col}4:{l_col}{len(df_final) + 3}', rule)
 
+        # Ajuste automático da largura das colunas (mantendo 'Orig.' ultra-compacta)
         for idx, col in enumerate(worksheet.columns, 1):
             col_name = headers[idx - 1]
             column_letter = get_column_letter(col[0].column)
@@ -2114,6 +1947,7 @@ st.markdown("""
 </div>
 """, unsafe_allow_html=True)
 
+# Estado da sessão
 if "xml_lote" not in st.session_state:
     st.session_state["xml_lote"] = {}
 if "xml_uploader_key" not in st.session_state:
@@ -2122,9 +1956,8 @@ if "ultimo_csv_assinatura" not in st.session_state:
     st.session_state["ultimo_csv_assinatura"] = None
 if "ultimo_lote_assinatura" not in st.session_state:
     st.session_state["ultimo_lote_assinatura"] = None
-if "ponto_rodape_ativo" not in st.session_state:
-    st.session_state["ponto_rodape_ativo"] = None
 
+# Etapa 1 e 2: Uploaders lado a lado
 col_up1, col_up2 = st.columns(2, gap="large")
 
 with col_up1:
@@ -2151,6 +1984,7 @@ with col_up1:
                     "nome_arquivo": arq_x.name,
                     "bytes": bruto_x,
                 }
+        # Limpa a bandeja do uploader imediatamente após incorporar os arquivos ao lote
         st.session_state["xml_uploader_key"] += 1
         st.rerun()
 
@@ -2165,6 +1999,7 @@ lote_xml = st.session_state["xml_lote"]
 chaves_ordenadas = list(lote_xml.keys())
 assinatura_lote = tuple(chaves_ordenadas)
 
+# Detecção automática da NF tanto quando um novo CSV/XLSX entra quanto quando novos XMLs entram depois do CSV
 if arquivo_dados is not None:
     assinatura_csv = f"{arquivo_dados.name}:{arquivo_dados.size}"
     csv_mudou = assinatura_csv != st.session_state["ultimo_csv_assinatura"]
@@ -2189,6 +2024,7 @@ if chaves_ordenadas:
 else:
     st.session_state.pop("sb_nf_ativa", None)
 
+# Barra de gerenciamento do lote de XMLs
 if lote_xml:
     with st.container(border=True):
         c_info, c_sel, c_rem, c_limp = st.columns([1.8, 3.0, 1.0, 1.1], vertical_alignment="center")
@@ -2228,6 +2064,7 @@ if lote_xml:
                 on_click=_limpar_lote
             )
 
+# Estado padrão das flags de exportação
 _DEFAULTS_FLAGS = {
     "flag_sel_todos": False,
     "flag_ident": False,
@@ -2250,6 +2087,7 @@ def _ao_clicar_selecionar_todos():
         st.session_state[_k] = marcar
 
 
+# Seleção simétrica de blocos
 with st.container(border=True):
     top_col1, top_col2 = st.columns([4, 1], vertical_alignment="center")
     with top_col1:
@@ -2273,6 +2111,7 @@ with st.container(border=True):
         inc_red = st.checkbox("Redução Base", key="flag_red")
         inc_st = st.checkbox("Cálculo ST", key="flag_st")
 
+# Validação automática, download centralizado e resumo de divergências em planilha
 chave_ativa = st.session_state.get("sb_nf_ativa")
 if lote_xml and arquivo_dados and chave_ativa in lote_xml:
     xml_selecionado = lote_xml[chave_ativa]
@@ -2280,7 +2119,7 @@ if lote_xml and arquivo_dados and chave_ativa in lote_xml:
         numero_nf, itens_xml, dados_adicionais = ler_xml_nfe_bytes(xml_selecionado["bytes"])
     except ET.ParseError:
         st.markdown(
-            f'<div class="v-badge err">🚫 O arquivo <b>{html.escape(xml_selecionado["nome_arquivo"])}</b> não é um XML de NF-e válido.</div>',
+            f'<div class="v-badge err">🚫 O arquivo <b>{xml_selecionado["nome_arquivo"]}</b> não é um XML de NF-e válido.</div>',
             unsafe_allow_html=True
         )
         itens_xml = None
@@ -2296,10 +2135,10 @@ if lote_xml and arquivo_dados and chave_ativa in lote_xml:
 
         if tem_bloqueio or avisos_prep or val['avisos']:
             for bloq in val['bloqueios']:
-                st.markdown(f'<div class="v-badge err">🚫 {html.escape(bloq)}</div>', unsafe_allow_html=True)
+                st.markdown(f'<div class="v-badge err">🚫 {bloq}</div>', unsafe_allow_html=True)
 
             for av in avisos_prep + val['avisos']:
-                st.markdown(f'<div class="v-badge warn">⚠️ {html.escape(av)}</div>', unsafe_allow_html=True)
+                st.markdown(f'<div class="v-badge warn">⚠️ {av}</div>', unsafe_allow_html=True)
 
             if val['bloqueio_nf']:
                 ignorar_bloqueio_nf = st.checkbox("Confirmar mesmo assim (o arquivo pertence a esta NF)")
@@ -2318,7 +2157,7 @@ if lote_xml and arquivo_dados and chave_ativa in lote_xml:
             st.markdown(f"""
                 <div class="temp-notice-wrap">
                     <div class="temp-notice">
-                        ✅ NF {html.escape(str(numero_nf))} pronta para auditoria
+                        ✅ NF {numero_nf} pronta para auditoria
                     </div>
                 </div>
             """, unsafe_allow_html=True)
@@ -2333,6 +2172,7 @@ if lote_xml and arquivo_dados and chave_ativa in lote_xml:
                     use_container_width=True
                 )
 
+            # Resumo de divergências, alertas e rodapé da NF-e
             dados_cruzados = cruzar_itens_auditoria(itens_xml, itens_csv)
             renderizar_resumo_divergencias(dados_cruzados, dados_adicionais)
 
