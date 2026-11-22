@@ -1,5 +1,6 @@
 import html
 import io
+import math
 import os
 import re
 import unicodedata
@@ -41,417 +42,530 @@ def _garantir_tema_claro():
 _garantir_tema_claro()
 
 st.markdown("""
-    <style>
-        :root {
-            color-scheme: light !important;
-            --primary-color: #1B2631 !important;
-            --background-color: #F4F6F9 !important;
-            --secondary-background-color: #FFFFFF !important;
-            --text-color: #2C3E50 !important;
-        }
-        html, body, [data-testid="stAppViewContainer"], [data-testid="stHeader"], .stApp {
-            background-color: #F4F6F9 !important;
-            color: #2C3E50 !important;
-        }
-        .block-container {
-            padding-top: 2rem !important;
-            padding-bottom: 2rem;
-            max-width: 1180px;
-        }
+<style>
+    :root {
+        color-scheme: light !important;
+        --primary-color: #1B2631 !important;
+        --background-color: #F4F6F9 !important;
+        --secondary-background-color: #FFFFFF !important;
+        --text-color: #2C3E50 !important;
+    }
+    html, body, [data-testid="stAppViewContainer"], [data-testid="stHeader"], .stApp {
+        background-color: #F4F6F9 !important;
+        color: #2C3E50 !important;
+    }
+    .block-container {
+        padding-top: 2rem !important;
+        padding-bottom: 2rem;
+        max-width: 1180px;
+    }
 
-        /* Cabeçalho Executivo */
-        .dashboard-header {
-            background: linear-gradient(135deg, #16202A 0%, #243447 100%);
-            border: 1px solid #1B2631;
-            border-left: 5px solid #27AE60;
-            padding: 16px 22px;
-            border-radius: 10px;
-            margin-bottom: 18px;
-            box-shadow: 0 4px 12px rgba(22, 32, 42, 0.14);
-            display: flex;
-            align-items: center;
-            justify-content: space-between;
-            flex-wrap: wrap;
-            gap: 12px;
-        }
-        .header-left {
-            display: flex;
-            flex-direction: column;
-            gap: 3px;
-        }
-        .dashboard-title {
-            font-size: 1.38rem;
-            font-weight: 700;
-            margin: 0;
-            color: #FFFFFF !important;
-            letter-spacing: -0.01em;
-        }
-        .dashboard-subtitle {
-            font-size: 0.86rem;
-            color: #CBD5E1 !important;
-            margin: 0;
-        }
-        .header-pill {
-            background-color: rgba(255, 255, 255, 0.12);
-            color: #FFFFFF !important;
-            border: 1px solid rgba(255, 255, 255, 0.25);
-            font-size: 0.72rem;
-            font-weight: 700;
-            padding: 5px 12px;
-            border-radius: 20px;
-            letter-spacing: 0.05em;
-            text-transform: uppercase;
-        }
+    /* Cabeçalho Executivo */
+    .dashboard-header {
+        background: linear-gradient(135deg, #16202A 0%, #243447 100%);
+        border: 1px solid #1B2631;
+        border-left: 5px solid #27AE60;
+        padding: 16px 22px;
+        border-radius: 10px;
+        margin-bottom: 18px;
+        box-shadow: 0 4px 12px rgba(22, 32, 42, 0.14);
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        flex-wrap: wrap;
+        gap: 12px;
+    }
+    .header-left {
+        display: flex;
+        flex-direction: column;
+        gap: 3px;
+    }
+    .dashboard-title {
+        font-size: 1.38rem;
+        font-weight: 700;
+        margin: 0;
+        color: #FFFFFF !important;
+        letter-spacing: -0.01em;
+    }
+    .dashboard-subtitle {
+        font-size: 0.86rem;
+        color: #CBD5E1 !important;
+        margin: 0;
+    }
+    .header-pill {
+        background-color: rgba(255, 255, 255, 0.12);
+        color: #FFFFFF !important;
+        border: 1px solid rgba(255, 255, 255, 0.25);
+        font-size: 0.72rem;
+        font-weight: 700;
+        padding: 5px 12px;
+        border-radius: 20px;
+        letter-spacing: 0.05em;
+        text-transform: uppercase;
+    }
 
-        /* Títulos de seção com indicador de etapa */
-        .section-label {
-            font-size: 0.92rem;
-            font-weight: 600;
-            color: #1B2631;
-            margin-bottom: 6px;
-            display: flex;
-            align-items: center;
-            gap: 8px;
-        }
-        .step-num {
-            display: inline-flex;
-            align-items: center;
-            justify-content: center;
-            width: 22px;
-            height: 22px;
-            border-radius: 50%;
-            background-color: #1B2631;
-            color: #FFFFFF;
-            font-size: 0.75rem;
-            font-weight: 700;
-        }
+    /* Títulos de seção com indicador de etapa */
+    .section-label {
+        font-size: 0.92rem;
+        font-weight: 600;
+        color: #1B2631;
+        margin-bottom: 6px;
+        display: flex;
+        align-items: center;
+        gap: 8px;
+    }
+    .step-num {
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        width: 22px;
+        height: 22px;
+        border-radius: 50%;
+        background-color: #1B2631;
+        color: #FFFFFF;
+        font-size: 0.75rem;
+        font-weight: 700;
+    }
 
-        /* Uploaders claros e compactos */
-        [data-testid="stFileUploader"],
-        [data-testid="stFileUploader"] > div,
-        [data-testid="stFileUploaderDropzone"] {
-            background-color: #FFFFFF !important;
-            color: #1B2631 !important;
-        }
-        [data-testid="stFileUploaderDropzone"] {
-            border: 1.5px dashed #CBD5E1 !important;
-            border-radius: 8px !important;
-            padding: 12px 14px !important;
-            transition: border-color 0.2s ease, background-color 0.2s ease;
-        }
-        [data-testid="stFileUploaderDropzone"]:hover {
-            border-color: #2C3E50 !important;
-            background-color: #F8FAFC !important;
-        }
-        [data-testid="stFileUploaderDropzone"] div,
-        [data-testid="stFileUploaderDropzone"] span,
-        [data-testid="stFileUploaderDropzone"] small,
-        [data-testid="stFileUploaderDropzone"] p {
-            color: #334155 !important;
-        }
-        [data-testid="stFileUploaderDropzone"] button {
-            background-color: #EFF6FF !important;
-            color: #1D4ED8 !important;
-            border: 1px solid #BFDBFE !important;
-            font-weight: 600 !important;
-            border-radius: 6px !important;
-        }
+    /* Uploaders claros e compactos */
+    [data-testid="stFileUploader"],
+    [data-testid="stFileUploader"] > div,
+    [data-testid="stFileUploaderDropzone"] {
+        background-color: #FFFFFF !important;
+        color: #1B2631 !important;
+    }
+    [data-testid="stFileUploaderDropzone"] {
+        border: 1.5px dashed #CBD5E1 !important;
+        border-radius: 8px !important;
+        padding: 12px 14px !important;
+        transition: border-color 0.2s ease, background-color 0.2s ease;
+    }
+    [data-testid="stFileUploaderDropzone"]:hover {
+        border-color: #2C3E50 !important;
+        background-color: #F8FAFC !important;
+    }
+    [data-testid="stFileUploaderDropzone"] div,
+    [data-testid="stFileUploaderDropzone"] span,
+    [data-testid="stFileUploaderDropzone"] small,
+    [data-testid="stFileUploaderDropzone"] p {
+        color: #334155 !important;
+    }
+    [data-testid="stFileUploaderDropzone"] button {
+        background-color: #EFF6FF !important;
+        color: #1D4ED8 !important;
+        border: 1px solid #BFDBFE !important;
+        font-weight: 600 !important;
+        border-radius: 6px !important;
+    }
 
-        /* Lista de arquivos com rolagem controlada */
-        [data-testid="stFileUploaderDropzone"] > div:last-child,
-        [data-testid="stFileUploaderDropzone"] ul {
-            width: 100% !important;
-            max-width: 100% !important;
-            max-height: 145px !important;
-            overflow-y: auto !important;
-            flex: 1 1 100% !important;
-        }
-        [data-testid="stFileUploaderFile"],
-        [data-testid="stUploadedFile"] {
-            background-color: #EEF2F6 !important;
-            border: 1px solid #CBD5E1 !important;
-            border-radius: 8px !important;
-            color: #1B2631 !important;
-            width: 100% !important;
-            max-width: 100% !important;
-            padding: 7px 10px !important;
-            margin-bottom: 4px !important;
-            display: flex !important;
-            align-items: center !important;
-        }
-        [data-testid="stFileUploaderFile"] > div,
-        [data-testid="stUploadedFile"] > div {
-            background-color: transparent !important;
-            border: none !important;
-            color: #1B2631 !important;
-            max-width: 100% !important;
-            width: 100% !important;
-            flex: 1 1 auto !important;
-            overflow: visible !important;
-            text-overflow: unset !important;
-        }
-        [data-testid="stFileUploaderFileName"],
-        [data-testid="stFileUploaderFile"] span,
-        [data-testid="stFileUploaderFile"] div,
-        [data-testid="stUploadedFile"] span,
-        [data-testid="stUploadedFile"] div {
-            color: #1B2631 !important;
-            max-width: none !important;
-            width: auto !important;
-            white-space: normal !important;
-            overflow-wrap: anywhere !important;
-            word-break: break-all !important;
-            overflow: visible !important;
-            text-overflow: unset !important;
-            font-weight: 600 !important;
-            font-size: 0.82rem !important;
-            line-height: 1.3 !important;
-        }
-        [data-testid="stFileUploaderFile"] small,
-        [data-testid="stUploadedFile"] small {
-            color: #5D6D7E !important;
-            font-size: 0.74rem !important;
-            display: block !important;
-            margin-top: 2px !important;
-        }
-        [data-testid="stFileUploaderFile"] svg,
-        [data-testid="stUploadedFile"] svg,
-        [data-testid="stFileUploaderDeleteBtn"] button,
-        [data-testid="stFileUploaderFile"] button,
-        [data-testid="stUploadedFile"] button {
-            color: #2C3E50 !important;
-            fill: #2C3E50 !important;
-            background-color: transparent !important;
-            border: none !important;
-            flex-shrink: 0 !important;
-        }
+    /* Lista de arquivos com rolagem controlada */
+    [data-testid="stFileUploaderDropzone"] > div:last-child,
+    [data-testid="stFileUploaderDropzone"] ul {
+        width: 100% !important;
+        max-width: 100% !important;
+        max-height: 145px !important;
+        overflow-y: auto !important;
+        flex: 1 1 100% !important;
+    }
+    [data-testid="stFileUploaderFile"],
+    [data-testid="stUploadedFile"] {
+        background-color: #EEF2F6 !important;
+        border: 1px solid #CBD5E1 !important;
+        border-radius: 8px !important;
+        color: #1B2631 !important;
+        width: 100% !important;
+        max-width: 100% !important;
+        padding: 7px 10px !important;
+        margin-bottom: 4px !important;
+        display: flex !important;
+        align-items: center !important;
+    }
+    [data-testid="stFileUploaderFile"] > div,
+    [data-testid="stUploadedFile"] > div {
+        background-color: transparent !important;
+        border: none !important;
+        color: #1B2631 !important;
+        max-width: 100% !important;
+        width: 100% !important;
+        flex: 1 1 auto !important;
+        overflow: visible !important;
+        text-overflow: unset !important;
+    }
+    [data-testid="stFileUploaderFileName"],
+    [data-testid="stFileUploaderFile"] span,
+    [data-testid="stFileUploaderFile"] div,
+    [data-testid="stUploadedFile"] span,
+    [data-testid="stUploadedFile"] div {
+        color: #1B2631 !important;
+        max-width: none !important;
+        width: auto !important;
+        white-space: normal !important;
+        overflow-wrap: anywhere !important;
+        word-break: break-all !important;
+        overflow: visible !important;
+        text-overflow: unset !important;
+        font-weight: 600 !important;
+        font-size: 0.82rem !important;
+        line-height: 1.3 !important;
+    }
+    [data-testid="stFileUploaderFile"] small,
+    [data-testid="stUploadedFile"] small {
+        color: #5D6D7E !important;
+        font-size: 0.74rem !important;
+        display: block !important;
+        margin-top: 2px !important;
+    }
+    [data-testid="stFileUploaderFile"] svg,
+    [data-testid="stUploadedFile"] svg,
+    [data-testid="stFileUploaderDeleteBtn"] button,
+    [data-testid="stFileUploaderFile"] button,
+    [data-testid="stUploadedFile"] button {
+        color: #2C3E50 !important;
+        fill: #2C3E50 !important;
+        background-color: transparent !important;
+        border: none !important;
+        flex-shrink: 0 !important;
+    }
 
-        /* Containers em fundo branco */
-        [data-testid="stVerticalBlockBorderWrapper"] {
-            background-color: #FFFFFF !important;
-            border-color: #E2E8F0 !important;
-            border-radius: 8px !important;
-        }
+    /* Containers em fundo branco */
+    [data-testid="stVerticalBlockBorderWrapper"] {
+        background-color: #FFFFFF !important;
+        border-color: #E2E8F0 !important;
+        border-radius: 8px !important;
+    }
 
-        /* Checkboxes compactos */
-        div[data-testid="stCheckbox"] {
-            margin-bottom: 4px;
-        }
-        div[data-testid="stCheckbox"] label p {
-            font-size: 0.88rem !important;
-            color: #2C3E50 !important;
-            font-weight: 500 !important;
-        }
+    /* Checkboxes compactos */
+    div[data-testid="stCheckbox"] {
+        margin-bottom: 4px;
+    }
+    div[data-testid="stCheckbox"] label p {
+        font-size: 0.88rem !important;
+        color: #2C3E50 !important;
+        font-weight: 500 !important;
+    }
 
-        /* Barra do lote */
-        .lote-pill {
-            display: inline-flex;
-            align-items: center;
-            gap: 6px;
-            background-color: #EEF2F6;
-            color: #1B2631;
-            border: 1px solid #CBD5E1;
-            padding: 5px 12px;
-            border-radius: 20px;
-            font-size: 0.82rem;
-            font-weight: 600;
-        }
+    /* Barra do lote */
+    .lote-pill {
+        display: inline-flex;
+        align-items: center;
+        gap: 6px;
+        background-color: #EEF2F6;
+        color: #1B2631;
+        border: 1px solid #CBD5E1;
+        padding: 5px 12px;
+        border-radius: 20px;
+        font-size: 0.82rem;
+        font-weight: 600;
+    }
 
-        /* Selo de status fixo e separado do botão */
-        .temp-notice-wrap {
-            display: flex;
-            justify-content: center;
-            align-items: center;
-            width: 100%;
-            margin-top: 8px;
-            margin-bottom: 16px;
-        }
-        .temp-notice {
-            display: inline-flex;
-            align-items: center;
-            justify-content: center;
-            gap: 8px;
-            background-color: #EAFAF1;
-            color: #145A32;
-            border: 1px solid #A9DFBF;
-            padding: 8px 22px;
-            border-radius: 8px;
-            font-size: 0.88rem;
-            font-weight: 600;
-            box-shadow: 0 1px 4px rgba(25, 111, 61, 0.08);
-        }
+    /* Selo de status fixo e separado do botão */
+    .temp-notice-wrap {
+        display: flex;
+        justify-content: center;
+        align-items: center;
+        width: 100%;
+        margin-top: 8px;
+        margin-bottom: 16px;
+    }
+    .temp-notice {
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        gap: 8px;
+        background-color: #EAFAF1;
+        color: #145A32;
+        border: 1px solid #A9DFBF;
+        padding: 8px 22px;
+        border-radius: 8px;
+        font-size: 0.88rem;
+        font-weight: 600;
+        box-shadow: 0 1px 4px rgba(25, 111, 61, 0.08);
+    }
 
-        /* Estado vazio discreto */
-        .empty-hint {
-            text-align: center;
-            color: #64748B;
-            font-size: 0.86rem;
-            padding: 12px;
-            background-color: #FFFFFF;
-            border: 1px dashed #CBD5E1;
-            border-radius: 8px;
-            margin-top: 6px;
-        }
+    /* Estado vazio discreto */
+    .empty-hint {
+        text-align: center;
+        color: #64748B;
+        font-size: 0.86rem;
+        padding: 12px;
+        background-color: #FFFFFF;
+        border: 1px dashed #CBD5E1;
+        border-radius: 8px;
+        margin-top: 6px;
+    }
 
-        /* Alertas de bloqueio/aviso */
-        .v-badge {
-            display: flex;
-            align-items: center;
-            gap: 6px;
-            font-size: 0.84rem;
-            font-weight: 500;
-            padding: 8px 14px;
-            border-radius: 6px;
-            margin-bottom: 8px;
-        }
-        .v-badge.warn {
-            background-color: #FEF9E7;
-            color: #7D6608;
-            border: 1px solid #F9E79F;
-        }
-        .v-badge.err {
-            background-color: #FADBD8;
-            color: #78281F;
-            border: 1px solid #F5B7B1;
-        }
+    /* Alertas de bloqueio/aviso */
+    .v-badge {
+        display: flex;
+        align-items: center;
+        gap: 6px;
+        font-size: 0.84rem;
+        font-weight: 500;
+        padding: 8px 14px;
+        border-radius: 6px;
+        margin-bottom: 8px;
+    }
+    .v-badge.warn {
+        background-color: #FEF9E7;
+        color: #7D6608;
+        border: 1px solid #F9E79F;
+    }
+    .v-badge.err {
+        background-color: #FADBD8;
+        color: #78281F;
+        border: 1px solid #F5B7B1;
+    }
 
-        /* Botão de Download em Verde Executivo */
-        div[data-testid="stDownloadButton"] > button {
-            background-color: #196F3D !important;
-            color: #FFFFFF !important;
-            border: 1px solid #145A32 !important;
-            font-weight: 600 !important;
-            font-size: 0.95rem !important;
-            padding: 10px 24px !important;
-            border-radius: 8px !important;
-            box-shadow: 0 3px 8px rgba(25, 111, 61, 0.22) !important;
-        }
-        div[data-testid="stDownloadButton"] > button:hover {
-            background-color: #145A32 !important;
-            border-color: #0E3E22 !important;
-        }
+    /* Botão de Download em Verde Executivo */
+    div[data-testid="stDownloadButton"] > button {
+        background-color: #196F3D !important;
+        color: #FFFFFF !important;
+        border: 1px solid #145A32 !important;
+        font-weight: 600 !important;
+        font-size: 0.95rem !important;
+        padding: 10px 24px !important;
+        border-radius: 8px !important;
+        box-shadow: 0 3px 8px rgba(25, 111, 61, 0.22) !important;
+    }
+    div[data-testid="stDownloadButton"] > button:hover {
+        background-color: #145A32 !important;
+        border-color: #0E3E22 !important;
+    }
 
-        /* Resumo de Divergências em Formato de Planilha Moderna */
-        .div-panel {
-            background-color: #FFFFFF;
-            border: 1px solid #CBD5E1;
-            border-radius: 10px;
-            padding: 14px 16px 16px 16px;
-            margin-top: 20px;
-            box-shadow: 0 3px 10px rgba(15, 23, 42, 0.06);
-        }
-        .div-panel-header {
-            display: flex;
-            align-items: center;
-            justify-content: space-between;
-            margin-bottom: 12px;
-            font-size: 0.90rem;
-            font-weight: 700;
-            color: #1B2631;
-        }
-        .div-count-badge {
-            background-color: #DC2626;
-            color: #FFFFFF;
-            font-size: 0.76rem;
-            font-weight: 700;
-            padding: 3px 11px;
-            border-radius: 14px;
-        }
-        .div-table-wrap {
-            width: 100%;
-            overflow-x: auto;
-            border: 1px solid #CBD5E1;
-            border-radius: 8px;
-        }
-        .div-table {
-            width: 100%;
-            border-collapse: collapse;
-            font-size: 0.84rem;
-            background-color: #FFFFFF;
-        }
-        .div-table thead th {
-            background-color: #1B2631;
-            color: #FFFFFF;
-            font-weight: 700;
-            text-align: center;
-            padding: 10px 12px;
-            border-right: 1px solid #334155;
-            letter-spacing: 0.03em;
-            text-transform: uppercase;
-            font-size: 0.76rem;
-            white-space: nowrap;
-        }
-        .div-table thead th:first-child {
-            text-align: left;
-        }
-        .div-table thead th:last-child {
-            border-right: none;
-        }
-        .div-table tbody tr {
-            background-color: #FFFFFF;
-            transition: background-color 0.15s ease;
-        }
-        .div-table tbody tr:nth-child(even) {
-            background-color: #E8EFF7;
-        }
-        .div-table tbody tr:hover {
-            background-color: #DBEAFE;
-        }
-        .div-table tbody td {
-            padding: 9px 12px;
-            border-top: 1px solid #CBD5E1;
-            border-right: 1px solid #CBD5E1;
-            text-align: center;
-            white-space: nowrap;
-        }
-        .div-table tbody td:last-child {
-            border-right: none;
-        }
-        .div-table tbody td.cell-prod {
-            text-align: left;
-            font-weight: 700;
-            color: #1B2631;
-            min-width: 145px;
-        }
-        .div-table tbody td.cell-prod .cell-desc {
-            font-weight: 500;
-            color: #475569;
-            font-size: 0.78rem;
-            margin-left: 6px;
-        }
-        .div-table tbody td.cell-div {
-            background-color: #FEE2E2;
-            color: #991B1B;
-            font-weight: 700;
-        }
-        .div-table tbody tr:nth-child(even) td.cell-div {
-            background-color: #FECACA;
-        }
-        .div-table tbody tr:hover td.cell-div {
-            background-color: #FCA5A5;
-            color: #7F1D1D;
-        }
-        .div-table tbody td.cell-ok {
-            color: #94A3B8;
-            font-weight: 500;
-        }
-        .div-sep {
-            color: #DC2626;
-            font-weight: 800;
-            margin: 0 3px;
-        }
-        .div-ok-box {
-            text-align: center;
-            background-color: #DCFCE7;
-            border: 1px solid #86EFAC;
-            color: #14532D;
-            border-radius: 8px;
-            padding: 11px 14px;
-            margin-top: 20px;
-            font-size: 0.87rem;
-            font-weight: 700;
-        }
-    </style>
+    /* Resumo de Divergências em Formato de Planilha Moderna */
+    .div-panel {
+        background-color: #FFFFFF;
+        border: 1px solid #CBD5E1;
+        border-radius: 10px;
+        padding: 14px 16px 16px 16px;
+        margin-top: 20px;
+        box-shadow: 0 3px 10px rgba(15, 23, 42, 0.06);
+    }
+    .div-panel-header {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        flex-wrap: wrap;
+        gap: 8px;
+        margin-bottom: 12px;
+        font-size: 0.90rem;
+        font-weight: 700;
+        color: #1B2631;
+    }
+    .div-badges-wrap {
+        display: flex;
+        align-items: center;
+        gap: 6px;
+    }
+    .div-count-badge {
+        background-color: #DC2626;
+        color: #FFFFFF;
+        font-size: 0.76rem;
+        font-weight: 700;
+        padding: 3px 11px;
+        border-radius: 14px;
+    }
+    .div-warn-badge {
+        background-color: #D97706;
+        color: #FFFFFF;
+        font-size: 0.76rem;
+        font-weight: 700;
+        padding: 3px 11px;
+        border-radius: 14px;
+    }
+    .div-table-wrap {
+        width: 100%;
+        overflow-x: auto;
+        border: 1px solid #CBD5E1;
+        border-radius: 8px;
+    }
+    .div-table {
+        width: 100%;
+        border-collapse: collapse;
+        font-size: 0.84rem;
+        background-color: #FFFFFF;
+    }
+    .div-table thead th {
+        background-color: #1B2631;
+        color: #FFFFFF;
+        font-weight: 700;
+        text-align: center;
+        padding: 10px 12px;
+        border-right: 1px solid #334155;
+        letter-spacing: 0.03em;
+        text-transform: uppercase;
+        font-size: 0.76rem;
+        white-space: nowrap;
+    }
+    .div-table thead th:first-child {
+        text-align: left;
+    }
+    .div-table thead th:last-child {
+        border-right: none;
+    }
+    .div-table tbody tr {
+        background-color: #FFFFFF;
+        transition: background-color 0.15s ease;
+    }
+    .div-table tbody tr:nth-child(even) {
+        background-color: #E8EFF7;
+    }
+    .div-table tbody tr:hover {
+        background-color: #DBEAFE;
+    }
+    .div-table tbody td {
+        padding: 9px 12px;
+        border-top: 1px solid #CBD5E1;
+        border-right: 1px solid #CBD5E1;
+        text-align: center;
+        white-space: nowrap;
+    }
+    .div-table tbody td:last-child {
+        border-right: none;
+    }
+    .div-table tbody td.cell-prod {
+        text-align: left;
+        font-weight: 700;
+        color: #1B2631;
+        min-width: 145px;
+    }
+    .div-table tbody td.cell-prod .cell-desc {
+        font-weight: 500;
+        color: #475569;
+        font-size: 0.78rem;
+        margin-left: 6px;
+    }
+    .div-table tbody td.cell-div {
+        background-color: #FEE2E2;
+        color: #991B1B;
+        font-weight: 700;
+    }
+    .div-table tbody tr:nth-child(even) td.cell-div {
+        background-color: #FECACA;
+    }
+    .div-table tbody tr:hover td.cell-div {
+        background-color: #FCA5A5;
+        color: #7F1D1D;
+    }
+    .div-table tbody td.cell-warn {
+        background-color: #FEF3C7;
+        color: #B45309;
+        font-weight: 700;
+    }
+    .div-table tbody tr:nth-child(even) td.cell-warn {
+        background-color: #FDE68A;
+    }
+    .div-table tbody tr:hover td.cell-warn {
+        background-color: #FCD34D;
+        color: #78350F;
+    }
+    .div-table tbody td.cell-obs {
+        text-align: left;
+        white-space: normal;
+        min-width: 220px;
+        font-size: 0.79rem;
+        color: #92400E;
+        background-color: #FFFBEB;
+        font-weight: 600;
+    }
+    .div-table tbody tr:nth-child(even) td.cell-obs {
+        background-color: #FEF3C7;
+    }
+    .div-table tbody td.cell-ok {
+        color: #94A3B8;
+        font-weight: 500;
+    }
+    .div-sep {
+        color: #DC2626;
+        font-weight: 800;
+        margin: 0 3px;
+    }
+    .warn-sep {
+        color: #D97706;
+        font-weight: 800;
+        margin: 0 3px;
+    }
+    .red-detail {
+        display: block;
+        font-size: 0.73rem;
+        font-weight: 500;
+        color: #7F1D1D;
+        margin-top: 2px;
+    }
+    .div-ok-box {
+        text-align: center;
+        background-color: #DCFCE7;
+        border: 1px solid #86EFAC;
+        color: #14532D;
+        border-radius: 8px;
+        padding: 11px 14px;
+        margin-top: 20px;
+        font-size: 0.87rem;
+        font-weight: 700;
+    }
+
+    /* Bloco de Dados Adicionais / Rodapé da NF-e */
+    .rodape-panel {
+        background-color: #FFFFFF;
+        border: 1px solid #CBD5E1;
+        border-left: 4px solid #1B2631;
+        border-radius: 10px;
+        padding: 14px 16px;
+        margin-top: 16px;
+        box-shadow: 0 2px 8px rgba(15, 23, 42, 0.05);
+    }
+    .rodape-header {
+        font-size: 0.90rem;
+        font-weight: 700;
+        color: #1B2631;
+        margin-bottom: 10px;
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        flex-wrap: wrap;
+        gap: 8px;
+    }
+    .rodape-alert-bar {
+        background-color: #FEF3C7;
+        border: 1px solid #F59E0B;
+        color: #92400E;
+        border-radius: 6px;
+        padding: 8px 12px;
+        font-size: 0.82rem;
+        font-weight: 600;
+        margin-bottom: 10px;
+    }
+    .rodape-tag {
+        display: inline-block;
+        background-color: #FDE68A;
+        color: #78350F;
+        border: 1px solid #F59E0B;
+        border-radius: 12px;
+        padding: 1px 8px;
+        font-size: 0.75rem;
+        font-weight: 700;
+        margin: 2px 4px 2px 0;
+    }
+    .rodape-sec-title {
+        font-size: 0.76rem;
+        font-weight: 700;
+        text-transform: uppercase;
+        letter-spacing: 0.04em;
+        color: #475569;
+        margin: 6px 0 4px 0;
+    }
+    .rodape-text {
+        background-color: #F8FAFC;
+        border: 1px solid #E2E8F0;
+        border-radius: 6px;
+        padding: 10px 12px;
+        font-size: 0.82rem;
+        line-height: 1.5;
+        color: #1E293B;
+        white-space: pre-wrap;
+        word-break: break-word;
+    }
+</style>
 """, unsafe_allow_html=True)
 
 # ==========================================
@@ -460,14 +574,28 @@ st.markdown("""
 NS = {'ns': 'http://www.portalfiscal.inf.br/nfe'}
 LIMITE_MARCA = 0.70
 
-_RE_SCI = re.compile(r'^[0-9.,]+E[+\-]?[0-9]+$')
+_RE_SCI = re.compile(r'^[0-9.,]+E[+-]?[0-9]+$')
 _RE_DIGITS = re.compile(r'[^0-9]')
 _RE_ALPHA = re.compile(r'[^a-z]')
 _RE_TOKENS = re.compile(r'[A-Z0-9]+')
 _RE_EXT = re.compile(r'\.[A-Za-z0-9]+$')
 _RE_NUMS = re.compile(r'\d{3,}')
-_RE_NNF_BYTES = re.compile(rb'<(?:[A-Za-z0-9_]+:)?nNF>\s*(\d+)\s*</(?:[A-Za-z0-9_]+:)?nNF>')
+_RE_NNF_BYTES = re.compile(rb'<(?:[A-Za-z0-9]+:)?nNF>\s*(\d+)\s*</(?:[A-Za-z0-9]+:)?nNF>')
+_RE_EMB = re.compile(r'\b(?:CX|DP|FD|PCT|EMB|PC|UN)X?(\d+)\b', re.IGNORECASE)
 _IGNORAR = {'COM', 'PARA', 'DOS', 'DAS', 'UNID', 'UND', 'CX', 'KIT', 'PCT', 'FR', 'REF', 'ESC', 'ATIV'}
+
+_ALERTAS_RODAPE_PADROES = [
+    ("ICMS-ST / ST", re.compile(r'\b(?:icms[\s-]*st|st|b\.?calc\.?st)\b|substituicao\s+tributaria', re.IGNORECASE)),
+    ("GNRE", re.compile(r'\bgnre\b|guia\s+nacional', re.IGNORECASE)),
+    ("Redução de Base", re.compile(r'reducao\s+(?:de\s+|da\s+)?base|\bred\.?\s*bc\b|base\s+de\s+calculo\s+reduzida', re.IGNORECASE)),
+    ("Decreto / Convênio / Protocolo", re.compile(r'\b(?:decreto|convenio|protocolo|lei)\b', re.IGNORECASE)),
+    ("FCP / FECP", re.compile(r'\b(?:fcp|fecp)\b', re.IGNORECASE)),
+    ("DIFAL", re.compile(r'\bdifal\b|diferencial\s+de\s+aliquota', re.IGNORECASE)),
+    ("Diferimento / Isenção / Benefício", re.compile(r'\b(?:diferimento|isencao|isento|beneficio|desonerado|desoneracao)\b', re.IGNORECASE)),
+    ("Simples Nacional", re.compile(r'simples\s+nacional', re.IGNORECASE)),
+    ("Crédito de ICMS", re.compile(r'credito\s+(?:de\s+)?icms|aproveitamento\s+(?:de\s+|do\s+)?credito', re.IGNORECASE)),
+    ("Bonificação / Devolução", re.compile(r'\b(?:bonificacao|devolucao|brinde)\b', re.IGNORECASE)),
+]
 
 
 # ==========================================
@@ -540,34 +668,26 @@ def converte_float_br(valor):
         return 0.0
 
 
-def obter_descricao_origem(orig_cod):
-    tabela_origem = {
-        '0': '0 - Nacional',
-        '1': '1 - Estrangeira (Imp. Direta)',
-        '2': '2 - Estrangeira (Mercado Interno)',
-        '3': '3 - Nacional (Imp. > 40% e <= 70%)',
-        '4': '4 - Nacional (Processo Produtivo Básico)',
-        '5': '5 - Nacional (Imp. <= 40%)',
-        '6': '6 - Estrangeira (Sem Similar Nacional)',
-        '7': '7 - Estrangeira (Mercado Interno, Sem Similar)',
-        '8': '8 - Nacional (Imp. > 70%)'
-    }
-    return tabela_origem.get(str(orig_cod).strip(), f"{orig_cod} - Desconhecida")
+def obter_sigla_origem(orig_cod) -> str:
+    """Retorna sigla ultra-compacta de origem: NAC (Nacional) ou IMP (Importado)."""
+    cod = str(orig_cod).strip()
+    if cod in ('0', '3', '4', '5', '8'):
+        return 'NAC'
+    if cod in ('1', '2', '6', '7'):
+        return 'IMP'
+    return '-'
 
 
-def extrair_fator_embalagem(uCom):
+def extrair_fator_embalagem(uCom) -> float:
+    """Extrai fator multiplicador apenas de siglas reais de embalagem (evita confundir ML/G/KG)."""
     if not uCom:
         return 1.0
-    match = re.search(r'(?:DP|CX|PC|UN)x?(\d+)', str(uCom), re.IGNORECASE)
+    match = _RE_EMB.search(str(uCom).strip())
     if match:
         try:
-            return float(match.group(1))
-        except ValueError:
-            pass
-    match_nums = re.findall(r'\d+', str(uCom))
-    if match_nums:
-        try:
-            return float(match_nums[-1])
+            fator = float(match.group(1))
+            if fator > 0:
+                return fator
         except ValueError:
             pass
     return 1.0
@@ -588,6 +708,44 @@ def _achar_coluna_seq(colunas):
     return None
 
 
+def _achar_coluna_tipo_calculo(colunas):
+    for c in colunas:
+        norm = _sem_acento(c).lower()
+        if 'tipo' in norm and 'calculo' in norm:
+            return c
+    return None
+
+
+def _detectar_separador_csv(texto: str) -> str:
+    """Detecta automaticamente se o CSV usa ';' ou ',' (prioriza ';' quando presente)."""
+    for linha in texto.splitlines():
+        l_strip = linha.strip()
+        if l_strip:
+            if ';' in l_strip:
+                return ';'
+            if ',' in l_strip:
+                return ','
+            break
+    return ';'
+
+
+def _validar_colunas_winthor(colunas) -> list[str]:
+    """Verifica se todas as colunas essenciais do WinThor estão presentes."""
+    col_set = set(colunas)
+    obrigatorias = [
+        'Cód. barra',
+        'Descrição',
+        'NCM',
+        '%ICMS',
+        '% ICMS red.',
+        '%Alíq.Ext.ST Guia',
+    ]
+    faltantes = [c for c in obrigatorias if c not in col_set]
+    if _achar_coluna_tipo_calculo(colunas) is None:
+        faltantes.append('Tipo cálculo ST')
+    return faltantes
+
+
 @st.cache_data(show_spinner=False)
 def ler_csv_winthor_cached(bruto: bytes, nome_arquivo: str):
     avisos = []
@@ -605,10 +763,13 @@ def ler_csv_winthor_cached(bruto: bytes, nome_arquivo: str):
                 continue
         if texto is None:
             texto = bruto.decode('latin1', errors='replace')
-        df = pd.read_csv(io.StringIO(texto), sep=';', dtype=str)
+        sep_detectado = _detectar_separador_csv(texto)
+        df = pd.read_csv(io.StringIO(texto), sep=sep_detectado, dtype=str)
 
     df.columns = df.columns.astype(str).str.strip()
     df = df.dropna(how='all').reset_index(drop=True)
+
+    colunas_faltantes = _validar_colunas_winthor(df.columns)
 
     col_seq = _achar_coluna_seq(df.columns)
     if col_seq is None:
@@ -626,16 +787,11 @@ def ler_csv_winthor_cached(bruto: bytes, nome_arquivo: str):
         df['_seq'] = seq.astype(int)
         df = df.sort_values('_seq', kind='stable').reset_index(drop=True)
 
-    return df, avisos
+    return df, avisos, colunas_faltantes
 
 
 def montar_itens_csv(df):
-    col_tipo = next(
-        (c for c in df.columns if 'tipo' in c.lower() and ('cálculo' in c.lower() or 'calculo' in c.lower())),
-        None
-    )
-    if not col_tipo and len(df.columns) >= 2:
-        col_tipo = df.columns[-2]
+    col_tipo = _achar_coluna_tipo_calculo(df.columns)
 
     itens = []
     for _, row in df.iterrows():
@@ -670,6 +826,13 @@ def ler_xml_nfe_bytes(bruto: bytes):
         e = no.find(f'ns:{tag}', NS)
         return e.text.strip() if e is not None and e.text else ''
 
+    # Extração do rodapé / Dados Adicionais (<infAdic>)
+    inf_adic = root.find('.//ns:infAdic', NS)
+    dados_adicionais = {
+        'infAdFisco': txt(inf_adic, 'infAdFisco'),
+        'infCpl': txt(inf_adic, 'infCpl'),
+    }
+
     itens = []
     for det in root.findall('.//ns:det', NS):
         prod = det.find('ns:prod', NS)
@@ -684,7 +847,7 @@ def ler_xml_nfe_bytes(bruto: bytes):
         ean_exib = limpar_numero(ean_raw) if ean_comp != '' else limpar_numero(ean_trib_raw)
         u_com = txt(prod, 'uCom') or 'UN'
 
-        icms, origem = 0.0, '0 - Nacional'
+        icms, origem = 0.0, 'NAC'
         icms_node = det.find('.//ns:ICMS', NS)
         if icms_node is not None and len(icms_node) > 0:
             sub = icms_node[0]
@@ -693,7 +856,7 @@ def ler_xml_nfe_bytes(bruto: bytes):
                 icms = converte_float_br(p.text)
             o = sub.find('ns:orig', NS)
             if o is not None and o.text:
-                origem = obter_descricao_origem(o.text.strip())
+                origem = obter_sigla_origem(o.text.strip())
 
         pred_node = (
             icms_node[0].find('ns:pRedBC', NS)
@@ -713,13 +876,38 @@ def ler_xml_nfe_bytes(bruto: bytes):
             '_Fator_Embalagem': extrair_fator_embalagem(u_com),
             'Vl_Unit_NF': converte_float_br(txt(prod, 'vUnCom')),
             'Vl_Total_NF': converte_float_br(txt(prod, 'vProd')),
-            'Origem_XML': origem,
+            'Orig.': origem,
             'ICMS_NF': icms,
             'pRedBC_NF': pred,
         })
-    return numero_nf, itens
+    return numero_nf, itens, dados_adicionais
 
 
+def analisar_rodape_nfe(dados_adicionais: dict | None) -> dict:
+    """Analisa infAdFisco e infCpl e identifica alertas fiscais relevantes."""
+    if not dados_adicionais:
+        return {'tem_texto': False, 'infAdFisco': '', 'infCpl': '', 'alertas': []}
+
+    fisco = (dados_adicionais.get('infAdFisco') or '').strip()
+    cpl = (dados_adicionais.get('infCpl') or '').strip()
+    texto_completo = f"{fisco}\n{cpl}".strip()
+    if not texto_completo:
+        return {'tem_texto': False, 'infAdFisco': '', 'infCpl': '', 'alertas': []}
+
+    texto_norm = _sem_acento(texto_completo)
+    alertas = [rotulo for rotulo, padrao in _ALERTAS_RODAPE_PADROES if padrao.search(texto_norm)]
+
+    return {
+        'tem_texto': True,
+        'infAdFisco': fisco,
+        'infCpl': cpl,
+        'alertas': alertas,
+    }
+
+
+# ==========================================
+# 2. VALIDAÇÃO, CRUZAMENTO E RELATÓRIOS
+# ==========================================
 def _tokens(desc):
     t = _RE_TOKENS.findall(_sem_acento(desc).upper())
     return {x for x in t if len(x) >= 3 and not any(ch.isdigit() for ch in x) and x not in _IGNORAR}
@@ -730,7 +918,7 @@ def _numeros_do_nome(nome):
     return {g.lstrip('0') for g in _RE_NUMS.findall(stem)}
 
 
-def validar_upload(itens_xml, itens_csv, numero_nf, nome_arquivo_csv):
+def validar_upload(itens_xml, itens_csv, numero_nf, nome_arquivo_csv, colunas_faltantes=None):
     bloqueios, avisos, infos = [], [], []
     r = {
         'bloqueios': bloqueios,
@@ -739,6 +927,14 @@ def validar_upload(itens_xml, itens_csv, numero_nf, nome_arquivo_csv):
         'marca_em_comum': [],
         'bloqueio_nf': False,
     }
+
+    if colunas_faltantes:
+        lista_cols = ', '.join(f"'{c}'" for c in colunas_faltantes)
+        bloqueios.append(
+            f"Coluna(s) obrigatória(s) ausente(s) no arquivo do WinThor: {lista_cols}. "
+            f"Exporte o relatório completo antes de auditar."
+        )
+        return r
 
     n_x, n_c = len(itens_xml), len(itens_csv)
     if n_x != n_c:
@@ -760,8 +956,9 @@ def validar_upload(itens_xml, itens_csv, numero_nf, nome_arquivo_csv):
         for ix, ic in zip(itens_xml, itens_csv):
             tx, tc = _tokens(ix['Descricao_NF']), _tokens(ic['Descricao_WINTHOR'])
             ean_x = ix.get('EAN_Comp_NF', '')
+            eantrib_x = ix.get('EANTrib_Comp_NF', '')
             ean_c = ic.get('EAN_Comp_WINTHOR', '')
-            mesmo_ean = bool(ean_x and ean_c and ean_x in (ean_c, ix.get('EANTrib_Comp_NF')))
+            mesmo_ean = bool(ean_c and (ean_c == ean_x or ean_c == eantrib_x))
 
             if (tx & tc) or mesmo_ean:
                 compat += 1
@@ -804,6 +1001,16 @@ def validar_upload(itens_xml, itens_csv, numero_nf, nome_arquivo_csv):
     return r
 
 
+def _fmt_num_curto(valor, max_dec: int = 2) -> str:
+    try:
+        v = float(valor)
+        if v.is_integer():
+            return str(int(v))
+        return f"{v:.{max_dec}f}".rstrip('0').rstrip('.')
+    except (TypeError, ValueError):
+        return str(valor)
+
+
 def cruzar_itens_auditoria(itens_xml, itens_csv):
     """Realiza o cruzamento linha a linha entre XML e WinThor (fonte única para tela e Excel)."""
     dados_relatorio = []
@@ -816,7 +1023,7 @@ def cruzar_itens_auditoria(itens_xml, itens_csv):
             linha.update({
                 'Linha_NF': '-', 'Descricao_NF': '-', 'EAN_NF': '-', 'NCM_NF': '-',
                 'Qtd_NF': '-', '_Fator_Embalagem': 1.0, 'Vl_Unit_NF': '-', 'Vl_Total_NF': '-',
-                'ICMS_NF': '-', 'pRedBC_NF': '-'
+                'Orig.': '-', 'ICMS_NF': '-', 'pRedBC_NF': '-'
             })
 
         if item_c:
@@ -829,9 +1036,14 @@ def cruzar_itens_auditoria(itens_xml, itens_csv):
                 '%Alíq.Ext. ST Guia_Whintor': '-', 'Tipo_Calculo_WINTHOR': '-'
             })
 
+        linha['EAN_Alerta_Vazio'] = False
+        linha['ICMS_Alerta_Guia'] = False
+        linha['ICMS_Obs'] = ''
+
         if item_x and item_c:
             linha['Status_Geral'] = 'PAREADO'
 
+            # 1. Conferência de EAN (com alerta laranja quando ambos vazios)
             ean_x_comp = item_x.get('EAN_Comp_NF', '')
             eantrib_x_comp = item_x.get('EANTrib_Comp_NF', '')
             ean_win_comp = item_c.get('EAN_Comp_WINTHOR', '')
@@ -840,30 +1052,13 @@ def cruzar_itens_auditoria(itens_xml, itens_csv):
                 linha['Status_EAN'] = 'OK'
             elif ean_win_comp == '' and ean_x_comp == '' and eantrib_x_comp == '':
                 linha['Status_EAN'] = 'OK'
+                linha['EAN_Alerta_Vazio'] = True
+                linha['EAN_NF'] = 'SEM EAN'
+                linha['EAN_WINTHOR'] = 'SEM EAN'
             else:
                 linha['Status_EAN'] = 'DIVERGENTE'
 
-            icms_xml = round(item_x['ICMS_NF'], 2)
-            icms_csv = round(item_c['ICMS_WINTHOR'], 2)
-            st_guia = round(item_c['%Alíq.Ext. ST Guia_Whintor'], 2)
-            if icms_xml == icms_csv or icms_xml == st_guia:
-                linha['Status_ICMS_Aliq'] = 'OK'
-            else:
-                linha['Status_ICMS_Aliq'] = 'DIVERGENTE'
-
-            pred_xml = round(item_x['pRedBC_NF'], 4)
-            red_csv = round(item_c['% ICMS red. Whintor'], 4)
-            carga_efetiva_xml = round(item_x['ICMS_NF'] * (1.0 - (item_x['pRedBC_NF'] / 100.0)), 4)
-
-            if (
-                carga_efetiva_xml == red_csv
-                or round(carga_efetiva_xml, 2) == round(red_csv, 2)
-                or pred_xml == red_csv
-            ):
-                linha['Status_Red_BC'] = 'OK'
-            else:
-                linha['Status_Red_BC'] = 'DIVERGENTE'
-
+            # 2. Tipo de Cálculo ST
             tipo_calc = str(item_c.get('Tipo_Calculo_WINTHOR', '')).strip().upper()
             if tipo_calc == 'N':
                 linha['Tipo_Calculo_ST'] = 'NOTA FISCAL'
@@ -872,8 +1067,54 @@ def cruzar_itens_auditoria(itens_xml, itens_csv):
             else:
                 linha['Tipo_Calculo_ST'] = item_c['Tipo_Calculo_WINTHOR']
 
-            linha['Status_NCM'] = 'OK' if str(item_x['NCM_NF']) == str(item_c['NCM_WINTHOR']) else 'DIVERGENTE'
+            # 3. Conferência de ICMS guiada pelo Tipo de Cálculo ST
+            icms_xml = round(item_x['ICMS_NF'], 2)
+            icms_csv = round(item_c['ICMS_WINTHOR'], 2)
+            st_guia = round(item_c['%Alíq.Ext. ST Guia_Whintor'], 2)
 
+            if tipo_calc == 'G':
+                if icms_xml != st_guia:
+                    linha['Status_ICMS_Aliq'] = 'DIVERGENTE'
+                elif icms_csv == 0.0:
+                    linha['Status_ICMS_Aliq'] = 'OK'
+                else:
+                    linha['Status_ICMS_Aliq'] = 'OK'
+                    linha['ICMS_Alerta_Guia'] = True
+                    linha['ICMS_Obs'] = (
+                        f"Item Guia (G) com %ICMS preenchido ({_fmt_num_curto(icms_csv)}%) "
+                        f"no WinThor — deveria estar zerado."
+                    )
+            else:
+                if icms_xml == icms_csv:
+                    linha['Status_ICMS_Aliq'] = 'OK'
+                else:
+                    linha['Status_ICMS_Aliq'] = 'DIVERGENTE'
+
+            # 4. Conferência de Redução de Base (ICMS Efetivo XML x % ICMS red. WinThor)
+            pred_xml = round(item_x['pRedBC_NF'], 4)
+            red_csv = round(item_c['% ICMS red. Whintor'], 4)
+            carga_efetiva_xml = round(item_x['ICMS_NF'] * (1.0 - (item_x['pRedBC_NF'] / 100.0)), 4)
+            linha['ICMS_Efetivo_NF'] = carga_efetiva_xml
+
+            bate_efetivo = (
+                carga_efetiva_xml == red_csv
+                or round(carga_efetiva_xml, 2) == round(red_csv, 2)
+            )
+            protecao_guia = (tipo_calc == 'G' and pred_xml == 0.0 and red_csv == 0.0)
+
+            if bate_efetivo or protecao_guia:
+                linha['Status_Red_BC'] = 'OK'
+            else:
+                linha['Status_Red_BC'] = 'DIVERGENTE'
+
+            # 5. Conferência de NCM (padronizado em 8 dígitos)
+            ncm_x = str(item_x['NCM_NF']).strip()
+            ncm_w = str(item_c['NCM_WINTHOR']).strip()
+            ncm_x_norm = ncm_x.zfill(8) if ncm_x else ''
+            ncm_w_norm = ncm_w.zfill(8) if ncm_w else ''
+            linha['Status_NCM'] = 'OK' if ncm_x_norm == ncm_w_norm else 'DIVERGENTE'
+
+            # 6. Conferência de Quantidade
             qtd_xml_pura = item_x['Qtd_NF']
             qtd_win = item_c['Qtd_WINTHOR']
             fator = item_x['_Fator_Embalagem']
@@ -886,6 +1127,7 @@ def cruzar_itens_auditoria(itens_xml, itens_csv):
 
         else:
             linha['Status_Geral'] = 'SOBRA'
+            linha['ICMS_Efetivo_NF'] = '-'
             for st_col in ['Status_EAN', 'Status_ICMS_Aliq', 'Status_Red_BC', 'Tipo_Calculo_ST', 'Status_NCM', 'Status_Qtd']:
                 linha[st_col] = '-'
 
@@ -894,18 +1136,8 @@ def cruzar_itens_auditoria(itens_xml, itens_csv):
     return dados_relatorio
 
 
-def _fmt_num_curto(valor) -> str:
-    try:
-        v = float(valor)
-        if v.is_integer():
-            return str(int(v))
-        return f"{v:.2f}".rstrip('0').rstrip('.')
-    except (TypeError, ValueError):
-        return str(valor)
-
-
 def preparar_dados_resumo_divergencias(dados_relatorio):
-    """Extrai registros e colunas ativas do resumo de divergências (fonte única para tela e Excel)."""
+    """Extrai registros de divergências e alertas laranja (fonte única para tela e Excel)."""
     registros = []
     colunas_encontradas = {
         'EAN': False,
@@ -913,50 +1145,111 @@ def preparar_dados_resumo_divergencias(dados_relatorio):
         'ICMS': False,
         'Base Reduzida': False,
         'Sobra': False,
+        'Observação': False,
     }
+    qtd_divergencias = 0
+    qtd_alertas = 0
 
     for linha in dados_relatorio:
         celulas_texto = {}
         celulas_html = {}
+        celulas_tipo = {}  # 'div', 'warn', 'obs'
+        observacoes = []
+        tem_div = False
+        tem_warn = False
 
         if linha.get('Status_Geral') == 'SOBRA':
             origem_sobra = 'XML' if linha.get('Linha_NF') != '-' else 'WinThor'
             txt_sobra = f'Apenas {origem_sobra}'
             celulas_texto['Sobra'] = txt_sobra
             celulas_html['Sobra'] = txt_sobra
+            celulas_tipo['Sobra'] = 'div'
             colunas_encontradas['Sobra'] = True
+            tem_div = True
         else:
+            # EAN: divergente (vermelho) ou ambos vazios (laranja)
             if linha.get('Status_EAN') == 'DIVERGENTE':
                 ean_x = str(linha.get('EAN_NF') or 'vazio')
                 ean_w = str(linha.get('EAN_WINTHOR') or 'vazio')
                 celulas_texto['EAN'] = f'{ean_x} × {ean_w}'
                 celulas_html['EAN'] = f'{html.escape(ean_x)}<span class="div-sep">×</span>{html.escape(ean_w)}'
+                celulas_tipo['EAN'] = 'div'
                 colunas_encontradas['EAN'] = True
+                tem_div = True
+            elif linha.get('EAN_Alerta_Vazio'):
+                celulas_texto['EAN'] = 'SEM EAN × SEM EAN'
+                celulas_html['EAN'] = 'SEM EAN<span class="warn-sep">×</span>SEM EAN'
+                celulas_tipo['EAN'] = 'warn'
+                colunas_encontradas['EAN'] = True
+                observacoes.append('Produto sem código de barras no XML e no WinThor — verificar.')
+                tem_warn = True
 
+            # NCM
             if linha.get('Status_NCM') == 'DIVERGENTE':
                 n_x = str(linha.get('NCM_NF') or '-')
                 n_w = str(linha.get('NCM_WINTHOR') or '-')
                 celulas_texto['NCM'] = f'{n_x} × {n_w}'
                 celulas_html['NCM'] = f'{html.escape(n_x)}<span class="div-sep">×</span>{html.escape(n_w)}'
+                celulas_tipo['NCM'] = 'div'
                 colunas_encontradas['NCM'] = True
+                tem_div = True
 
+            # ICMS (guiado por Tipo Cálculo ST: N ou G)
+            tipo_calc = str(linha.get('Tipo_Calculo_WINTHOR', '')).strip().upper()
             if linha.get('Status_ICMS_Aliq') == 'DIVERGENTE':
                 i_x = _fmt_num_curto(linha.get('ICMS_NF'))
-                i_w = _fmt_num_curto(linha.get('ICMS_WINTHOR'))
-                celulas_texto['ICMS'] = f'{i_x}% × {i_w}%'
-                celulas_html['ICMS'] = f'{i_x}%<span class="div-sep">×</span>{i_w}%'
+                if tipo_calc == 'G':
+                    i_g = _fmt_num_curto(linha.get('%Alíq.Ext. ST Guia_Whintor'))
+                    celulas_texto['ICMS'] = f'{i_x}% × Guia {i_g}%'
+                    celulas_html['ICMS'] = f'{i_x}%<span class="div-sep">×</span>Guia {i_g}%'
+                else:
+                    i_w = _fmt_num_curto(linha.get('ICMS_WINTHOR'))
+                    celulas_texto['ICMS'] = f'{i_x}% × {i_w}%'
+                    celulas_html['ICMS'] = f'{i_x}%<span class="div-sep">×</span>{i_w}%'
+                celulas_tipo['ICMS'] = 'div'
                 colunas_encontradas['ICMS'] = True
+                tem_div = True
+            elif linha.get('ICMS_Alerta_Guia'):
+                i_x = _fmt_num_curto(linha.get('ICMS_NF'))
+                i_w = _fmt_num_curto(linha.get('ICMS_WINTHOR'))
+                celulas_texto['ICMS'] = f'Guia {i_x}% (ICMS {i_w}%)'
+                celulas_html['ICMS'] = f'Guia {i_x}% <span class="warn-sep">•</span> ICMS {i_w}%'
+                celulas_tipo['ICMS'] = 'warn'
+                colunas_encontradas['ICMS'] = True
+                if linha.get('ICMS_Obs'):
+                    observacoes.append(linha['ICMS_Obs'])
+                tem_warn = True
 
+            # Base Reduzida (exibe ICMS Efetivo × WinThor + ICMS e Redução da NF)
             if linha.get('Status_Red_BC') == 'DIVERGENTE':
-                r_x = _fmt_num_curto(linha.get('pRedBC_NF'))
-                r_w = _fmt_num_curto(linha.get('% ICMS red. Whintor'))
-                celulas_texto['Base Reduzida'] = f'{r_x}% × {r_w}%'
-                celulas_html['Base Reduzida'] = f'{r_x}%<span class="div-sep">×</span>{r_w}%'
+                ef_x = _fmt_num_curto(linha.get('ICMS_Efetivo_NF'), max_dec=4)
+                r_w = _fmt_num_curto(linha.get('% ICMS red. Whintor'), max_dec=4)
+                icms_x = _fmt_num_curto(linha.get('ICMS_NF'), max_dec=2)
+                pred_x = _fmt_num_curto(linha.get('pRedBC_NF'), max_dec=4)
+                celulas_texto['Base Reduzida'] = f'{ef_x}% × {r_w}% (ICMS {icms_x}% | Red. {pred_x}%)'
+                celulas_html['Base Reduzida'] = (
+                    f'{ef_x}%<span class="div-sep">×</span>{r_w}%'
+                    f'<span class="red-detail">ICMS {icms_x}% | Red. {pred_x}%</span>'
+                )
+                celulas_tipo['Base Reduzida'] = 'div'
                 colunas_encontradas['Base Reduzida'] = True
+                tem_div = True
+
+        if observacoes:
+            txt_obs = ' | '.join(observacoes)
+            celulas_texto['Observação'] = txt_obs
+            celulas_html['Observação'] = html.escape(txt_obs)
+            celulas_tipo['Observação'] = 'obs'
+            colunas_encontradas['Observação'] = True
 
         if celulas_texto:
+            if tem_div:
+                qtd_divergencias += 1
+            elif tem_warn:
+                qtd_alertas += 1
+
             ean_nf = str(linha.get('EAN_NF') or '').strip()
-            if ean_nf and ean_nf != '-':
+            if ean_nf and ean_nf not in ('-', 'SEM EAN'):
                 rotulo_ean = ean_nf
             else:
                 rotulo_ean = f"Sem EAN (Item {linha.get('Linha_NF', '-')})"
@@ -973,23 +1266,70 @@ def preparar_dados_resumo_divergencias(dados_relatorio):
                 'tooltip': html.escape(desc_completa),
                 'celulas_texto': celulas_texto,
                 'celulas_html': celulas_html,
+                'celulas_tipo': celulas_tipo,
             })
 
-    ordem_colunas = ['EAN', 'NCM', 'ICMS', 'Base Reduzida', 'Sobra']
+    ordem_colunas = ['EAN', 'NCM', 'ICMS', 'Base Reduzida', 'Sobra', 'Observação']
     colunas_ativas = [c for c in ordem_colunas if colunas_encontradas[c]]
-    return registros, colunas_ativas
+    return registros, colunas_ativas, qtd_divergencias, qtd_alertas
 
 
-def renderizar_resumo_divergencias(dados_relatorio):
-    """Exibe divergências em planilha moderna com colunas dinâmicas (desconsiderando Quantidade)."""
-    registros, colunas_ativas = preparar_dados_resumo_divergencias(dados_relatorio)
+def renderizar_rodape_nfe(dados_adicionais: dict | None):
+    """Renderiza o bloco de Dados Adicionais / Rodapé da NF-e na tela."""
+    info = analisar_rodape_nfe(dados_adicionais)
+    if not info['tem_texto']:
+        return
+
+    alerta_html = ''
+    if info['alertas']:
+        tags = ''.join(f'<span class="rodape-tag">⚠️ {html.escape(a)}</span>' for a in info['alertas'])
+        alerta_html = (
+            f'<div class="rodape-alert-bar">'
+            f'Pontos fiscais citados no rodapé: {tags}'
+            f'</div>'
+        )
+
+    blocos_texto = []
+    if info['infAdFisco']:
+        blocos_texto.append(
+            f'<div class="rodape-sec-title">Informações ao Fisco (infAdFisco)</div>'
+            f'<div class="rodape-text">{html.escape(info["infAdFisco"])}</div>'
+        )
+    if info['infCpl']:
+        blocos_texto.append(
+            f'<div class="rodape-sec-title">Informações Complementares (infCpl)</div>'
+            f'<div class="rodape-text">{html.escape(info["infCpl"])}</div>'
+        )
+
+    st.markdown(
+        f'<div class="rodape-panel">'
+        f'  <div class="rodape-header">'
+        f'    <span>📌 Dados Adicionais / Rodapé da NF-e</span>'
+        f'  </div>'
+        f'  {alerta_html}'
+        f'  {"".join(blocos_texto)}'
+        f'</div>',
+        unsafe_allow_html=True
+    )
+
+
+def renderizar_resumo_divergencias(dados_relatorio, dados_adicionais: dict | None = None):
+    """Exibe divergências, alertas laranja e rodapé da NF-e na tela."""
+    registros, colunas_ativas, qtd_div, qtd_warn = preparar_dados_resumo_divergencias(dados_relatorio)
 
     if not registros:
         st.markdown(
-            '<div class="div-ok-box">✅ Nenhuma divergência encontrada nesta nota (EAN, NCM, ICMS e Base Reduzida 100% conferidos).</div>',
+            '<div class="div-ok-box">✅ Nenhuma divergência ou alerta encontrado nesta nota (EAN, NCM, ICMS e Base Reduzida 100% conferidos).</div>',
             unsafe_allow_html=True
         )
+        renderizar_rodape_nfe(dados_adicionais)
         return
+
+    badges = []
+    if qtd_div > 0:
+        badges.append(f'<span class="div-count-badge">{qtd_div} divergência(s)</span>')
+    if qtd_warn > 0:
+        badges.append(f'<span class="div-warn-badge">⚠️ {qtd_warn} alerta(s)</span>')
 
     ths = ['<th>EAN (NF) + Descrição</th>'] + [f'<th>{col}</th>' for col in colunas_ativas]
     trs = []
@@ -998,7 +1338,9 @@ def renderizar_resumo_divergencias(dados_relatorio):
         for col in colunas_ativas:
             val = reg['celulas_html'].get(col)
             if val is not None:
-                tds.append(f'<td class="cell-div">{val}</td>')
+                tipo_cel = reg['celulas_tipo'].get(col, 'div')
+                cls = 'cell-div' if tipo_cel == 'div' else ('cell-warn' if tipo_cel == 'warn' else 'cell-obs')
+                tds.append(f'<td class="{cls}">{val}</td>')
             else:
                 tds.append('<td class="cell-ok">—</td>')
         trs.append(f'<tr>{"".join(tds)}</tr>')
@@ -1006,8 +1348,8 @@ def renderizar_resumo_divergencias(dados_relatorio):
     st.markdown(
         f'<div class="div-panel">'
         f'  <div class="div-panel-header">'
-        f'    <span>🔎 Resumo de Divergências (XML × WinThor)</span>'
-        f'    <span class="div-count-badge">{len(registros)} produto(s)</span>'
+        f'    <span>🔎 Resumo de Divergências e Alertas (XML × WinThor)</span>'
+        f'    <div class="div-badges-wrap">{"".join(badges)}</div>'
         f'  </div>'
         f'  <div class="div-table-wrap">'
         f'    <table class="div-table">'
@@ -1019,14 +1361,101 @@ def renderizar_resumo_divergencias(dados_relatorio):
         unsafe_allow_html=True
     )
 
+    renderizar_rodape_nfe(dados_adicionais)
 
-def _montar_aba_resumo_excel(workbook, dados_relatorio, numero_nf: str):
+
+def _adicionar_bloco_rodape_excel(ws, start_row: int, total_cols: int, dados_adicionais: dict | None):
+    """Escreve o bloco de Dados Adicionais / Rodapé da NF-e na aba Resumo_Divergencias."""
+    info = analisar_rodape_nfe(dados_adicionais)
+    if not info['tem_texto']:
+        return
+
+    end_col = max(total_cols, 5)
+    fill_rodape_hdr = PatternFill(start_color="1B2631", end_color="1B2631", fill_type="solid")
+    fill_rodape_alerta = PatternFill(start_color="FEF3C7", end_color="FEF3C7", fill_type="solid")
+    fill_rodape_sec = PatternFill(start_color="E2E8F0", end_color="E2E8F0", fill_type="solid")
+    fill_rodape_txt = PatternFill(start_color="F8FAFC", end_color="F8FAFC", fill_type="solid")
+
+    font_hdr = Font(bold=True, size=10, color="FFFFFF")
+    font_alerta = Font(bold=True, size=10, color="92400E")
+    font_sec = Font(bold=True, size=9, color="334155")
+    font_txt = Font(bold=False, size=10, color="1E293B")
+
+    side_cinza = Side(style='thin', color='CBD5E1')
+    side_alerta = Side(style='thin', color='F59E0B')
+    borda_cinza = Border(left=side_cinza, right=side_cinza, top=side_cinza, bottom=side_cinza)
+    borda_alerta = Border(left=side_alerta, right=side_alerta, top=side_alerta, bottom=side_alerta)
+
+    r = start_row
+
+    # Cabeçalho do bloco
+    ws.merge_cells(start_row=r, start_column=1, end_row=r, end_column=end_col)
+    c_hdr = ws.cell(row=r, column=1, value="📌 Dados Adicionais / Rodapé da NF-e")
+    c_hdr.font = font_hdr
+    c_hdr.alignment = Alignment(horizontal='left', vertical='center')
+    for ci in range(1, end_col + 1):
+        ws.cell(row=r, column=ci).fill = fill_rodape_hdr
+    ws.row_dimensions[r].height = 24
+    r += 1
+
+    # Faixa de alertas fiscais encontrados
+    if info['alertas']:
+        ws.merge_cells(start_row=r, start_column=1, end_row=r, end_column=end_col)
+        txt_alerta = "⚠️ Pontos fiscais citados no rodapé: " + "  •  ".join(info['alertas'])
+        c_al = ws.cell(row=r, column=1, value=txt_alerta)
+        c_al.font = font_alerta
+        c_al.alignment = Alignment(horizontal='left', vertical='center', wrap_text=True)
+        for ci in range(1, end_col + 1):
+            cell_t = ws.cell(row=r, column=ci)
+            cell_t.fill = fill_rodape_alerta
+            cell_t.border = borda_alerta
+        ws.row_dimensions[r].height = 24
+        r += 1
+
+    # Estima largura total disponível para calcular altura das linhas de texto
+    largura_total = sum(
+        (ws.column_dimensions[get_column_letter(ci)].width or 18) for ci in range(1, end_col + 1)
+    )
+    chars_por_linha = max(int(largura_total * 0.92), 80)
+
+    def _escrever_secao(titulo_sec: str, texto_sec: str):
+        nonlocal r
+        ws.merge_cells(start_row=r, start_column=1, end_row=r, end_column=end_col)
+        c_s = ws.cell(row=r, column=1, value=titulo_sec)
+        c_s.font = font_sec
+        c_s.alignment = Alignment(horizontal='left', vertical='center')
+        for ci in range(1, end_col + 1):
+            cell_t = ws.cell(row=r, column=ci)
+            cell_t.fill = fill_rodape_sec
+            cell_t.border = borda_cinza
+        ws.row_dimensions[r].height = 20
+        r += 1
+
+        ws.merge_cells(start_row=r, start_column=1, end_row=r, end_column=end_col)
+        c_t = ws.cell(row=r, column=1, value=texto_sec)
+        c_t.font = font_txt
+        c_t.alignment = Alignment(horizontal='left', vertical='top', wrap_text=True)
+        for ci in range(1, end_col + 1):
+            cell_t = ws.cell(row=r, column=ci)
+            cell_t.fill = fill_rodape_txt
+            cell_t.border = borda_cinza
+        n_linhas = sum(max(1, math.ceil(len(p) / chars_por_linha)) for p in texto_sec.splitlines())
+        ws.row_dimensions[r].height = max(24, min(n_linhas * 16 + 10, 409))
+        r += 1
+
+    if info['infAdFisco']:
+        _escrever_secao("INFORMAÇÕES AO FISCO (infAdFisco)", info['infAdFisco'])
+    if info['infCpl']:
+        _escrever_secao("INFORMAÇÕES COMPLEMENTARES (infCpl)", info['infCpl'])
+
+
+def _montar_aba_resumo_excel(workbook, dados_relatorio, numero_nf: str, dados_adicionais: dict | None = None):
     """Cria a aba 'Resumo_Divergencias' no Excel idêntica ao resumo exibido no front."""
     ws = workbook.create_sheet(title='Resumo_Divergencias', index=0)
     ws.sheet_view.showGridLines = False
     ws.sheet_view.zoomScale = 70
 
-    registros, colunas_ativas = preparar_dados_resumo_divergencias(dados_relatorio)
+    registros, colunas_ativas, qtd_div, qtd_warn = preparar_dados_resumo_divergencias(dados_relatorio)
 
     fill_titulo = PatternFill(start_color="1B2631", end_color="1B2631", fill_type="solid")
     fill_header = PatternFill(start_color="212F3D", end_color="212F3D", fill_type="solid")
@@ -1034,12 +1463,18 @@ def _montar_aba_resumo_excel(workbook, dados_relatorio, numero_nf: str):
     fill_zebra_impar = PatternFill(start_color="FFFFFF", end_color="FFFFFF", fill_type="solid")
     fill_div_impar = PatternFill(start_color="FEE2E2", end_color="FEE2E2", fill_type="solid")
     fill_div_par = PatternFill(start_color="FECACA", end_color="FECACA", fill_type="solid")
+    fill_warn_impar = PatternFill(start_color="FEF3C7", end_color="FEF3C7", fill_type="solid")
+    fill_warn_par = PatternFill(start_color="FDE68A", end_color="FDE68A", fill_type="solid")
+    fill_obs_impar = PatternFill(start_color="FFFBEB", end_color="FFFBEB", fill_type="solid")
+    fill_obs_par = PatternFill(start_color="FEF3C7", end_color="FEF3C7", fill_type="solid")
     fill_ok_box = PatternFill(start_color="DCFCE7", end_color="DCFCE7", fill_type="solid")
 
     font_titulo = Font(bold=True, size=11, color="FFFFFF")
     font_header = Font(bold=True, size=10, color="FFFFFF")
     font_prod = Font(bold=True, size=10, color="1B2631")
     font_div = Font(bold=True, size=10, color="991B1B")
+    font_warn = Font(bold=True, size=10, color="B45309")
+    font_obs = Font(bold=True, size=9, color="92400E")
     font_ok_dash = Font(bold=False, size=10, color="94A3B8")
     font_ok_box = Font(bold=True, size=11, color="14532D")
 
@@ -1053,26 +1488,39 @@ def _montar_aba_resumo_excel(workbook, dados_relatorio, numero_nf: str):
         c_tit.font = font_titulo
         c_tit.fill = fill_titulo
         c_tit.alignment = Alignment(horizontal='center', vertical='center')
+        for col_i in range(1, 6):
+            ws.cell(row=1, column=col_i).fill = fill_titulo
         ws.row_dimensions[1].height = 28
 
         ws.merge_cells('A3:E3')
         c_ok = ws['A3']
-        c_ok.value = "✅ Nenhuma divergência encontrada nesta nota (EAN, NCM, ICMS e Base Reduzida 100% conferidos)."
+        c_ok.value = "✅ Nenhuma divergência ou alerta encontrado nesta nota (EAN, NCM, ICMS e Base Reduzida 100% conferidos)."
         c_ok.font = font_ok_box
         c_ok.fill = fill_ok_box
         c_ok.alignment = Alignment(horizontal='center', vertical='center')
+        for col_i in range(1, 6):
+            ws.cell(row=3, column=col_i).fill = fill_ok_box
         ws.row_dimensions[3].height = 30
         for col_i in range(1, 6):
-            ws.column_dimensions[get_column_letter(col_i)].width = 22
+            ws.column_dimensions[get_column_letter(col_i)].width = 24
+
+        _adicionar_bloco_rodape_excel(ws, start_row=5, total_cols=5, dados_adicionais=dados_adicionais)
         return
 
     cabecalhos = ['EAN (NF) + Descrição'] + colunas_ativas
     total_cols = len(cabecalhos)
 
+    partes_resumo = []
+    if qtd_div > 0:
+        partes_resumo.append(f"{qtd_div} divergência(s)")
+    if qtd_warn > 0:
+        partes_resumo.append(f"{qtd_warn} alerta(s)")
+    resumo_contagem = "  •  ".join(partes_resumo)
+
     # Faixa de título (Linha 1)
     ws.merge_cells(start_row=1, start_column=1, end_row=1, end_column=total_cols)
     c_tit = ws.cell(row=1, column=1)
-    c_tit.value = f"🔎 Resumo de Divergências — NF {numero_nf} (XML × WinThor)  |  {len(registros)} produto(s)"
+    c_tit.value = f"🔎 Resumo de Divergências e Alertas — NF {numero_nf} (XML × WinThor)  |  {resumo_contagem}"
     c_tit.font = font_titulo
     c_tit.alignment = Alignment(horizontal='left', vertical='center')
     for col_i in range(1, total_cols + 1):
@@ -1086,14 +1534,16 @@ def _montar_aba_resumo_excel(workbook, dados_relatorio, numero_nf: str):
         cell.font = font_header
         cell.fill = fill_header
         cell.border = borda_celula
-        cell.alignment = Alignment(horizontal='left' if col_i == 1 else 'center', vertical='center')
+        cell.alignment = Alignment(horizontal='left' if col_i in (1,) or nome_col == 'Observação' else 'center', vertical='center')
     ws.row_dimensions[3].height = 24
 
-    # Linhas de divergência (a partir da Linha 4)
+    # Linhas de divergência e alerta (a partir da Linha 4)
     for idx_reg, reg in enumerate(registros, start=4):
         eh_par = (idx_reg % 2 == 0)
         fill_linha = fill_zebra_par if eh_par else fill_zebra_impar
         fill_div = fill_div_par if eh_par else fill_div_impar
+        fill_warn = fill_warn_par if eh_par else fill_warn_impar
+        fill_obs = fill_obs_par if eh_par else fill_obs_impar
 
         c_prod = ws.cell(row=idx_reg, column=1, value=reg['texto_ean_desc'])
         c_prod.font = font_prod
@@ -1106,24 +1556,35 @@ def _montar_aba_resumo_excel(workbook, dados_relatorio, numero_nf: str):
             val = reg['celulas_texto'].get(col_nome)
             cell = ws.cell(row=idx_reg, column=offset)
             cell.border = borda_celula
-            cell.alignment = Alignment(horizontal='center', vertical='center')
             cell.number_format = '@'
 
             if val is not None:
+                tipo_cel = reg['celulas_tipo'].get(col_nome, 'div')
                 cell.value = val
-                cell.font = font_div
-                cell.fill = fill_div
+                if tipo_cel == 'warn':
+                    cell.font = font_warn
+                    cell.fill = fill_warn
+                    cell.alignment = Alignment(horizontal='center', vertical='center')
+                elif tipo_cel == 'obs':
+                    cell.font = font_obs
+                    cell.fill = fill_obs
+                    cell.alignment = Alignment(horizontal='left', vertical='center', wrap_text=True)
+                else:
+                    cell.font = font_div
+                    cell.fill = fill_div
+                    cell.alignment = Alignment(horizontal='center', vertical='center')
             else:
                 cell.value = '—'
                 cell.font = font_ok_dash
                 cell.fill = fill_linha
+                cell.alignment = Alignment(horizontal='center', vertical='center')
 
-        ws.row_dimensions[idx_reg].height = 21
+        ws.row_dimensions[idx_reg].height = 22
 
     ws.freeze_panes = 'A4'
     ws.auto_filter.ref = f"A3:{get_column_letter(total_cols)}{len(registros) + 3}"
 
-    # Ajuste automático da largura das colunas
+    # Ajuste automático da largura das colunas antes do rodapé
     for col_i in range(1, total_cols + 1):
         col_letter = get_column_letter(col_i)
         max_len = len(cabecalhos[col_i - 1])
@@ -1131,17 +1592,29 @@ def _montar_aba_resumo_excel(workbook, dados_relatorio, numero_nf: str):
             val = ws.cell(row=row_i, column=col_i).value
             if val is not None:
                 max_len = max(max_len, len(str(val)))
-        ws.column_dimensions[col_letter].width = max(max_len + 5, 16)
+        ws.column_dimensions[col_letter].width = min(max(max_len + 5, 16), 65)
+
+    # Rodapé / Dados Adicionais abaixo da tabela
+    _adicionar_bloco_rodape_excel(
+        ws,
+        start_row=len(registros) + 6,
+        total_cols=total_cols,
+        dados_adicionais=dados_adicionais
+    )
 
 
 @st.cache_data(show_spinner=False)
 def gerar_excel_auditoria_cached(
-    itens_xml_tuple, itens_csv_tuple, numero_nf: str,
+    itens_xml_tuple,
+    itens_csv_tuple,
+    numero_nf: str,
+    dados_adicionais_tuple,
     inc_ident: bool, inc_ean: bool, inc_desc: bool, inc_qtd: bool,
     inc_ncm: bool, inc_icms: bool, inc_red: bool, inc_st: bool
 ):
     itens_xml = [dict(x) for x in itens_xml_tuple]
     itens_csv = [dict(c) for c in itens_csv_tuple]
+    dados_adicionais = dict(dados_adicionais_tuple) if dados_adicionais_tuple else {}
     data_simples = datetime.now().strftime('%Y%m%d')
     nome_arquivo_saida = f'relatorio_NF_{numero_nf}_{data_simples}.xlsx'
 
@@ -1153,8 +1626,8 @@ def gerar_excel_auditoria_cached(
         'Descrições': ['Descricao_NF', 'Descricao_WINTHOR'],
         'Quantidades': ['Qtd_NF', 'Qtd_WINTHOR', 'Status_Qtd'],
         'NCM (Fiscal)': ['NCM_NF', 'NCM_WINTHOR', 'Status_NCM'],
-        'ICMS': ['ICMS_NF', 'ICMS_WINTHOR', '%Alíq.Ext. ST Guia_Whintor', 'Status_ICMS_Aliq'],
-        'Redução de Base': ['pRedBC_NF', '% ICMS red. Whintor', 'Status_Red_BC'],
+        'ICMS': ['Orig.', 'ICMS_NF', 'ICMS_WINTHOR', '%Alíq.Ext. ST Guia_Whintor', 'Status_ICMS_Aliq'],
+        'Redução de Base': ['pRedBC_NF', 'ICMS_Efetivo_NF', '% ICMS red. Whintor', 'Status_Red_BC'],
         'Tipo Cálculo ST': ['Tipo_Calculo_ST']
     }
 
@@ -1182,7 +1655,7 @@ def gerar_excel_auditoria_cached(
         worksheet = workbook['Comparativo_ICMS_e_EAN']
 
         # Adiciona a aba de resumo idêntica ao front como primeira guia
-        _montar_aba_resumo_excel(workbook, dados_relatorio, numero_nf)
+        _montar_aba_resumo_excel(workbook, dados_relatorio, numero_nf, dados_adicionais)
 
         worksheet.sheet_view.showGridLines = False
         worksheet.sheet_view.zoomScale = 70
@@ -1202,14 +1675,18 @@ def gerar_excel_auditoria_cached(
         fill_cinza_sobra = PatternFill(start_color="EAEDED", end_color="EAEDED", fill_type="solid")
 
         fill_status_divergente = PatternFill(start_color="9C0006", end_color="9C0006", fill_type="solid")
+        fill_status_alerta = PatternFill(start_color="D97706", end_color="D97706", fill_type="solid")
         fill_status_convergente = PatternFill(start_color="196F3D", end_color="196F3D", fill_type="solid")
         fill_cel_divergente = PatternFill(start_color="FADBD8", end_color="FADBD8", fill_type="solid")
+        fill_cel_alerta = PatternFill(start_color="FDE68A", end_color="FDE68A", fill_type="solid")
+        fill_cel_alerta_dado = PatternFill(start_color="FEF3C7", end_color="FEF3C7", fill_type="solid")
         fill_cel_convergente = PatternFill(start_color="D4EFDF", end_color="D4EFDF", fill_type="solid")
 
         font_super_white = Font(bold=True, size=11, color="FFFFFF")
         font_header_white = Font(bold=True, size=10, color="FFFFFF")
         font_header_status = Font(bold=True, size=10, color="FFFFFF")
         font_divergente = Font(color="9C0006", bold=True)
+        font_alerta = Font(color="B45309", bold=True)
         font_normal = Font(color="000000", bold=False)
 
         borda_padrao = Border(left=Side(style=None), right=Side(style=None), top=Side(style=None), bottom=Side(style=None))
@@ -1223,8 +1700,8 @@ def gerar_excel_auditoria_cached(
         if inc_desc: super_grupos_def.append(("DESCRIÇÕES", ['Descricao_NF', 'Descricao_WINTHOR']))
         if inc_qtd: super_grupos_def.append(("QUANTIDADES", ['Qtd_NF', 'Qtd_WINTHOR', 'Status_Qtd']))
         if inc_ncm: super_grupos_def.append(("CLASSIFICAÇÃO FISCAL (NCM)", ['NCM_NF', 'NCM_WINTHOR', 'Status_NCM']))
-        if inc_icms: super_grupos_def.append(("ALÍQUOTAS DE ICMS", ['ICMS_NF', 'ICMS_WINTHOR', '%Alíq.Ext. ST Guia_Whintor', 'Status_ICMS_Aliq']))
-        if inc_red: super_grupos_def.append(("REDUÇÃO DE BASE", ['pRedBC_NF', '% ICMS red. Whintor', 'Status_Red_BC']))
+        if inc_icms: super_grupos_def.append(("ALÍQUOTAS DE ICMS", ['Orig.', 'ICMS_NF', 'ICMS_WINTHOR', '%Alíq.Ext. ST Guia_Whintor', 'Status_ICMS_Aliq']))
+        if inc_red: super_grupos_def.append(("REDUÇÃO DE BASE", ['pRedBC_NF', 'ICMS_Efetivo_NF', '% ICMS red. Whintor', 'Status_Red_BC']))
         if inc_st: super_grupos_def.append(("TIPO CÁLCULO ST", ['Tipo_Calculo_ST']))
 
         curr_col_idx = 1
@@ -1253,7 +1730,14 @@ def gerar_excel_auditoria_cached(
         worksheet.row_dimensions[3].height = 25
 
         status_columns = ['Status_EAN', 'Status_Qtd', 'Status_NCM', 'Status_ICMS_Aliq', 'Status_Red_BC']
-        status_has_divergence = {sc: (df_final[sc] == 'DIVERGENTE').any() if sc in df_final.columns else False for sc in status_columns}
+        status_has_divergence = {
+            sc: (df_final[sc] == 'DIVERGENTE').any() if sc in df_final.columns else False
+            for sc in status_columns
+        }
+        status_has_warning = {
+            'Status_EAN': any(l.get('EAN_Alerta_Vazio') for l in dados_relatorio),
+            'Status_ICMS_Aliq': any(l.get('ICMS_Alerta_Guia') for l in dados_relatorio),
+        }
 
         def obter_fill_cabecalho(col_name):
             if 'WINTHOR' in col_name or 'Whintor' in col_name or 'Status' in col_name:
@@ -1280,18 +1764,19 @@ def gerar_excel_auditoria_cached(
             if col_name in status_has_divergence:
                 if status_has_divergence[col_name]:
                     cell.fill = fill_status_divergente
-                    cell.font = font_header_status
+                elif status_has_warning.get(col_name):
+                    cell.fill = fill_status_alerta
                 else:
                     cell.fill = fill_status_convergente
-                    cell.font = font_header_status
+                cell.font = font_header_status
             else:
                 cell.fill = obter_fill_cabecalho(col_name)
                 cell.font = font_header_white
 
         align_center_cols = [
             'Linha_NF', 'Linha_WINTHOR', 'EAN_NF', 'EAN_WINTHOR', 'Qtd_NF', 'Qtd_WINTHOR',
-            'NCM_NF', 'NCM_WINTHOR', 'ICMS_NF', 'ICMS_WINTHOR', '%Alíq.Ext. ST Guia_Whintor',
-            'pRedBC_NF', '% ICMS red. Whintor'
+            'NCM_NF', 'NCM_WINTHOR', 'Orig.', 'ICMS_NF', 'ICMS_WINTHOR', '%Alíq.Ext. ST Guia_Whintor',
+            'pRedBC_NF', 'ICMS_Efetivo_NF', '% ICMS red. Whintor', 'Tipo_Calculo_ST'
         ]
 
         status_dependents = {
@@ -1299,7 +1784,7 @@ def gerar_excel_auditoria_cached(
             'Status_Qtd': ['Qtd_NF', 'Qtd_WINTHOR'],
             'Status_NCM': ['NCM_NF', 'NCM_WINTHOR'],
             'Status_ICMS_Aliq': ['ICMS_NF', 'ICMS_WINTHOR', '%Alíq.Ext. ST Guia_Whintor'],
-            'Status_Red_BC': ['pRedBC_NF', '% ICMS red. Whintor']
+            'Status_Red_BC': ['pRedBC_NF', 'ICMS_Efetivo_NF', '% ICMS red. Whintor']
         }
 
         for row in range(4, len(df_final) + 4):
@@ -1320,7 +1805,11 @@ def gerar_excel_auditoria_cached(
 
                 col_name = headers[col_idx - 1]
                 current_align = cell.alignment or Alignment()
-                cell.alignment = Alignment(horizontal=current_align.horizontal or 'left', vertical='center', wrap_text=current_align.wrap_text)
+                cell.alignment = Alignment(
+                    horizontal=current_align.horizontal or 'left',
+                    vertical='center',
+                    wrap_text=current_align.wrap_text
+                )
 
                 if col_name == 'Cod_Produto_WINTHOR' and str(cell.value).strip() not in ('', '-'):
                     try:
@@ -1338,7 +1827,7 @@ def gerar_excel_auditoria_cached(
                     cell.value = str(cell.value).strip()
                     cell.number_format = '@'
                 elif isinstance(cell.value, (int, float)) and cell.value != '-':
-                    if 'pRedBC' in col_name or 'red. Whintor' in col_name:
+                    if 'pRedBC' in col_name or 'ICMS_Efetivo' in col_name or 'red. Whintor' in col_name:
                         cell.number_format = '#,##0.0000'
                     elif 'Qtd' in col_name or 'ICMS' in col_name or 'Whintor' in col_name:
                         cell.number_format = '#,##0.00'
@@ -1359,12 +1848,26 @@ def gerar_excel_auditoria_cached(
                     cell_status = worksheet.cell(row=row, column=idx_status)
                     val_status = cell_status.value
 
+                    eh_alerta_laranja = (
+                        (col_status == 'Status_EAN' and linha_dict.get('EAN_Alerta_Vazio'))
+                        or (col_status == 'Status_ICMS_Aliq' and linha_dict.get('ICMS_Alerta_Guia'))
+                    )
+
                     if val_status == 'DIVERGENTE':
                         cell_status.fill = fill_cel_divergente
+                        cell_status.font = font_divergente
                         for col_afetada in colunas_dados:
                             if col_afetada in headers:
                                 cell_dado = worksheet.cell(row=row, column=headers.index(col_afetada) + 1)
                                 cell_dado.font = font_divergente
+                    elif eh_alerta_laranja:
+                        cell_status.fill = fill_cel_alerta
+                        cell_status.font = font_alerta
+                        for col_afetada in colunas_dados:
+                            if col_afetada in headers:
+                                cell_dado = worksheet.cell(row=row, column=headers.index(col_afetada) + 1)
+                                cell_dado.font = font_alerta
+                                cell_dado.fill = fill_cel_alerta_dado
                     elif val_status == 'OK':
                         cell_status.fill = fill_cel_convergente
                         for col_afetada in colunas_dados:
@@ -1372,14 +1875,24 @@ def gerar_excel_auditoria_cached(
                                 cell_dado = worksheet.cell(row=row, column=headers.index(col_afetada) + 1)
                                 cell_dado.font = font_normal
 
-        letras_nao_status = [get_column_letter(idx) for idx, col_name in enumerate(headers, 1) if not col_name.startswith('Status')]
+        # Zebrado condicional apenas nas colunas que não possuem preenchimento de status/alerta
+        letras_nao_status = [
+            get_column_letter(idx)
+            for idx, col_name in enumerate(headers, 1)
+            if not col_name.startswith('Status')
+        ]
         for l_col in letras_nao_status:
             rule = FormulaRule(formula=['MOD(ROW(),2)=0'], stopIfTrue=True, fill=fill_zebrado)
             worksheet.conditional_formatting.add(f'{l_col}4:{l_col}{len(df_final) + 3}', rule)
 
-        for col in worksheet.columns:
-            max_length = 0
+        # Ajuste automático da largura das colunas (mantendo 'Orig.' ultra-compacta)
+        for idx, col in enumerate(worksheet.columns, 1):
+            col_name = headers[idx - 1]
             column_letter = get_column_letter(col[0].column)
+            if col_name == 'Orig.':
+                worksheet.column_dimensions[column_letter].width = 7
+                continue
+            max_length = 0
             for cell in col:
                 try:
                     if cell.value is not None:
@@ -1397,18 +1910,22 @@ def _freeze_itens(itens: list[dict]) -> tuple[tuple[tuple[str, object], ...], ..
     return tuple(tuple(sorted(item.items())) for item in itens)
 
 
+def _freeze_dict(d: dict) -> tuple[tuple[str, object], ...]:
+    return tuple(sorted(d.items()))
+
+
 # ==========================================
-# 2. CALLBACKS DE GERENCIAMENTO DO LOTE
+# 3. CALLBACKS DE GERENCIAMENTO DO LOTE
 # ==========================================
 def _remover_nf_ativa():
     chave = st.session_state.get("sb_nf_ativa")
     if chave and chave in st.session_state["xml_lote"]:
         st.session_state["xml_lote"].pop(chave, None)
-    restantes = list(st.session_state["xml_lote"].keys())
-    if restantes:
-        st.session_state["sb_nf_ativa"] = restantes[0]
-    else:
-        st.session_state.pop("sb_nf_ativa", None)
+        restantes = list(st.session_state["xml_lote"].keys())
+        if restantes:
+            st.session_state["sb_nf_ativa"] = restantes[0]
+        else:
+            st.session_state.pop("sb_nf_ativa", None)
 
 
 def _limpar_lote():
@@ -1418,16 +1935,16 @@ def _limpar_lote():
 
 
 # ==========================================
-# 3. INTERFACE STREAMLIT (UI/UX OTIMIZADA)
+# 4. INTERFACE STREAMLIT (UI/UX OTIMIZADA)
 # ==========================================
 st.markdown("""
-    <div class="dashboard-header">
-        <div class="header-left">
-            <p class="dashboard-title">📊 Auditoria de Notas Fiscais</p>
-            <p class="dashboard-subtitle">Conferência automatizada entre XML da NF-e e Pré-Entrada WinThor</p>
-        </div>
-        <span class="header-pill">Fiscal • XML × WinThor</span>
+<div class="dashboard-header">
+    <div class="header-left">
+        <p class="dashboard-title">📊 Auditoria de Notas Fiscais</p>
+        <p class="dashboard-subtitle">Conferência automatizada entre XML da NF-e e Pré-Entrada WinThor</p>
     </div>
+    <span class="header-pill">Fiscal • XML × WinThor</span>
+</div>
 """, unsafe_allow_html=True)
 
 # Estado da sessão
@@ -1437,6 +1954,8 @@ if "xml_uploader_key" not in st.session_state:
     st.session_state["xml_uploader_key"] = 0
 if "ultimo_csv_assinatura" not in st.session_state:
     st.session_state["ultimo_csv_assinatura"] = None
+if "ultimo_lote_assinatura" not in st.session_state:
+    st.session_state["ultimo_lote_assinatura"] = None
 
 # Etapa 1 e 2: Uploaders lado a lado
 col_up1, col_up2 = st.columns(2, gap="large")
@@ -1478,12 +1997,17 @@ with col_up2:
 
 lote_xml = st.session_state["xml_lote"]
 chaves_ordenadas = list(lote_xml.keys())
+assinatura_lote = tuple(chaves_ordenadas)
 
-# Detecção automática da NF antes da instanciação do selectbox (quando um novo CSV/XLSX entra)
+# Detecção automática da NF tanto quando um novo CSV/XLSX entra quanto quando novos XMLs entram depois do CSV
 if arquivo_dados is not None:
     assinatura_csv = f"{arquivo_dados.name}:{arquivo_dados.size}"
-    if assinatura_csv != st.session_state["ultimo_csv_assinatura"]:
+    csv_mudou = assinatura_csv != st.session_state["ultimo_csv_assinatura"]
+    lote_mudou = assinatura_lote != st.session_state["ultimo_lote_assinatura"]
+
+    if csv_mudou or lote_mudou:
         st.session_state["ultimo_csv_assinatura"] = assinatura_csv
+        st.session_state["ultimo_lote_assinatura"] = assinatura_lote
         cand_csv = _numeros_do_nome(arquivo_dados.name)
         match_chave = next(
             (k for k in chaves_ordenadas if lote_xml[k]["nf_norm"] and lote_xml[k]["nf_norm"] in cand_csv),
@@ -1491,6 +2015,8 @@ if arquivo_dados is not None:
         )
         if match_chave:
             st.session_state["sb_nf_ativa"] = match_chave
+else:
+    st.session_state["ultimo_lote_assinatura"] = assinatura_lote
 
 if chaves_ordenadas:
     if st.session_state.get("sb_nf_ativa") not in lote_xml:
@@ -1590,18 +2116,19 @@ chave_ativa = st.session_state.get("sb_nf_ativa")
 if lote_xml and arquivo_dados and chave_ativa in lote_xml:
     xml_selecionado = lote_xml[chave_ativa]
     try:
-        numero_nf, itens_xml = ler_xml_nfe_bytes(xml_selecionado["bytes"])
+        numero_nf, itens_xml, dados_adicionais = ler_xml_nfe_bytes(xml_selecionado["bytes"])
     except ET.ParseError:
         st.markdown(
             f'<div class="v-badge err">🚫 O arquivo <b>{xml_selecionado["nome_arquivo"]}</b> não é um XML de NF-e válido.</div>',
             unsafe_allow_html=True
         )
         itens_xml = None
+        dados_adicionais = None
 
     if itens_xml is not None:
-        df_csv, avisos_prep = ler_csv_winthor_cached(arquivo_dados.getvalue(), arquivo_dados.name)
-        itens_csv = montar_itens_csv(df_csv)
-        val = validar_upload(itens_xml, itens_csv, numero_nf, arquivo_dados.name)
+        df_csv, avisos_prep, colunas_faltantes = ler_csv_winthor_cached(arquivo_dados.getvalue(), arquivo_dados.name)
+        itens_csv = montar_itens_csv(df_csv) if not colunas_faltantes else []
+        val = validar_upload(itens_xml, itens_csv, numero_nf, arquivo_dados.name, colunas_faltantes)
 
         tem_bloqueio = len(val['bloqueios']) > 0
         ignorar_bloqueio_nf = False
@@ -1623,6 +2150,7 @@ if lote_xml and arquivo_dados and chave_ativa in lote_xml:
                 _freeze_itens(itens_xml),
                 _freeze_itens(itens_csv),
                 numero_nf,
+                _freeze_dict(dados_adicionais),
                 inc_ident, inc_ean, inc_desc, inc_qtd, inc_ncm, inc_icms, inc_red, inc_st
             )
 
@@ -1644,9 +2172,9 @@ if lote_xml and arquivo_dados and chave_ativa in lote_xml:
                     use_container_width=True
                 )
 
-            # Resumo de divergências em planilha moderna (sem Quantidade)
+            # Resumo de divergências, alertas e rodapé da NF-e
             dados_cruzados = cruzar_itens_auditoria(itens_xml, itens_csv)
-            renderizar_resumo_divergencias(dados_cruzados)
+            renderizar_resumo_divergencias(dados_cruzados, dados_adicionais)
 
 elif lote_xml and not arquivo_dados:
     st.markdown(
