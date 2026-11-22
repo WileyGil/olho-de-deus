@@ -1,3 +1,4 @@
+import hashlib
 import html
 import io
 import math
@@ -558,7 +559,8 @@ st.markdown("""
 # ==========================================
 # CONSTANTES E REGEX PRÉ-COMPILADAS
 # ==========================================
-NS = {'ns': 'http://www.portalfiscal.inf.br/nfe'}
+NS_URI = 'http://www.portalfiscal.inf.br/nfe'
+NS = {'ns': NS_URI}
 LIMITE_MARCA = 0.70
 
 _RE_SCI = re.compile(r'^[0-9.,]+E[+-]?[0-9]+$')
@@ -604,7 +606,9 @@ _PONTOS_IMPORTANTES_PADROES = [
 # ==========================================
 def extrair_numero_nf_rapido(bruto: bytes) -> str:
     """Extrai o número da NF instantaneamente sem parsear o XML inteiro."""
-    m = _RE_NNF_BYTES.search(bruto[:8192]) or _RE_NNF_BYTES.search(bruto)
+    if not bruto:
+        return 'DESCONHECIDO'
+    m = _RE_NNF_BYTES.search(bruto[:16384]) or _RE_NNF_BYTES.search(bruto)
     if m:
         return m.group(1).decode('ascii', errors='ignore').strip()
     return 'DESCONHECIDO'
@@ -633,7 +637,10 @@ def normalizar_ean(valor):
         inteiro = format(dec, 'f').split('.')[0]
         mantissa, expo = s.split('E', 1)
         digitos_mantissa = len(_RE_DIGITS.sub('', mantissa))
-        total_digitos = int(expo) + 1
+        try:
+            total_digitos = int(expo) + 1
+        except ValueError:
+            return '', 'ilegivel'
         if digitos_mantissa < total_digitos and not _dv_gtin_ok(inteiro):
             return '', 'ilegivel'
         return inteiro.lstrip('0'), 'ok'
@@ -653,18 +660,28 @@ def limpar_numero(valor):
     return _RE_DIGITS.sub('', val_str)
 
 
-def converte_float_br(valor):
+def converte_float_br(valor) -> float:
     if valor is None or (isinstance(valor, float) and pd.isna(valor)):
         return 0.0
-    val_str = str(valor).strip()
-    if val_str == '' or val_str.upper() in ('NAN', 'NONE'):
+    if isinstance(valor, (int, float)):
+        return float(valor) if math.isfinite(float(valor)) else 0.0
+    val_str = str(valor).strip().replace('\u00a0', '')
+    if val_str == '' or val_str.upper() in ('NAN', 'NONE', '-'):
+        return 0.0
+    val_str = re.sub(r'[^\d,.\-]', '', val_str)
+    if not val_str:
         return 0.0
     try:
         if '.' in val_str and ',' in val_str:
-            val_str = val_str.replace('.', '').replace(',', '.')
-        else:
-            val_str = val_str.replace(',', '.')
-        return float(val_str)
+            if val_str.rfind(',') > val_str.rfind('.'):
+                val_str = val_str.replace('.', '').replace(',', '.')
+            else:
+                val_str = val_str.replace(',', '')
+        elif ',' in val_str:
+            partes = val_str.split(',')
+            val_str = partes[0].replace('.', '') + '.' + ''.join(partes[1:])
+        val = float(val_str)
+        return val if math.isfinite(val) else 0.0
     except ValueError:
         return 0.0
 
@@ -814,28 +831,69 @@ def montar_itens_csv(df):
     return itens
 
 
+def _xml_find(parent, path: str, ns_prefix: str = 'ns:'):
+    if parent is None:
+        return None
+    if ns_prefix:
+        return parent.find(path.replace('__P__', ns_prefix))
+    return parent.find(path.replace('__P__', ''))
+
+
+def _xml_findall(parent, path: str, ns_prefix: str = 'ns:'):
+    if parent is None:
+        return []
+    if ns_prefix:
+        return parent.findall(path.replace('__P__', ns_prefix))
+    return parent.findall(path.replace('__P__', ''))
+
+
 @st.cache_data(show_spinner=False)
 def ler_xml_nfe_bytes(bruto: bytes):
     root = ET.fromstring(bruto)
+    tem_ns_nfe = (root.tag == f"{{{NS_URI}}}nfeProc" or root.tag == f"{{{NS_URI}}}NFe" or root.find('.//ns:ide', NS) is not None)
+    ns_prefix = 'ns:' if tem_ns_nfe else ''
+    ns_map = NS if tem_ns_nfe else {}
 
-    nNF = root.find('.//ns:ide/ns:nNF', NS)
-    numero_nf = nNF.text.strip() if nNF is not None and nNF.text else 'DESCONHECIDO'
+    def find_el(parent, rel_path):
+        if parent is None:
+            return None
+        if ns_prefix:
+            prefixed = '/'.join(
+                part if part in ('.', '..') else f"{ns_prefix}{part}"
+                for part in rel_path.split('/')
+            )
+            return parent.find(prefixed, ns_map)
+        return parent.find(rel_path)
+
+    def findall_el(parent, rel_path):
+        if parent is None:
+            return []
+        if ns_prefix:
+            prefixed = '/'.join(
+                part if part in ('.', '..') else f"{ns_prefix}{part}"
+                for part in rel_path.split('/')
+            )
+            return parent.findall(prefixed, ns_map)
+        return parent.findall(rel_path)
 
     def txt(no, tag):
         if no is None:
             return ''
-        e = no.find(f'ns:{tag}', NS)
+        e = find_el(no, tag)
         return e.text.strip() if e is not None and e.text else ''
 
-    inf_adic = root.find('.//ns:infAdic', NS)
+    nNF = find_el(root, './/ide/nNF')
+    numero_nf = nNF.text.strip() if nNF is not None and nNF.text else 'DESCONHECIDO'
+
+    inf_adic = find_el(root, './/infAdic')
     dados_adicionais = {
         'infAdFisco': txt(inf_adic, 'infAdFisco'),
         'infCpl': txt(inf_adic, 'infCpl'),
     }
 
     itens = []
-    for det in root.findall('.//ns:det', NS):
-        prod = det.find('ns:prod', NS)
+    for det in findall_el(root, './/det'):
+        prod = find_el(det, 'prod')
         try:
             n_item = int(det.attrib.get('nItem', '0'))
         except ValueError:
@@ -848,18 +906,18 @@ def ler_xml_nfe_bytes(bruto: bytes):
         u_com = txt(prod, 'uCom') or 'UN'
 
         icms, origem = 0.0, 'NAC'
-        icms_node = det.find('.//ns:ICMS', NS)
+        icms_node = find_el(det, './/ICMS')
         if icms_node is not None and len(icms_node) > 0:
             sub = icms_node[0]
-            p = sub.find('ns:pICMS', NS)
+            p = find_el(sub, 'pICMS')
             if p is not None and p.text:
                 icms = converte_float_br(p.text)
-            o = sub.find('ns:orig', NS)
+            o = find_el(sub, 'orig')
             if o is not None and o.text:
                 origem = obter_sigla_origem(o.text.strip())
 
         pred_node = (
-            icms_node[0].find('ns:pRedBC', NS)
+            find_el(icms_node[0], 'pRedBC')
             if icms_node is not None and len(icms_node) > 0
             else None
         )
@@ -1094,6 +1152,8 @@ def validar_upload(itens_xml, itens_csv, numero_nf, nome_arquivo_csv, colunas_fa
 def _fmt_num_curto(valor, max_dec: int = 2) -> str:
     try:
         v = float(valor)
+        if not math.isfinite(v):
+            return str(valor)
         if v.is_integer():
             return str(int(v))
         return f"{v:.{max_dec}f}".rstrip('0').rstrip('.')
@@ -1343,7 +1403,7 @@ def preparar_dados_resumo_divergencias(dados_relatorio):
                 'ean': html.escape(rotulo_ean),
                 'desc_html': desc_html,
                 'texto_ean_desc': texto_ean_desc,
-                'tooltip': html.escape(desc_completa),
+                'tooltip': html.escape(desc_completa, quote=True),
                 'celulas_texto': celulas_texto,
                 'celulas_html': celulas_html,
                 'celulas_tipo': celulas_tipo,
@@ -1357,6 +1417,10 @@ def preparar_dados_resumo_divergencias(dados_relatorio):
 def _alternar_ponto_rodape(ponto_rotulo: str):
     atual = st.session_state.get("ponto_rodape_ativo")
     st.session_state["ponto_rodape_ativo"] = None if atual == ponto_rotulo else ponto_rotulo
+
+
+def _hash_curto(texto: str) -> str:
+    return hashlib.md5(texto.encode('utf-8')).hexdigest()[:10]
 
 
 def renderizar_rodape_nfe(dados_adicionais: dict | None):
@@ -1395,7 +1459,7 @@ def renderizar_rodape_nfe(dados_adicionais: dict | None):
                 with cols_tags[idx_p % len(cols_tags)]:
                     st.button(
                         f"{prefixo}{ponto_rotulo}",
-                        key=f"btn_ponto_rodape_{idx_p}_{ponto_rotulo}",
+                        key=f"btn_ponto_rodape_{idx_p}_{_hash_curto(ponto_rotulo)}",
                         use_container_width=True,
                         type="primary" if ativo else "secondary",
                         on_click=_alternar_ponto_rodape,
@@ -1442,7 +1506,7 @@ def renderizar_resumo_divergencias(dados_relatorio, dados_adicionais: dict | Non
     if qtd_warn > 0:
         badges.append(f'<span class="div-warn-badge">⚠️ {qtd_warn} alerta(s)</span>')
 
-    ths = ['<th>EAN (NF) + Descrição</th>'] + [f'<th>{col}</th>' for col in colunas_ativas]
+    ths = ['<th>EAN (NF) + Descrição</th>'] + [f'<th>{html.escape(col)}</th>' for col in colunas_ativas]
     trs = []
     for reg in registros:
         tds = [f'<td class="cell-prod" title="{reg["tooltip"]}">{reg["ean"]}{reg["desc_html"]}</td>']
@@ -1528,6 +1592,7 @@ def _adicionar_bloco_rodape_excel(ws, start_row: int, total_cols: int, dados_adi
 
     def _escrever_secao(titulo_sec: str, texto_sec: str):
         nonlocal r
+        texto_limpo = texto_sec.replace('\r\n', '\n').replace('\r', '\n')
         ws.merge_cells(start_row=r, start_column=1, end_row=r, end_column=end_col)
         c_s = ws.cell(row=r, column=1, value=titulo_sec)
         c_s.font = font_sec
@@ -1540,14 +1605,15 @@ def _adicionar_bloco_rodape_excel(ws, start_row: int, total_cols: int, dados_adi
         r += 1
 
         ws.merge_cells(start_row=r, start_column=1, end_row=r, end_column=end_col)
-        c_t = ws.cell(row=r, column=1, value=texto_sec)
+        c_t = ws.cell(row=r, column=1, value=texto_limpo)
         c_t.font = font_txt
         c_t.alignment = Alignment(horizontal='left', vertical='top', wrap_text=True)
         for ci in range(1, end_col + 1):
             cell_t = ws.cell(row=r, column=ci)
             cell_t.fill = fill_rodape_txt
             cell_t.border = borda_cinza
-        n_linhas = sum(max(1, math.ceil(len(p) / chars_por_linha)) for p in texto_sec.splitlines())
+        linhas_txt = texto_limpo.splitlines() or [texto_limpo]
+        n_linhas = sum(max(1, math.ceil(len(p) / chars_por_linha)) for p in linhas_txt)
         ws.row_dimensions[r].height = max(24, min(n_linhas * 16 + 10, 409))
         r += 1
 
@@ -1913,22 +1979,23 @@ def gerar_excel_auditoria_cached(
                     wrap_text=current_align.wrap_text
                 )
 
-                if col_name == 'Cod_Produto_WINTHOR' and str(cell.value).strip() not in ('', '-'):
+                raw_str = str(cell.value).strip() if cell.value is not None else ''
+                if col_name == 'Cod_Produto_WINTHOR' and raw_str not in ('', '-'):
                     try:
-                        cell.value = int(float(cell.value))
+                        cell.value = int(float(raw_str))
                         cell.number_format = '0'
                     except ValueError:
                         pass
-                elif col_name in ('NCM_NF', 'NCM_WINTHOR') and str(cell.value).strip() not in ('', '-'):
+                elif col_name in ('NCM_NF', 'NCM_WINTHOR') and raw_str not in ('', '-'):
                     try:
-                        cell.value = int(float(cell.value))
+                        cell.value = int(float(raw_str))
                         cell.number_format = '00000000'
                     except ValueError:
                         pass
-                elif col_name in ('EAN_NF', 'EAN_WINTHOR') and str(cell.value).strip() not in ('', '-'):
-                    cell.value = str(cell.value).strip()
+                elif col_name in ('EAN_NF', 'EAN_WINTHOR') and raw_str not in ('', '-'):
+                    cell.value = raw_str
                     cell.number_format = '@'
-                elif isinstance(cell.value, (int, float)) and cell.value != '-':
+                elif isinstance(cell.value, (int, float)) and not isinstance(cell.value, bool):
                     if 'pRedBC' in col_name or 'ICMS_Efetivo' in col_name or 'red. Whintor' in col_name:
                         cell.number_format = '#,##0.0000'
                     elif 'Qtd' in col_name or 'ICMS' in col_name or 'Whintor' in col_name:
@@ -2213,7 +2280,7 @@ if lote_xml and arquivo_dados and chave_ativa in lote_xml:
         numero_nf, itens_xml, dados_adicionais = ler_xml_nfe_bytes(xml_selecionado["bytes"])
     except ET.ParseError:
         st.markdown(
-            f'<div class="v-badge err">🚫 O arquivo <b>{xml_selecionado["nome_arquivo"]}</b> não é um XML de NF-e válido.</div>',
+            f'<div class="v-badge err">🚫 O arquivo <b>{html.escape(xml_selecionado["nome_arquivo"])}</b> não é um XML de NF-e válido.</div>',
             unsafe_allow_html=True
         )
         itens_xml = None
@@ -2229,10 +2296,10 @@ if lote_xml and arquivo_dados and chave_ativa in lote_xml:
 
         if tem_bloqueio or avisos_prep or val['avisos']:
             for bloq in val['bloqueios']:
-                st.markdown(f'<div class="v-badge err">🚫 {bloq}</div>', unsafe_allow_html=True)
+                st.markdown(f'<div class="v-badge err">🚫 {html.escape(bloq)}</div>', unsafe_allow_html=True)
 
             for av in avisos_prep + val['avisos']:
-                st.markdown(f'<div class="v-badge warn">⚠️ {av}</div>', unsafe_allow_html=True)
+                st.markdown(f'<div class="v-badge warn">⚠️ {html.escape(av)}</div>', unsafe_allow_html=True)
 
             if val['bloqueio_nf']:
                 ignorar_bloqueio_nf = st.checkbox("Confirmar mesmo assim (o arquivo pertence a esta NF)")
@@ -2251,7 +2318,7 @@ if lote_xml and arquivo_dados and chave_ativa in lote_xml:
             st.markdown(f"""
                 <div class="temp-notice-wrap">
                     <div class="temp-notice">
-                        ✅ NF {numero_nf} pronta para auditoria
+                        ✅ NF {html.escape(str(numero_nf))} pronta para auditoria
                     </div>
                 </div>
             """, unsafe_allow_html=True)
