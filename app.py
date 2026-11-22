@@ -137,7 +137,7 @@ st.markdown("""
         border-radius: 6px !important;
     }
 
-    /* Lista de arquivos com rolagem controlada */
+    /* Lista de arquivos e cartão de arquivo enviado sempre claros */
     [data-testid="stFileUploaderDropzone"] > div:last-child,
     [data-testid="stFileUploaderDropzone"] ul {
         width: 100% !important;
@@ -148,10 +148,11 @@ st.markdown("""
     }
     [data-testid="stFileUploaderFile"],
     [data-testid="stUploadedFile"],
-    [data-testid="stFileUploaderFile"] > div,
     [data-testid="stUploadedFile"] > div,
-    [data-testid="stFileUploaderFile"] > div > div,
-    [data-testid="stUploadedFile"] > div > div {
+    [data-testid="stUploadedFile"] > div > div,
+    [data-testid="stUploadedFile"] > div > div > div,
+    [data-testid="stFileUploaderFile"] > div,
+    [data-testid="stFileUploaderFile"] > div > div {
         background-color: #EEF2F6 !important;
         color: #1B2631 !important;
     }
@@ -212,17 +213,24 @@ st.markdown("""
         flex-shrink: 0 !important;
     }
 
-    /* Containers em fundo branco */
-    [data-testid="stVerticalBlockBorderWrapper"] {
+    /* Containers e listagem do lote em fundo claro */
+    [data-testid="stVerticalBlockBorderWrapper"],
+    [data-testid="stVerticalBlockBorderWrapper"] > div,
+    [data-testid="stVerticalBlockBorderWrapper"] > div > div {
         background-color: #FFFFFF !important;
         border-color: #E2E8F0 !important;
         border-radius: 8px !important;
+        color: #1B2631 !important;
     }
 
     /* Selectbox da NF ativa sempre claro */
+    [data-testid="stSelectbox"],
     [data-testid="stSelectbox"] > div,
+    [data-testid="stSelectbox"] > div > div,
     [data-testid="stSelectbox"] [data-baseweb="select"],
     [data-testid="stSelectbox"] [data-baseweb="select"] > div,
+    [data-baseweb="popover"],
+    [data-baseweb="popover"] > div,
     [data-baseweb="popover"] ul,
     [data-baseweb="popover"] li,
     [role="listbox"],
@@ -249,6 +257,7 @@ st.markdown("""
 
     /* Botões padrão (Remover / Limpar tudo / tags) sempre claros */
     div[data-testid="stButton"] > button,
+    div[data-testid="stButton"] > button[kind="secondary"],
     button[kind="secondary"] {
         background-color: #FFFFFF !important;
         color: #1B2631 !important;
@@ -257,6 +266,7 @@ st.markdown("""
         border-radius: 8px !important;
     }
     div[data-testid="stButton"] > button:hover,
+    div[data-testid="stButton"] > button[kind="secondary"]:hover,
     button[kind="secondary"]:hover {
         background-color: #F1F5F9 !important;
         color: #0F172A !important;
@@ -268,13 +278,15 @@ st.markdown("""
         color: #1B2631 !important;
     }
 
-    /* Checkboxes compactos */
-    div[data-testid="stCheckbox"] {
-        margin-bottom: 4px;
-    }
+    /* Checkboxes e flags do relatório sempre claros */
+    div[data-testid="stCheckbox"],
+    div[data-testid="stCheckbox"] > label,
+    div[data-testid="stCheckbox"] > label > div,
+    div[data-testid="stCheckbox"] label span,
     div[data-testid="stCheckbox"] label p {
+        margin-bottom: 4px;
+        color: #1B2631 !important;
         font-size: 0.88rem !important;
-        color: #2C3E50 !important;
         font-weight: 500 !important;
     }
 
