@@ -1,4 +1,4 @@
-codigo_completo = r'''import html
+import html
 import io
 import math
 import os
@@ -525,60 +525,6 @@ st.markdown("""
         flex-wrap: wrap;
         gap: 8px;
     }
-    .rodape-alert-bar {
-        background-color: #FFFBEB;
-        border: 1px solid #F59E0B;
-        color: #92400E;
-        border-radius: 6px;
-        padding: 8px 12px;
-        font-size: 0.82rem;
-        font-weight: 600;
-        margin-bottom: 10px;
-        display: flex;
-        align-items: center;
-        flex-wrap: wrap;
-        gap: 6px;
-    }
-    .rodape-tag-wrap {
-        display: inline-flex;
-        align-items: center;
-        flex-wrap: wrap;
-        gap: 4px;
-    }
-    .rodape-tag-wrap div[data-testid="stButton"] {
-        display: inline-block;
-        width: auto;
-        margin: 0;
-    }
-    .rodape-tag-wrap div[data-testid="stButton"] > button {
-        background-color: #FEF3C7 !important;
-        color: #92400E !important;
-        border: 1px solid #F59E0B !important;
-        border-radius: 12px !important;
-        padding: 2px 10px !important;
-        font-size: 0.75rem !important;
-        font-weight: 700 !important;
-        line-height: 1.3 !important;
-        min-height: 0 !important;
-        height: auto !important;
-        box-shadow: none !important;
-    }
-    .rodape-tag-wrap div[data-testid="stButton"] > button:hover {
-        background-color: #FDE68A !important;
-        color: #78350F !important;
-        border-color: #D97706 !important;
-    }
-    .rodape-tag-ativa {
-        display: inline-block;
-        background-color: #D97706;
-        color: #FFFFFF;
-        border: 1px solid #B45309;
-        border-radius: 12px;
-        padding: 2px 10px;
-        font-size: 0.75rem;
-        font-weight: 700;
-        margin: 2px 4px 2px 0;
-    }
     .rodape-highlight {
         background-color: #FDE047;
         color: #78350F;
@@ -958,7 +904,6 @@ def _expandir_trecho_inteiro(texto: str, start_idx: int, end_idx: int) -> tuple[
     while esq > 0 and texto[esq - 1] not in separadores:
         esq -= 1
 
-    # Evita quebrar no meio de siglas como "B.Calc.ST" ou "Red.BC" ao buscar separador " - "
     dir_pos = end_idx
     n = len(texto)
     while dir_pos < n:
@@ -969,9 +914,11 @@ def _expandir_trecho_inteiro(texto: str, start_idx: int, end_idx: int) -> tuple[
             break
         dir_pos += 1
 
-    # Se o início caiu logo após " - ", avança os espaços/hífen iniciais
     while esq < dir_pos and texto[esq] in (' ', '-', '\t'):
         esq += 1
+
+    while dir_pos > esq and texto[dir_pos - 1] in (' ', '\t'):
+        dir_pos -= 1
 
     return esq, dir_pos
 
@@ -1005,7 +952,6 @@ def destacar_trechos_rodape_html(texto: str, ponto_ativo: str | None) -> str:
     if not intervalos:
         return html.escape(texto)
 
-    # Mescla intervalos sobrepostos ou adjacentes
     intervalos.sort()
     mesclados = [intervalos[0]]
     for s, e in intervalos[1:]:
@@ -1188,7 +1134,6 @@ def cruzar_itens_auditoria(itens_xml, itens_csv):
         if item_x and item_c:
             linha['Status_Geral'] = 'PAREADO'
 
-            # 1. Conferência de EAN (com alerta laranja quando ambos vazios)
             ean_x_comp = item_x.get('EAN_Comp_NF', '')
             eantrib_x_comp = item_x.get('EANTrib_Comp_NF', '')
             ean_win_comp = item_c.get('EAN_Comp_WINTHOR', '')
@@ -1203,7 +1148,6 @@ def cruzar_itens_auditoria(itens_xml, itens_csv):
             else:
                 linha['Status_EAN'] = 'DIVERGENTE'
 
-            # 2. Tipo de Cálculo ST
             tipo_calc = str(item_c.get('Tipo_Calculo_WINTHOR', '')).strip().upper()
             if tipo_calc == 'N':
                 linha['Tipo_Calculo_ST'] = 'NOTA FISCAL'
@@ -1212,7 +1156,6 @@ def cruzar_itens_auditoria(itens_xml, itens_csv):
             else:
                 linha['Tipo_Calculo_ST'] = item_c['Tipo_Calculo_WINTHOR']
 
-            # 3. Conferência de ICMS guiada pelo Tipo de Cálculo ST
             icms_xml = round(item_x['ICMS_NF'], 2)
             icms_csv = round(item_c['ICMS_WINTHOR'], 2)
             st_guia = round(item_c['%Alíq.Ext. ST Guia_Whintor'], 2)
@@ -1235,7 +1178,6 @@ def cruzar_itens_auditoria(itens_xml, itens_csv):
                 else:
                     linha['Status_ICMS_Aliq'] = 'DIVERGENTE'
 
-            # 4. Conferência de Redução de Base (ICMS Efetivo XML x % ICMS red. WinThor)
             pred_xml = round(item_x['pRedBC_NF'], 4)
             red_csv = round(item_c['% ICMS red. Whintor'], 4)
             carga_efetiva_xml = round(item_x['ICMS_NF'] * (1.0 - (item_x['pRedBC_NF'] / 100.0)), 4)
@@ -1252,14 +1194,12 @@ def cruzar_itens_auditoria(itens_xml, itens_csv):
             else:
                 linha['Status_Red_BC'] = 'DIVERGENTE'
 
-            # 5. Conferência de NCM (padronizado em 8 dígitos)
             ncm_x = str(item_x['NCM_NF']).strip()
             ncm_w = str(item_c['NCM_WINTHOR']).strip()
             ncm_x_norm = ncm_x.zfill(8) if ncm_x else ''
             ncm_w_norm = ncm_w.zfill(8) if ncm_w else ''
             linha['Status_NCM'] = 'OK' if ncm_x_norm == ncm_w_norm else 'DIVERGENTE'
 
-            # 6. Conferência de Quantidade
             qtd_xml_pura = item_x['Qtd_NF']
             qtd_win = item_c['Qtd_WINTHOR']
             fator = item_x['_Fator_Embalagem']
@@ -1298,7 +1238,7 @@ def preparar_dados_resumo_divergencias(dados_relatorio):
     for linha in dados_relatorio:
         celulas_texto = {}
         celulas_html = {}
-        celulas_tipo = {}  # 'div', 'warn', 'obs'
+        celulas_tipo = {}
         observacoes = []
         tem_div = False
         tem_warn = False
@@ -1312,7 +1252,6 @@ def preparar_dados_resumo_divergencias(dados_relatorio):
             colunas_encontradas['Sobra'] = True
             tem_div = True
         else:
-            # EAN: divergente (vermelho) ou ambos vazios (laranja)
             if linha.get('Status_EAN') == 'DIVERGENTE':
                 ean_x = str(linha.get('EAN_NF') or 'vazio')
                 ean_w = str(linha.get('EAN_WINTHOR') or 'vazio')
@@ -1329,7 +1268,6 @@ def preparar_dados_resumo_divergencias(dados_relatorio):
                 observacoes.append('Produto sem código de barras no XML e no WinThor — verificar.')
                 tem_warn = True
 
-            # NCM
             if linha.get('Status_NCM') == 'DIVERGENTE':
                 n_x = str(linha.get('NCM_NF') or '-')
                 n_w = str(linha.get('NCM_WINTHOR') or '-')
@@ -1339,7 +1277,6 @@ def preparar_dados_resumo_divergencias(dados_relatorio):
                 colunas_encontradas['NCM'] = True
                 tem_div = True
 
-            # ICMS (guiado por Tipo Cálculo ST: N ou G)
             tipo_calc = str(linha.get('Tipo_Calculo_WINTHOR', '')).strip().upper()
             if linha.get('Status_ICMS_Aliq') == 'DIVERGENTE':
                 i_x = _fmt_num_curto(linha.get('ICMS_NF'))
@@ -1365,7 +1302,6 @@ def preparar_dados_resumo_divergencias(dados_relatorio):
                     observacoes.append(linha['ICMS_Obs'])
                 tem_warn = True
 
-            # Base Reduzida (exibe ICMS Efetivo × WinThor + ICMS e Redução da NF)
             if linha.get('Status_Red_BC') == 'DIVERGENTE':
                 ef_x = _fmt_num_curto(linha.get('ICMS_Efetivo_NF'), max_dec=4)
                 r_w = _fmt_num_curto(linha.get('% ICMS red. Whintor'), max_dec=4)
@@ -1564,7 +1500,6 @@ def _adicionar_bloco_rodape_excel(ws, start_row: int, total_cols: int, dados_adi
 
     r = start_row
 
-    # Cabeçalho do bloco
     ws.merge_cells(start_row=r, start_column=1, end_row=r, end_column=end_col)
     c_hdr = ws.cell(row=r, column=1, value="📌 Dados Adicionais / Rodapé da NF-e")
     c_hdr.font = font_hdr
@@ -1574,7 +1509,6 @@ def _adicionar_bloco_rodape_excel(ws, start_row: int, total_cols: int, dados_adi
     ws.row_dimensions[r].height = 24
     r += 1
 
-    # Faixa de pontos importantes encontrados
     if info['alertas']:
         ws.merge_cells(start_row=r, start_column=1, end_row=r, end_column=end_col)
         txt_alerta = "⚠️ Pontos importantes: " + "  •  ".join(info['alertas'])
@@ -1588,7 +1522,6 @@ def _adicionar_bloco_rodape_excel(ws, start_row: int, total_cols: int, dados_adi
         ws.row_dimensions[r].height = 24
         r += 1
 
-    # Estima largura total disponível para calcular altura das linhas de texto
     largura_total = sum(
         (ws.column_dimensions[get_column_letter(ci)].width or 18) for ci in range(1, end_col + 1)
     )
@@ -1693,7 +1626,6 @@ def _montar_aba_resumo_excel(workbook, dados_relatorio, numero_nf: str, dados_ad
         partes_resumo.append(f"{qtd_warn} alerta(s)")
     resumo_contagem = "  •  ".join(partes_resumo)
 
-    # Faixa de título (Linha 1)
     ws.merge_cells(start_row=1, start_column=1, end_row=1, end_column=total_cols)
     c_tit = ws.cell(row=1, column=1)
     c_tit.value = f"🔎 Resumo de Divergências e Alertas — NF {numero_nf} (XML × WinThor)  |  {resumo_contagem}"
@@ -1704,7 +1636,6 @@ def _montar_aba_resumo_excel(workbook, dados_relatorio, numero_nf: str, dados_ad
     ws.row_dimensions[1].height = 28
     ws.row_dimensions[2].height = 8
 
-    # Cabeçalhos da tabela (Linha 3)
     for col_i, nome_col in enumerate(cabecalhos, start=1):
         cell = ws.cell(row=3, column=col_i, value=nome_col.upper())
         cell.font = font_header
@@ -1713,7 +1644,6 @@ def _montar_aba_resumo_excel(workbook, dados_relatorio, numero_nf: str, dados_ad
         cell.alignment = Alignment(horizontal='left' if col_i in (1,) or nome_col == 'Observação' else 'center', vertical='center')
     ws.row_dimensions[3].height = 24
 
-    # Linhas de divergência e alerta (a partir da Linha 4)
     for idx_reg, reg in enumerate(registros, start=4):
         eh_par = (idx_reg % 2 == 0)
         fill_linha = fill_zebra_par if eh_par else fill_zebra_impar
@@ -1760,7 +1690,6 @@ def _montar_aba_resumo_excel(workbook, dados_relatorio, numero_nf: str, dados_ad
     ws.freeze_panes = 'A4'
     ws.auto_filter.ref = f"A3:{get_column_letter(total_cols)}{len(registros) + 3}"
 
-    # Ajuste automático da largura das colunas antes do rodapé
     for col_i in range(1, total_cols + 1):
         col_letter = get_column_letter(col_i)
         max_len = len(cabecalhos[col_i - 1])
@@ -1770,7 +1699,6 @@ def _montar_aba_resumo_excel(workbook, dados_relatorio, numero_nf: str, dados_ad
                 max_len = max(max_len, len(str(val)))
         ws.column_dimensions[col_letter].width = min(max(max_len + 5, 16), 65)
 
-    # Rodapé / Dados Adicionais abaixo da tabela
     _adicionar_bloco_rodape_excel(
         ws,
         start_row=len(registros) + 6,
@@ -1830,7 +1758,6 @@ def gerar_excel_auditoria_cached(
         workbook = writer.book
         worksheet = workbook['Comparativo_ICMS_e_EAN']
 
-        # Adiciona a aba de resumo idêntica ao front como primeira guia
         _montar_aba_resumo_excel(workbook, dados_relatorio, numero_nf, dados_adicionais)
 
         worksheet.sheet_view.showGridLines = False
@@ -2051,7 +1978,6 @@ def gerar_excel_auditoria_cached(
                                 cell_dado = worksheet.cell(row=row, column=headers.index(col_afetada) + 1)
                                 cell_dado.font = font_normal
 
-        # Zebrado condicional apenas nas colunas que não possuem preenchimento de status/alerta
         letras_nao_status = [
             get_column_letter(idx)
             for idx, col_name in enumerate(headers, 1)
@@ -2061,7 +1987,6 @@ def gerar_excel_auditoria_cached(
             rule = FormulaRule(formula=['MOD(ROW(),2)=0'], stopIfTrue=True, fill=fill_zebrado)
             worksheet.conditional_formatting.add(f'{l_col}4:{l_col}{len(df_final) + 3}', rule)
 
-        # Ajuste automático da largura das colunas (mantendo 'Orig.' ultra-compacta)
         for idx, col in enumerate(worksheet.columns, 1):
             col_name = headers[idx - 1]
             column_letter = get_column_letter(col[0].column)
@@ -2123,7 +2048,6 @@ st.markdown("""
 </div>
 """, unsafe_allow_html=True)
 
-# Estado da sessão
 if "xml_lote" not in st.session_state:
     st.session_state["xml_lote"] = {}
 if "xml_uploader_key" not in st.session_state:
@@ -2135,7 +2059,6 @@ if "ultimo_lote_assinatura" not in st.session_state:
 if "ponto_rodape_ativo" not in st.session_state:
     st.session_state["ponto_rodape_ativo"] = None
 
-# Etapa 1 e 2: Uploaders lado a lado
 col_up1, col_up2 = st.columns(2, gap="large")
 
 with col_up1:
@@ -2162,7 +2085,6 @@ with col_up1:
                     "nome_arquivo": arq_x.name,
                     "bytes": bruto_x,
                 }
-        # Limpa a bandeja do uploader imediatamente após incorporar os arquivos ao lote
         st.session_state["xml_uploader_key"] += 1
         st.rerun()
 
@@ -2177,7 +2099,6 @@ lote_xml = st.session_state["xml_lote"]
 chaves_ordenadas = list(lote_xml.keys())
 assinatura_lote = tuple(chaves_ordenadas)
 
-# Detecção automática da NF tanto quando um novo CSV/XLSX entra quanto quando novos XMLs entram depois do CSV
 if arquivo_dados is not None:
     assinatura_csv = f"{arquivo_dados.name}:{arquivo_dados.size}"
     csv_mudou = assinatura_csv != st.session_state["ultimo_csv_assinatura"]
@@ -2202,7 +2123,6 @@ if chaves_ordenadas:
 else:
     st.session_state.pop("sb_nf_ativa", None)
 
-# Barra de gerenciamento do lote de XMLs
 if lote_xml:
     with st.container(border=True):
         c_info, c_sel, c_rem, c_limp = st.columns([1.8, 3.0, 1.0, 1.1], vertical_alignment="center")
@@ -2242,7 +2162,6 @@ if lote_xml:
                 on_click=_limpar_lote
             )
 
-# Estado padrão das flags de exportação
 _DEFAULTS_FLAGS = {
     "flag_sel_todos": False,
     "flag_ident": False,
@@ -2265,7 +2184,6 @@ def _ao_clicar_selecionar_todos():
         st.session_state[_k] = marcar
 
 
-# Seleção simétrica de blocos
 with st.container(border=True):
     top_col1, top_col2 = st.columns([4, 1], vertical_alignment="center")
     with top_col1:
@@ -2289,7 +2207,6 @@ with st.container(border=True):
         inc_red = st.checkbox("Redução Base", key="flag_red")
         inc_st = st.checkbox("Cálculo ST", key="flag_st")
 
-# Validação automática, download centralizado e resumo de divergências em planilha
 chave_ativa = st.session_state.get("sb_nf_ativa")
 if lote_xml and arquivo_dados and chave_ativa in lote_xml:
     xml_selecionado = lote_xml[chave_ativa]
@@ -2350,7 +2267,6 @@ if lote_xml and arquivo_dados and chave_ativa in lote_xml:
                     use_container_width=True
                 )
 
-            # Resumo de divergências, alertas e rodapé da NF-e
             dados_cruzados = cruzar_itens_auditoria(itens_xml, itens_csv)
             renderizar_resumo_divergencias(dados_cruzados, dados_adicionais)
 
@@ -2364,61 +2280,3 @@ elif arquivo_dados and not lote_xml:
         '<div class="empty-hint">📂 Relatório do WinThor carregado. Envie os <b>XMLs das NF-e</b> no passo 1 para iniciar o cruzamento.</div>',
         unsafe_allow_html=True
     )
-'''
-
-with open("app.py", "w", encoding="utf-8") as f:
-    f.write(codigo_completo)
-
-import py_compile, sys, types, io
-py_compile.compile("app.py", doraise=True)
-
-class _DummyCtx:
-    def __enter__(self): return self
-    def __exit__(self, *a): return False
-
-st_mock = types.ModuleType("streamlit")
-st_mock.set_page_config = lambda **kw: None
-st_mock.cache_resource = lambda f=None, **kw: (f if f else (lambda fn: fn))
-st_mock.cache_data = lambda f=None, **kw: (f if f else (lambda fn: fn))
-st_mock.markdown = lambda *a, **kw: None
-st_mock.columns = lambda spec, **kw: [_DummyCtx() for _ in range(spec if isinstance(spec, int) else len(spec))]
-st_mock.container = lambda **kw: _DummyCtx()
-st_mock.file_uploader = lambda *a, **kw: None
-st_mock.selectbox = lambda *a, **kw: None
-st_mock.button = lambda *a, **kw: False
-st_mock.checkbox = lambda *a, **kw: False
-st_mock.download_button = lambda *a, **kw: False
-st_mock.rerun = lambda: None
-st_mock.session_state = {}
-sys.modules["streamlit"] = st_mock
-
-if "app" in sys.modules:
-    del sys.modules["app"]
-import app
-from openpyxl import load_workbook
-
-rod = app.analisar_rodape_nfe({
-    'infAdFisco': 'Substituicao de nota anterior ref. NF 123 - ICMS-ST pago',
-    'infCpl': 'Refaturamento autorizado - Devolucao recusada - Reclame em 24h'
-})
-assert 'Substituição / NF Anterior' in rod['alertas']
-assert 'Refaturamento' in rod['alertas']
-assert 'Devolução / Retorno' in rod['alertas']
-assert 'Avaria / Falta / Reclamação' in rod['alertas']
-assert 'ICMS-ST / ST' in rod['alertas']
-
-hl = app.destacar_trechos_rodape_html('Venda normal - Refaturamento autorizado conforme pedido - Outra info', 'Refaturamento')
-assert '<mark class="rodape-highlight">Refaturamento autorizado conforme pedido</mark>' in hl
-
-xlsx_bytes, _ = app.gerar_excel_auditoria_cached(
-    app._freeze_itens([{'Linha_NF': 1, 'Descricao_NF': 'ITEM', 'EAN_NF': '789', 'EAN_Comp_NF': '789', 'EANTrib_Comp_NF': '789', 'NCM_NF': '33059000', 'Qtd_NF': 1.0, '_Fator_Embalagem': 1.0, 'Vl_Unit_NF': 10.0, 'Vl_Total_NF': 10.0, 'Orig.': 'NAC', 'ICMS_NF': 20.0, 'pRedBC_NF': 0.0}]),
-    app._freeze_itens([{'Linha_WINTHOR': 1, 'Cod_Produto_WINTHOR': '1', 'EAN_WINTHOR': '789', 'EAN_Comp_WINTHOR': '789', 'EAN_Status_WINTHOR': 'ok', 'Descricao_WINTHOR': 'ITEM', 'Qtd_WINTHOR': 1.0, 'NCM_WINTHOR': '33059000', 'ICMS_WINTHOR': 20.0, '% ICMS red. Whintor': 20.0, '%Alíq.Ext. ST Guia_Whintor': 0.0, 'Tipo_Calculo_WINTHOR': 'N'}]),
-    "1570330",
-    app._freeze_dict({'infAdFisco': '', 'infCpl': 'Refaturamento autorizado - ICMS-ST ok'}),
-    False, True, True, False, False, True, True, True
-)
-wb = load_workbook(io.BytesIO(xlsx_bytes))
-assert wb['Resumo_Divergencias'].sheet_view.zoomScale == 80
-assert wb['Comparativo_ICMS_e_EAN'].sheet_view.zoomScale == 80
-assert wb['Comparativo_ICMS_e_EAN']['A3'].value == 'EAN_NF'
-print("OK_COMPILACAO_E_TESTES")
