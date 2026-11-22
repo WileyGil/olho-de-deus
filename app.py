@@ -827,7 +827,6 @@ def ler_xml_nfe_bytes(bruto: bytes):
         e = no.find(f'ns:{tag}', NS)
         return e.text.strip() if e is not None and e.text else ''
 
-    # Extração do rodapé / Dados Adicionais (<infAdic>)
     inf_adic = root.find('.//ns:infAdic', NS)
     dados_adicionais = {
         'infAdFisco': txt(inf_adic, 'infAdFisco'),
