@@ -1232,7 +1232,7 @@ def cruzar_itens_auditoria(itens_xml, itens_csv):
             if ean_win_comp != '' and (ean_win_comp == ean_x_comp or ean_win_comp == eantrib_x_comp):
                 linha['Status_EAN'] = 'OK'
             elif ean_win_comp == '' and ean_x_comp == '' and eantrib_x_comp == '':
-                linha['Status_EAN'] = 'OK'
+                linha['Status_EAN'] = 'ALERTA'
                 linha['EAN_Alerta_Vazio'] = True
                 linha['EAN_NF'] = 'SEM EAN'
                 linha['EAN_WINTHOR'] = 'SEM EAN'
@@ -1259,11 +1259,11 @@ def cruzar_itens_auditoria(itens_xml, itens_csv):
                 elif icms_csv == 0.0:
                     linha['Status_ICMS_Aliq'] = 'OK'
                 else:
-                    linha['Status_ICMS_Aliq'] = 'OK'
+                    linha['Status_ICMS_Aliq'] = 'ALERTA'
                     linha['ICMS_Alerta_Guia'] = True
                     linha['ICMS_Obs'] = (
                         f"Item Guia (G) com %ICMS preenchido ({_fmt_num_curto(icms_csv)}%) "
-                        f"no WinThor — deveria estar zerado."
+                        f"no WinThor — zerar ICMS."
                     )
             else:
                 if icms_xml == icms_csv:
@@ -1390,8 +1390,8 @@ def preparar_dados_resumo_divergencias(dados_relatorio):
             elif linha.get('ICMS_Alerta_Guia'):
                 i_x = _fmt_num_curto(linha.get('ICMS_NF'))
                 i_w = _fmt_num_curto(linha.get('ICMS_WINTHOR'))
-                celulas_texto['ICMS'] = f'Guia {i_x}% (ICMS {i_w}%)'
-                celulas_html['ICMS'] = f'Guia {i_x}% <span class="warn-sep">•</span> ICMS {i_w}%'
+                celulas_texto['ICMS'] = f'Guia {i_x}% • ICMS {i_w}% (zerar ICMS)'
+                celulas_html['ICMS'] = f'Guia {i_x}% <span class="warn-sep">•</span> ICMS {i_w}% (zerar ICMS)'
                 celulas_tipo['ICMS'] = 'warn'
                 colunas_encontradas['ICMS'] = True
                 if linha.get('ICMS_Obs'):
@@ -2041,6 +2041,7 @@ def gerar_excel_auditoria_cached(
                     worksheet.cell(row=row, column=col_idx).fill = fill_cinza_sobra
                 continue
 
+            tipo_calc_linha = str(linha_dict.get('Tipo_Calculo_WINTHOR', '')).strip().upper()
             for col_status, colunas_dados in status_dependents.items():
                 if col_status in headers:
                     idx_status = headers.index(col_status) + 1
@@ -2048,31 +2049,52 @@ def gerar_excel_auditoria_cached(
                     val_status = cell_status.value
 
                     eh_alerta_laranja = (
-                        (col_status == 'Status_EAN' and linha_dict.get('EAN_Alerta_Vazio'))
+                        val_status == 'ALERTA'
+                        or (col_status == 'Status_EAN' and linha_dict.get('EAN_Alerta_Vazio'))
                         or (col_status == 'Status_ICMS_Aliq' and linha_dict.get('ICMS_Alerta_Guia'))
                     )
+
+                    # Reset padrão para garantir que colunas fora do erro fiquem em preto normal
+                    for col_afetada in colunas_dados:
+                        if col_afetada in headers:
+                            worksheet.cell(row=row, column=headers.index(col_afetada) + 1).font = font_normal
 
                     if val_status == 'DIVERGENTE':
                         cell_status.fill = fill_cel_divergente
                         cell_status.font = font_divergente
-                        for col_afetada in colunas_dados:
+
+                        if col_status == 'Status_ICMS_Aliq':
+                            if tipo_calc_linha == 'G':
+                                cols_erro = ['ICMS_NF', '%Alíq.Ext. ST Guia_Whintor']
+                                if round(converte_float_br(linha_dict.get('ICMS_WINTHOR', 0.0)), 2) != 0.0:
+                                    cols_erro.append('ICMS_WINTHOR')
+                            else:
+                                cols_erro = ['ICMS_NF', 'ICMS_WINTHOR']
+                        elif col_status == 'Status_Red_BC':
+                            cols_erro = ['ICMS_Efetivo_NF', '% ICMS red. Whintor']
+                        else:
+                            cols_erro = colunas_dados
+
+                        for col_afetada in cols_erro:
                             if col_afetada in headers:
                                 cell_dado = worksheet.cell(row=row, column=headers.index(col_afetada) + 1)
                                 cell_dado.font = font_divergente
                     elif eh_alerta_laranja:
                         cell_status.fill = fill_cel_alerta
                         cell_status.font = font_alerta
-                        for col_afetada in colunas_dados:
+
+                        if col_status == 'Status_ICMS_Aliq':
+                            cols_alerta = ['ICMS_WINTHOR']
+                        else:
+                            cols_alerta = colunas_dados
+
+                        for col_afetada in cols_alerta:
                             if col_afetada in headers:
                                 cell_dado = worksheet.cell(row=row, column=headers.index(col_afetada) + 1)
                                 cell_dado.font = font_alerta
                                 cell_dado.fill = fill_cel_alerta_dado
                     elif val_status == 'OK':
                         cell_status.fill = fill_cel_convergente
-                        for col_afetada in colunas_dados:
-                            if col_afetada in headers:
-                                cell_dado = worksheet.cell(row=row, column=headers.index(col_afetada) + 1)
-                                cell_dado.font = font_normal
 
         letras_nao_status = [
             get_column_letter(idx)
