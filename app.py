@@ -22,622 +22,90 @@ st.set_page_config(page_title="Auditoria de Notas | Dashboard", page_icon="📊"
 
 st.markdown("""
 <style>
-    :root {
-        color-scheme: light !important;
-        --primary-color: #1B2631 !important;
-        --background-color: #F4F6F9 !important;
-        --secondary-background-color: #FFFFFF !important;
-        --text-color: #1B2631 !important;
-    }
-    html, body, [data-testid="stAppViewContainer"], [data-testid="stHeader"], .stApp {
-        background-color: #F4F6F9 !important;
-        color: #1B2631 !important;
-    }
-    .block-container {
-        padding-top: 2rem !important;
-        padding-bottom: 2rem;
-        max-width: 1180px;
-    }
-
-    /* Cabeçalho Executivo */
-    .dashboard-header {
-        background: linear-gradient(135deg, #16202A 0%, #243447 100%);
-        border: 1px solid #1B2631;
-        border-left: 5px solid #27AE60;
-        padding: 16px 22px;
-        border-radius: 10px;
-        margin-bottom: 18px;
-        box-shadow: 0 4px 12px rgba(22, 32, 42, 0.14);
-        display: flex;
-        align-items: center;
-        justify-content: space-between;
-        flex-wrap: wrap;
-        gap: 12px;
-    }
-    .header-left {
-        display: flex;
-        flex-direction: column;
-        gap: 3px;
-    }
-    .dashboard-title {
-        font-size: 1.38rem;
-        font-weight: 700;
-        margin: 0;
-        color: #FFFFFF !important;
-        letter-spacing: -0.01em;
-    }
-    .dashboard-subtitle {
-        font-size: 0.86rem;
-        color: #CBD5E1 !important;
-        margin: 0;
-    }
-    .header-pill {
-        background-color: rgba(255, 255, 255, 0.12);
-        color: #FFFFFF !important;
-        border: 1px solid rgba(255, 255, 255, 0.25);
-        font-size: 0.72rem;
-        font-weight: 700;
-        padding: 5px 12px;
-        border-radius: 20px;
-        letter-spacing: 0.05em;
-        text-transform: uppercase;
-    }
-
-    /* Títulos de seção com indicador de etapa */
-    .section-label {
-        font-size: 0.92rem;
-        font-weight: 600;
-        color: #1B2631;
-        margin-bottom: 6px;
-        display: flex;
-        align-items: center;
-        gap: 8px;
-    }
-    .step-num {
-        display: inline-flex;
-        align-items: center;
-        justify-content: center;
-        width: 22px;
-        height: 22px;
-        border-radius: 50%;
-        background-color: #1B2631;
-        color: #FFFFFF;
-        font-size: 0.75rem;
-        font-weight: 700;
-    }
-
-    /* Uploaders claros e compactos (remove fundo preto do cartão do CSV) */
-    [data-testid="stFileUploader"],
-    [data-testid="stFileUploader"] > div,
-    [data-testid="stFileUploader"] section,
-    [data-testid="stFileUploaderDropzone"] {
-        background-color: #FFFFFF !important;
-        color: #0F172A !important;
-    }
-    [data-testid="stFileUploaderDropzone"] {
-        border: 1.5px dashed #CBD5E1 !important;
-        border-radius: 8px !important;
-        padding: 12px 14px !important;
-        transition: border-color 0.2s ease, background-color 0.2s ease;
-    }
-    [data-testid="stFileUploaderDropzone"]:hover {
-        border-color: #2C3E50 !important;
-        background-color: #F8FAFC !important;
-    }
-    [data-testid="stFileUploaderDropzone"] div,
-    [data-testid="stFileUploaderDropzone"] span,
-    [data-testid="stFileUploaderDropzone"] small,
-    [data-testid="stFileUploaderDropzone"] p {
-        color: #1E293B !important;
-    }
-    [data-testid="stFileUploaderDropzone"] button {
-        background-color: #EFF6FF !important;
-        color: #1D4ED8 !important;
-        border: 1px solid #BFDBFE !important;
-        font-weight: 600 !important;
-        border-radius: 6px !important;
-    }
-
-    /* Lista de arquivos e cartão de arquivo enviado sempre claros */
-    [data-testid="stFileUploaderDropzone"] > div:last-child,
-    [data-testid="stFileUploaderDropzone"] ul,
-    [data-testid="stFileUploader"] ul {
-        width: 100% !important;
-        max-width: 100% !important;
-        max-height: 145px !important;
-        overflow-y: auto !important;
-        flex: 1 1 100% !important;
-        background-color: transparent !important;
-    }
-    [data-testid="stFileUploader"] li,
-    [data-testid="stFileUploaderFile"],
-    [data-testid="stUploadedFile"],
-    [data-testid="stFileUploaderFileData"],
-    [data-testid="stFileUploader"] [role="listitem"] {
-        background-color: #EEF2F6 !important;
-        color: #0F172A !important;
-        border: 1px solid #CBD5E1 !important;
-        border-radius: 8px !important;
-        padding: 6px 10px !important;
-        margin-bottom: 4px !important;
-    }
-    [data-testid="stFileUploader"] li *,
-    [data-testid="stFileUploaderFile"] *,
-    [data-testid="stUploadedFile"] *,
-    [data-testid="stFileUploaderFileData"] * {
-        background-color: transparent !important;
-        color: #0F172A !important;
-        -webkit-text-fill-color: #0F172A !important;
-    }
-    [data-testid="stFileUploaderFileName"],
-    [data-testid="stFileUploaderFile"] span,
-    [data-testid="stUploadedFile"] span {
-        font-weight: 700 !important;
-        font-size: 0.82rem !important;
-        line-height: 1.3 !important;
-    }
-    [data-testid="stFileUploaderFile"] small,
-    [data-testid="stUploadedFile"] small,
-    [data-testid="stFileUploader"] li small {
-        color: #475569 !important;
-        -webkit-text-fill-color: #475569 !important;
-        font-size: 0.74rem !important;
-    }
-    [data-testid="stFileUploaderFile"] svg,
-    [data-testid="stUploadedFile"] svg,
-    [data-testid="stFileUploaderDeleteBtn"] button,
-    [data-testid="stFileUploaderFile"] button,
-    [data-testid="stUploadedFile"] button {
-        color: #1B2631 !important;
-        fill: #1B2631 !important;
-        background-color: transparent !important;
-        border: none !important;
-        flex-shrink: 0 !important;
-    }
-
-    /* Containers e listagem do lote em fundo claro */
-    [data-testid="stVerticalBlockBorderWrapper"],
-    [data-testid="stVerticalBlockBorderWrapper"] > div,
-    [data-testid="stVerticalBlockBorderWrapper"] > div > div {
-        background-color: #FFFFFF !important;
-        border-color: #E2E8F0 !important;
-        border-radius: 8px !important;
-        color: #0F172A !important;
-    }
-
-    /* Selectbox da NF ativa: fundo claro e fonte escura tanto fechado quanto aberto */
-    [data-testid="stSelectbox"],
-    [data-testid="stSelectbox"] > div,
-    [data-testid="stSelectbox"] > div > div,
-    [data-testid="stSelectbox"] [data-baseweb="select"],
-    [data-testid="stSelectbox"] [data-baseweb="select"] > div,
-    [data-testid="stSelectbox"] [data-baseweb="select"] > div > div,
-    [data-baseweb="popover"],
-    [data-baseweb="popover"] > div,
-    [data-baseweb="popover"] ul,
-    [data-baseweb="popover"] li,
-    [role="listbox"],
-    [role="option"] {
-        background-color: #FFFFFF !important;
-        color: #0F172A !important;
-        border-color: #CBD5E1 !important;
-    }
-    [data-testid="stSelectbox"] span,
-    [data-testid="stSelectbox"] div,
-    [data-testid="stSelectbox"] [data-baseweb="select"] *,
-    [role="option"] span,
-    [role="option"] div,
-    [role="option"] * {
-        color: #0F172A !important;
-        -webkit-text-fill-color: #0F172A !important;
-        opacity: 1 !important;
-        font-weight: 700 !important;
-    }
-    [role="option"]:hover,
-    [role="option"][aria-selected="true"] {
-        background-color: #E8EFF7 !important;
-        color: #0F172A !important;
-    }
-    [data-testid="stSelectbox"] svg {
-        color: #0F172A !important;
-        fill: #0F172A !important;
-    }
-
-    /* Botões padrão (Remover / Limpar tudo / tags) sempre claros */
-    div[data-testid="stButton"] > button,
-    div[data-testid="stButton"] > button[kind="secondary"],
-    button[kind="secondary"] {
-        background-color: #FFFFFF !important;
-        color: #0F172A !important;
-        border: 1px solid #CBD5E1 !important;
-        font-weight: 600 !important;
-        border-radius: 8px !important;
-    }
-    div[data-testid="stButton"] > button:hover,
-    div[data-testid="stButton"] > button[kind="secondary"]:hover,
-    button[kind="secondary"]:hover {
-        background-color: #F1F5F9 !important;
-        color: #0F172A !important;
-        border-color: #94A3B8 !important;
-    }
-    div[data-testid="stButton"] > button span,
-    div[data-testid="stButton"] > button div,
-    div[data-testid="stButton"] > button p {
-        color: #0F172A !important;
-        -webkit-text-fill-color: #0F172A !important;
-    }
-
-    /* Flags (checkboxes do relatório): caixinha desmarcada sempre branca com borda cinza */
-    div[data-testid="stCheckbox"] {
-        margin-bottom: 4px;
-    }
-    div[data-testid="stCheckbox"] label,
-    div[data-testid="stCheckbox"] label p,
-    div[data-testid="stCheckbox"] label div {
-        color: #0F172A !important;
-        -webkit-text-fill-color: #0F172A !important;
-        font-size: 0.88rem !important;
-        font-weight: 600 !important;
-        opacity: 1 !important;
-    }
-    label[data-baseweb="checkbox"] > span:first-child,
-    div[data-testid="stCheckbox"] label[data-baseweb="checkbox"] > span:first-of-type {
-        background-color: #FFFFFF !important;
-        border: 1.5px solid #94A3B8 !important;
-        box-shadow: none !important;
-    }
-    label[data-baseweb="checkbox"]:has(input:checked) > span:first-child,
-    div[data-testid="stCheckbox"] label[data-baseweb="checkbox"]:has(input:checked) > span:first-of-type {
-        background-color: #DC2626 !important;
-        border-color: #DC2626 !important;
-    }
-    label[data-baseweb="checkbox"]:has(input:checked) > span:first-child svg {
-        fill: #FFFFFF !important;
-        color: #FFFFFF !important;
-    }
-
-    /* Barra do lote */
-    .lote-pill {
-        display: inline-flex;
-        align-items: center;
-        gap: 6px;
-        background-color: #EEF2F6;
-        color: #0F172A;
-        border: 1px solid #CBD5E1;
-        padding: 5px 12px;
-        border-radius: 20px;
-        font-size: 0.82rem;
-        font-weight: 700;
-    }
-
-    /* Selo de status fixo e separado do botão */
-    .temp-notice-wrap {
-        display: flex;
-        justify-content: center;
-        align-items: center;
-        width: 100%;
-        margin-top: 8px;
-        margin-bottom: 16px;
-    }
-    .temp-notice {
-        display: inline-flex;
-        align-items: center;
-        justify-content: center;
-        gap: 8px;
-        background-color: #EAFAF1;
-        color: #145A32;
-        border: 1px solid #A9DFBF;
-        padding: 8px 22px;
-        border-radius: 8px;
-        font-size: 0.88rem;
-        font-weight: 600;
-        box-shadow: 0 1px 4px rgba(25, 111, 61, 0.08);
-    }
-
-    /* Estado vazio discreto */
-    .empty-hint {
-        text-align: center;
-        color: #475569;
-        font-size: 0.86rem;
-        padding: 12px;
-        background-color: #FFFFFF;
-        border: 1px dashed #CBD5E1;
-        border-radius: 8px;
-        margin-top: 6px;
-    }
-
-    /* Alertas de bloqueio/aviso */
-    .v-badge {
-        display: flex;
-        align-items: center;
-        gap: 6px;
-        font-size: 0.84rem;
-        font-weight: 500;
-        padding: 8px 14px;
-        border-radius: 6px;
-        margin-bottom: 8px;
-    }
-    .v-badge.warn {
-        background-color: #FEF9E7;
-        color: #7D6608;
-        border: 1px solid #F9E79F;
-    }
-    .v-badge.err {
-        background-color: #FADBD8;
-        color: #78281F;
-        border: 1px solid #F5B7B1;
-    }
-
-    /* Botão de Download em Verde Executivo */
-    div[data-testid="stDownloadButton"] > button {
-        background-color: #196F3D !important;
-        color: #FFFFFF !important;
-        -webkit-text-fill-color: #FFFFFF !important;
-        border: 1px solid #145A32 !important;
-        font-weight: 600 !important;
-        font-size: 0.95rem !important;
-        padding: 10px 24px !important;
-        border-radius: 8px !important;
-        box-shadow: 0 3px 8px rgba(25, 111, 61, 0.22) !important;
-    }
-    div[data-testid="stDownloadButton"] > button:hover {
-        background-color: #145A32 !important;
-        border-color: #0E3E22 !important;
-    }
-
-    /* Resumo de Divergências em 1 linha, rolagem horizontal e EAN congelado */
-    .div-panel {
-        background-color: #FFFFFF;
-        border: 1px solid #CBD5E1;
-        border-radius: 10px;
-        padding: 14px 16px 16px 16px;
-        margin-top: 20px;
-        box-shadow: 0 3px 10px rgba(15, 23, 42, 0.06);
-    }
-    .div-panel-header {
-        display: flex;
-        align-items: center;
-        justify-content: space-between;
-        flex-wrap: wrap;
-        gap: 8px;
-        margin-bottom: 12px;
-        font-size: 0.90rem;
-        font-weight: 700;
-        color: #1B2631;
-    }
-    .div-badges-wrap {
-        display: flex;
-        align-items: center;
-        gap: 6px;
-    }
-    .div-count-badge {
-        background-color: #DC2626;
-        color: #FFFFFF;
-        font-size: 0.76rem;
-        font-weight: 700;
-        padding: 3px 11px;
-        border-radius: 14px;
-    }
-    .div-warn-badge {
-        background-color: #D97706;
-        color: #FFFFFF;
-        font-size: 0.76rem;
-        font-weight: 700;
-        padding: 3px 11px;
-        border-radius: 14px;
-    }
-    .div-table-wrap {
-        width: 100%;
-        overflow-x: auto;
-        border: 1px solid #CBD5E1;
-        border-radius: 8px;
-        position: relative;
-        scrollbar-width: thin;
-        scrollbar-color: #94A3B8 #F1F5F9;
-    }
-    .div-table-wrap::-webkit-scrollbar {
-        height: 10px;
-    }
-    .div-table-wrap::-webkit-scrollbar-track {
-        background: #F1F5F9;
-        border-radius: 0 0 8px 8px;
-    }
-    .div-table-wrap::-webkit-scrollbar-thumb {
-        background: #94A3B8;
-        border-radius: 6px;
-    }
-    .div-table-wrap::-webkit-scrollbar-thumb:hover {
-        background: #64748B;
-    }
-    .div-table {
-        width: max-content;
-        min-width: 100%;
-        border-collapse: separate;
-        border-spacing: 0;
-        font-size: 0.84rem;
-        background-color: #FFFFFF;
-    }
-    .div-table thead th {
-        background-color: #1B2631;
-        color: #FFFFFF;
-        font-weight: 700;
-        text-align: center;
-        padding: 10px 14px;
-        border-right: 1px solid #334155;
-        letter-spacing: 0.03em;
-        text-transform: uppercase;
-        font-size: 0.76rem;
-        white-space: nowrap;
-    }
-    .div-table thead th:first-child {
-        text-align: left;
-        position: sticky;
-        left: 0;
-        z-index: 3;
-        background-color: #1B2631;
-        box-shadow: 2px 0 6px rgba(15, 23, 42, 0.16);
-    }
-    .div-table thead th:last-child {
-        border-right: none;
-    }
-    .div-table tbody tr {
-        background-color: #FFFFFF;
-        transition: background-color 0.15s ease;
-    }
-    .div-table tbody tr:nth-child(even) {
-        background-color: #E8EFF7;
-    }
-    .div-table tbody tr:hover {
-        background-color: #DBEAFE;
-    }
-    .div-table tbody td {
-        padding: 9px 14px;
-        border-top: 1px solid #CBD5E1;
-        border-right: 1px solid #CBD5E1;
-        text-align: center;
-        white-space: nowrap !important;
-    }
-    .div-table tbody td:last-child {
-        border-right: none;
-    }
-    .div-table tbody td.cell-prod {
-        text-align: left;
-        font-weight: 700;
-        color: #1B2631;
-        position: sticky;
-        left: 0;
-        z-index: 2;
-        background-color: #FFFFFF;
-        box-shadow: 2px 0 6px rgba(15, 23, 42, 0.08);
-    }
-    .div-table tbody tr:nth-child(even) td.cell-prod {
-        background-color: #E8EFF7;
-    }
-    .div-table tbody tr:hover td.cell-prod {
-        background-color: #DBEAFE;
-    }
-    .div-table tbody td.cell-prod .cell-desc {
-        font-weight: 500;
-        color: #475569;
-        font-size: 0.78rem;
-        margin-left: 6px;
-    }
-    .div-table tbody td.cell-div {
-        background-color: #FEE2E2;
-        color: #991B1B;
-        font-weight: 700;
-    }
-    .div-table tbody tr:nth-child(even) td.cell-div {
-        background-color: #FECACA;
-    }
-    .div-table tbody tr:hover td.cell-div {
-        background-color: #FCA5A5;
-        color: #7F1D1D;
-    }
-    .div-table tbody td.cell-warn {
-        background-color: #FEF3C7;
-        color: #B45309;
-        font-weight: 700;
-    }
-    .div-table tbody tr:nth-child(even) td.cell-warn {
-        background-color: #FDE68A;
-    }
-    .div-table tbody tr:hover td.cell-warn {
-        background-color: #FCD34D;
-        color: #78350F;
-    }
-    .div-table tbody td.cell-obs {
-        text-align: left;
-        white-space: nowrap !important;
-        font-size: 0.79rem;
-        color: #92400E;
-        background-color: #FFFBEB;
-        font-weight: 600;
-    }
-    .div-table tbody tr:nth-child(even) td.cell-obs {
-        background-color: #FEF3C7;
-    }
-    .div-table tbody td.cell-ok {
-        color: #94A3B8;
-        font-weight: 500;
-    }
-    .div-sep {
-        color: #DC2626;
-        font-weight: 800;
-        margin: 0 3px;
-    }
-    .warn-sep {
-        color: #D97706;
-        font-weight: 800;
-        margin: 0 3px;
-    }
-    .red-detail {
-        display: inline;
-        font-size: 0.76rem;
-        font-weight: 500;
-        color: #7F1D1D;
-        margin-left: 6px;
-    }
-    .div-ok-box {
-        text-align: center;
-        background-color: #DCFCE7;
-        border: 1px solid #86EFAC;
-        color: #14532D;
-        border-radius: 8px;
-        padding: 11px 14px;
-        margin-top: 20px;
-        font-size: 0.87rem;
-        font-weight: 700;
-    }
-
-    /* Bloco de Dados Adicionais / Rodapé da NF-e */
-    .rodape-panel {
-        background-color: #FFFFFF;
-        border: 1px solid #CBD5E1;
-        border-left: 4px solid #1B2631;
-        border-radius: 10px;
-        padding: 14px 16px;
-        margin-top: 16px;
-        box-shadow: 0 2px 8px rgba(15, 23, 42, 0.05);
-    }
-    .rodape-header {
-        font-size: 0.90rem;
-        font-weight: 700;
-        color: #1B2631;
-        margin-bottom: 10px;
-        display: flex;
-        align-items: center;
-        justify-content: space-between;
-        flex-wrap: wrap;
-        gap: 8px;
-    }
-    .rodape-highlight {
-        background-color: #FDE047;
-        color: #78350F;
-        font-weight: 700;
-        padding: 1px 4px;
-        border-radius: 3px;
-        border-bottom: 2px solid #D97706;
-    }
-    .rodape-sec-title {
-        font-size: 0.76rem;
-        font-weight: 700;
-        text-transform: uppercase;
-        letter-spacing: 0.04em;
-        color: #475569;
-        margin: 6px 0 4px 0;
-    }
-    .rodape-text {
-        background-color: #F8FAFC;
-        border: 1px solid #E2E8F0;
-        border-radius: 6px;
-        padding: 10px 12px;
-        font-size: 0.82rem;
-        line-height: 1.5;
-        color: #1E293B;
-        white-space: pre-wrap;
-        word-break: break-word;
-    }
+    :root { color-scheme: light !important; --primary-color: #1B2631 !important; --background-color: #F4F6F9 !important; --secondary-background-color: #FFFFFF !important; --text-color: #1B2631 !important; }
+    html, body, [data-testid="stAppViewContainer"], [data-testid="stHeader"], .stApp { background-color: #F4F6F9 !important; color: #1B2631 !important; }
+    .block-container { padding-top: 2rem !important; padding-bottom: 2rem; max-width: 1180px; }
+    .dashboard-header { background: linear-gradient(135deg, #16202A 0%, #243447 100%); border: 1px solid #1B2631; border-left: 5px solid #27AE60; padding: 16px 22px; border-radius: 10px; margin-bottom: 18px; box-shadow: 0 4px 12px rgba(22, 32, 42, 0.14); display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 12px; }
+    .header-left { display: flex; flex-direction: column; gap: 3px; }
+    .dashboard-title { font-size: 1.38rem; font-weight: 700; margin: 0; color: #FFFFFF !important; letter-spacing: -0.01em; }
+    .dashboard-subtitle { font-size: 0.86rem; color: #CBD5E1 !important; margin: 0; }
+    .header-pill { background-color: rgba(255, 255, 255, 0.12); color: #FFFFFF !important; border: 1px solid rgba(255, 255, 255, 0.25); font-size: 0.72rem; font-weight: 700; padding: 5px 12px; border-radius: 20px; letter-spacing: 0.05em; text-transform: uppercase; }
+    .section-label { font-size: 0.92rem; font-weight: 600; color: #1B2631; margin-bottom: 6px; display: flex; align-items: center; gap: 8px; }
+    .step-num { display: inline-flex; align-items: center; justify-content: center; width: 22px; height: 22px; border-radius: 50%; background-color: #1B2631; color: #FFFFFF; font-size: 0.75rem; font-weight: 700; }
+    [data-testid="stFileUploader"], [data-testid="stFileUploader"] > div, [data-testid="stFileUploader"] section, [data-testid="stFileUploaderDropzone"] { background-color: #FFFFFF !important; color: #0F172A !important; }
+    [data-testid="stFileUploaderDropzone"] { border: 1.5px dashed #CBD5E1 !important; border-radius: 8px !important; padding: 12px 14px !important; transition: border-color 0.2s ease, background-color 0.2s ease; }
+    [data-testid="stFileUploaderDropzone"]:hover { border-color: #2C3E50 !important; background-color: #F8FAFC !important; }
+    [data-testid="stFileUploaderDropzone"] div, [data-testid="stFileUploaderDropzone"] span, [data-testid="stFileUploaderDropzone"] small, [data-testid="stFileUploaderDropzone"] p { color: #1E293B !important; }
+    [data-testid="stFileUploaderDropzone"] button { background-color: #EFF6FF !important; color: #1D4ED8 !important; border: 1px solid #BFDBFE !important; font-weight: 600 !important; border-radius: 6px !important; }
+    [data-testid="stFileUploaderDropzone"] > div:last-child, [data-testid="stFileUploaderDropzone"] ul, [data-testid="stFileUploader"] ul { width: 100% !important; max-width: 100% !important; max-height: 145px !important; overflow-y: auto !important; flex: 1 1 100% !important; background-color: transparent !important; }
+    [data-testid="stFileUploader"] li, [data-testid="stFileUploaderFile"], [data-testid="stUploadedFile"], [data-testid="stFileUploaderFileData"], [data-testid="stFileUploader"] [role="listitem"] { background-color: #EEF2F6 !important; color: #0F172A !important; border: 1px solid #CBD5E1 !important; border-radius: 8px !important; padding: 6px 10px !important; margin-bottom: 4px !important; }
+    [data-testid="stFileUploader"] li *, [data-testid="stFileUploaderFile"] *, [data-testid="stUploadedFile"] *, [data-testid="stFileUploaderFileData"] * { background-color: transparent !important; color: #0F172A !important; -webkit-text-fill-color: #0F172A !important; }
+    [data-testid="stFileUploaderFileName"], [data-testid="stFileUploaderFile"] span, [data-testid="stUploadedFile"] span { font-weight: 700 !important; font-size: 0.82rem !important; line-height: 1.3 !important; }
+    [data-testid="stFileUploaderFile"] small, [data-testid="stUploadedFile"] small, [data-testid="stFileUploader"] li small { color: #475569 !important; -webkit-text-fill-color: #475569 !important; font-size: 0.74rem !important; }
+    [data-testid="stFileUploaderFile"] svg, [data-testid="stUploadedFile"] svg, [data-testid="stFileUploaderDeleteBtn"] button, [data-testid="stFileUploaderFile"] button, [data-testid="stUploadedFile"] button { color: #1B2631 !important; fill: #1B2631 !important; background-color: transparent !important; border: none !important; flex-shrink: 0 !important; }
+    [data-testid="stVerticalBlockBorderWrapper"], [data-testid="stVerticalBlockBorderWrapper"] > div, [data-testid="stVerticalBlockBorderWrapper"] > div > div { background-color: #FFFFFF !important; border-color: #E2E8F0 !important; border-radius: 8px !important; color: #0F172A !important; }
+    [data-testid="stSelectbox"], [data-testid="stSelectbox"] > div, [data-testid="stSelectbox"] > div > div, [data-testid="stSelectbox"] [data-baseweb="select"], [data-testid="stSelectbox"] [data-baseweb="select"] > div, [data-testid="stSelectbox"] [data-baseweb="select"] > div > div, [data-baseweb="popover"], [data-baseweb="popover"] > div, [data-baseweb="popover"] ul, [data-baseweb="popover"] li, [role="listbox"], [role="option"] { background-color: #FFFFFF !important; color: #0F172A !important; border-color: #CBD5E1 !important; }
+    [data-testid="stSelectbox"] span, [data-testid="stSelectbox"] div, [data-testid="stSelectbox"] [data-baseweb="select"] *, [role="option"] span, [role="option"] div, [role="option"] * { color: #0F172A !important; -webkit-text-fill-color: #0F172A !important; opacity: 1 !important; font-weight: 700 !important; }
+    [role="option"]:hover, [role="option"][aria-selected="true"] { background-color: #E8EFF7 !important; color: #0F172A !important; }
+    [data-testid="stSelectbox"] svg { color: #0F172A !important; fill: #0F172A !important; }
+    div[data-testid="stButton"] > button, div[data-testid="stButton"] > button[kind="secondary"], button[kind="secondary"] { background-color: #FFFFFF !important; color: #0F172A !important; border: 1px solid #CBD5E1 !important; font-weight: 600 !important; border-radius: 8px !important; }
+    div[data-testid="stButton"] > button:hover, div[data-testid="stButton"] > button[kind="secondary"]:hover, button[kind="secondary"]:hover { background-color: #F1F5F9 !important; color: #0F172A !important; border-color: #94A3B8 !important; }
+    div[data-testid="stButton"] > button span, div[data-testid="stButton"] > button div, div[data-testid="stButton"] > button p { color: #0F172A !important; -webkit-text-fill-color: #0F172A !important; }
+    div[data-testid="stCheckbox"] { margin-bottom: 4px; }
+    div[data-testid="stCheckbox"] label, div[data-testid="stCheckbox"] label p, div[data-testid="stCheckbox"] label div { color: #0F172A !important; -webkit-text-fill-color: #0F172A !important; font-size: 0.88rem !important; font-weight: 600 !important; opacity: 1 !important; }
+    label[data-baseweb="checkbox"] > span:first-child, div[data-testid="stCheckbox"] label[data-baseweb="checkbox"] > span:first-of-type { background-color: #FFFFFF !important; border: 1.5px solid #94A3B8 !important; box-shadow: none !important; }
+    label[data-baseweb="checkbox"]:has(input:checked) > span:first-child, div[data-testid="stCheckbox"] label[data-baseweb="checkbox"]:has(input:checked) > span:first-of-type { background-color: #DC2626 !important; border-color: #DC2626 !important; }
+    label[data-baseweb="checkbox"]:has(input:checked) > span:first-child svg { fill: #FFFFFF !important; color: #FFFFFF !important; }
+    .lote-pill { display: inline-flex; align-items: center; gap: 6px; background-color: #EEF2F6; color: #0F172A; border: 1px solid #CBD5E1; padding: 5px 12px; border-radius: 20px; font-size: 0.82rem; font-weight: 700; }
+    .temp-notice-wrap { display: flex; justify-content: center; align-items: center; width: 100%; margin-top: 8px; margin-bottom: 16px; }
+    .temp-notice { display: inline-flex; align-items: center; justify-content: center; gap: 8px; background-color: #EAFAF1; color: #145A32; border: 1px solid #A9DFBF; padding: 8px 22px; border-radius: 8px; font-size: 0.88rem; font-weight: 600; box-shadow: 0 1px 4px rgba(25, 111, 61, 0.08); }
+    .empty-hint { text-align: center; color: #475569; font-size: 0.86rem; padding: 12px; background-color: #FFFFFF; border: 1px dashed #CBD5E1; border-radius: 8px; margin-top: 6px; }
+    .v-badge { display: flex; align-items: center; gap: 6px; font-size: 0.84rem; font-weight: 500; padding: 8px 14px; border-radius: 6px; margin-bottom: 8px; }
+    .v-badge.warn { background-color: #FEF9E7; color: #7D6608; border: 1px solid #F9E79F; }
+    .v-badge.err { background-color: #FADBD8; color: #78281F; border: 1px solid #F5B7B1; }
+    div[data-testid="stDownloadButton"] > button { background-color: #196F3D !important; color: #FFFFFF !important; -webkit-text-fill-color: #FFFFFF !important; border: 1px solid #145A32 !important; font-weight: 600 !important; font-size: 0.95rem !important; padding: 10px 24px !important; border-radius: 8px !important; box-shadow: 0 3px 8px rgba(25, 111, 61, 0.22) !important; }
+    div[data-testid="stDownloadButton"] > button:hover { background-color: #145A32 !important; border-color: #0E3E22 !important; }
+    .div-panel { background-color: #FFFFFF; border: 1px solid #CBD5E1; border-radius: 10px; padding: 14px 16px 16px 16px; margin-top: 20px; box-shadow: 0 3px 10px rgba(15, 23, 42, 0.06); }
+    .div-panel-header { display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 8px; margin-bottom: 12px; font-size: 0.90rem; font-weight: 700; color: #1B2631; }
+    .div-badges-wrap { display: flex; align-items: center; gap: 6px; }
+    .div-count-badge { background-color: #DC2626; color: #FFFFFF; font-size: 0.76rem; font-weight: 700; padding: 3px 11px; border-radius: 14px; }
+    .div-warn-badge { background-color: #D97706; color: #FFFFFF; font-size: 0.76rem; font-weight: 700; padding: 3px 11px; border-radius: 14px; }
+    .div-table-wrap { width: 100%; overflow-x: auto; border: 1px solid #CBD5E1; border-radius: 8px; position: relative; scrollbar-width: thin; scrollbar-color: #94A3B8 #F1F5F9; }
+    .div-table-wrap::-webkit-scrollbar { height: 10px; }
+    .div-table-wrap::-webkit-scrollbar-track { background: #F1F5F9; border-radius: 0 0 8px 8px; }
+    .div-table-wrap::-webkit-scrollbar-thumb { background: #94A3B8; border-radius: 6px; }
+    .div-table-wrap::-webkit-scrollbar-thumb:hover { background: #64748B; }
+    .div-table { width: max-content; min-width: 100%; border-collapse: separate; border-spacing: 0; font-size: 0.84rem; background-color: #FFFFFF; }
+    .div-table thead th { background-color: #1B2631; color: #FFFFFF; font-weight: 700; text-align: center; padding: 10px 14px; border-right: 1px solid #334155; letter-spacing: 0.03em; text-transform: uppercase; font-size: 0.76rem; white-space: nowrap; }
+    .div-table thead th:first-child { text-align: left; position: sticky; left: 0; z-index: 3; background-color: #1B2631; box-shadow: 2px 0 6px rgba(15, 23, 42, 0.16); }
+    .div-table thead th:last-child { border-right: none; }
+    .div-table tbody tr { background-color: #FFFFFF; transition: background-color 0.15s ease; }
+    .div-table tbody tr:nth-child(even) { background-color: #E8EFF7; }
+    .div-table tbody tr:hover { background-color: #DBEAFE; }
+    .div-table tbody td { padding: 9px 14px; border-top: 1px solid #CBD5E1; border-right: 1px solid #CBD5E1; text-align: center; white-space: nowrap !important; }
+    .div-table tbody td:last-child { border-right: none; }
+    .div-table tbody td.cell-prod { text-align: left; font-weight: 700; color: #1B2631; position: sticky; left: 0; z-index: 2; background-color: #FFFFFF; box-shadow: 2px 0 6px rgba(15, 23, 42, 0.08); }
+    .div-table tbody tr:nth-child(even) td.cell-prod { background-color: #E8EFF7; }
+    .div-table tbody tr:hover td.cell-prod { background-color: #DBEAFE; }
+    .div-table tbody td.cell-prod .cell-desc { font-weight: 500; color: #475569; font-size: 0.78rem; margin-left: 6px; }
+    .div-table tbody td.cell-div { background-color: #FEE2E2; color: #991B1B; font-weight: 700; }
+    .div-table tbody tr:nth-child(even) td.cell-div { background-color: #FECACA; }
+    .div-table tbody tr:hover td.cell-div { background-color: #FCA5A5; color: #7F1D1D; }
+    .div-table tbody td.cell-warn { background-color: #FEF3C7; color: #B45309; font-weight: 700; }
+    .div-table tbody tr:nth-child(even) td.cell-warn { background-color: #FDE68A; }
+    .div-table tbody tr:hover td.cell-warn { background-color: #FCD34D; color: #78350F; }
+    .div-table tbody td.cell-obs { text-align: left; white-space: nowrap !important; font-size: 0.79rem; color: #92400E; background-color: #FFFBEB; font-weight: 600; }
+    .div-table tbody tr:nth-child(even) td.cell-obs { background-color: #FEF3C7; }
+    .div-table tbody td.cell-ok { color: #94A3B8; font-weight: 500; }
+    .div-sep { color: #DC2626; font-weight: 800; margin: 0 3px; }
+    .warn-sep { color: #D97706; font-weight: 800; margin: 0 3px; }
+    .red-detail { display: inline; font-size: 0.76rem; font-weight: 500; color: #7F1D1D; margin-left: 6px; }
+    .div-ok-box { text-align: center; background-color: #DCFCE7; border: 1px solid #86EFAC; color: #14532D; border-radius: 8px; padding: 11px 14px; margin-top: 20px; font-size: 0.87rem; font-weight: 700; }
+    .rodape-panel { background-color: #FFFFFF; border: 1px solid #CBD5E1; border-left: 4px solid #1B2631; border-radius: 10px; padding: 14px 16px; margin-top: 16px; box-shadow: 0 2px 8px rgba(15, 23, 42, 0.05); }
+    .rodape-header { font-size: 0.90rem; font-weight: 700; color: #1B2631; margin-bottom: 10px; display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 8px; }
+    .rodape-highlight { background-color: #FDE047; color: #78350F; font-weight: 700; padding: 1px 4px; border-radius: 3px; border-bottom: 2px solid #D97706; }
+    .rodape-sec-title { font-size: 0.76rem; font-weight: 700; text-transform: uppercase; letter-spacing: 0.04em; color: #475569; margin: 6px 0 4px 0; }
+    .rodape-text { background-color: #F8FAFC; border: 1px solid #E2E8F0; border-radius: 6px; padding: 10px 12px; font-size: 0.82rem; line-height: 1.5; color: #1E293B; white-space: pre-wrap; word-break: break-word; }
 </style>
 """, unsafe_allow_html=True)
 
@@ -825,7 +293,7 @@ def _validar_colunas_winthor(colunas) -> list[str]:
         'NCM',
         '%ICMS',
         '% ICMS red.',
-        '%Alíq.Ext.ST Guia',
+        '%Alíq.Ext. ST Guia',
     ]
     faltantes = [c for c in obrigatorias if c not in col_set]
     if _achar_coluna_tipo_calculo(colunas) is None:
@@ -907,6 +375,9 @@ def ler_xml_nfe_bytes(bruto: bytes):
     nNF = root.find('.//ns:ide/ns:nNF', NS)
     numero_nf = nNF.text.strip() if nNF is not None and nNF.text else 'DESCONHECIDO'
 
+    id_dest_node = root.find('.//ns:ide/ns:idDest', NS)
+    id_dest = id_dest_node.text.strip() if id_dest_node is not None and id_dest_node.text else ''
+
     def txt(no, tag):
         if no is None:
             return ''
@@ -917,6 +388,7 @@ def ler_xml_nfe_bytes(bruto: bytes):
     dados_adicionais = {
         'infAdFisco': txt(inf_adic, 'infAdFisco'),
         'infCpl': txt(inf_adic, 'infCpl'),
+        'idDest': id_dest,
     }
 
     itens = []
@@ -933,7 +405,7 @@ def ler_xml_nfe_bytes(bruto: bytes):
         ean_exib = limpar_numero(ean_raw) if ean_comp != '' else limpar_numero(ean_trib_raw)
         u_com = txt(prod, 'uCom') or 'UN'
 
-        icms, origem = 0.0, 'NAC'
+        icms, origem, v_icms_st = 0.0, 'NAC', 0.0
         icms_node = det.find('.//ns:ICMS', NS)
         if icms_node is not None and len(icms_node) > 0:
             sub = icms_node[0]
@@ -943,6 +415,9 @@ def ler_xml_nfe_bytes(bruto: bytes):
             o = sub.find('ns:orig', NS)
             if o is not None and o.text:
                 origem = obter_sigla_origem(o.text.strip())
+            st_val_node = sub.find('ns:vICMSST', NS)
+            if st_val_node is not None and st_val_node.text:
+                v_icms_st = converte_float_br(st_val_node.text)
 
         pred_node = (
             icms_node[0].find('ns:pRedBC', NS)
@@ -965,6 +440,8 @@ def ler_xml_nfe_bytes(bruto: bytes):
             'Orig.': origem,
             'ICMS_NF': icms,
             'pRedBC_NF': pred,
+            '_vICMSST_NF': v_icms_st,
+            '_idDest': id_dest,
         })
     return numero_nf, itens, dados_adicionais
 
@@ -1306,15 +783,132 @@ def cruzar_itens_auditoria(itens_xml, itens_csv):
             else:
                 linha['Status_Qtd'] = 'DIVERGENTE'
 
+            linha['Alerta_Origem_Aliq'] = ''
+            linha['Alerta_Guia_Coerencia'] = ''
+            id_dest_item = str(item_x.get('_idDest', '')).strip()
+            v_st_item = converte_float_br(item_x.get('_vICMSST_NF', 0.0))
+            origem = str(item_x.get('Orig.', 'NAC')).strip().upper()
+
+            # Ideia 4: Alerta de coerência Origem x Alíquota (operação interestadual idDest == '2')
+            if id_dest_item == '2' and icms_xml > 0.0:
+                if origem == 'IMP' and icms_xml != 4.0:
+                    linha['Alerta_Origem_Aliq'] = (
+                        f"Item IMP em operação interestadual com ICMS {_fmt_num_curto(icms_xml)}% "
+                        f"(esperado 4% — validar com tributário)."
+                    )
+                elif origem == 'NAC' and icms_xml == 4.0:
+                    linha['Alerta_Origem_Aliq'] = (
+                        f"Item NAC em operação interestadual com ICMS 4% "
+                        f"(alíquota de importado — validar com tributário)."
+                    )
+
+            # Coerência de Guia: ST já destacada na NF mas marcado como GUIA (G) no WinThor
+            if tipo_calc == 'G' and v_st_item > 0.0:
+                linha['Alerta_Guia_Coerencia'] = (
+                    f"Item com ST já destacada na NF (vICMSST R$ {v_st_item:.2f}) "
+                    f"marcado como GUIA (G) no WinThor — validar com tributário."
+                )
+
         else:
             linha['Status_Geral'] = 'SOBRA'
             linha['ICMS_Efetivo_NF'] = '-'
+            linha['Alerta_Origem_Aliq'] = ''
+            linha['Alerta_Guia_Coerencia'] = ''
             for st_col in ['Status_EAN', 'Status_ICMS_Aliq', 'Status_Red_BC', 'Tipo_Calculo_ST', 'Status_NCM', 'Status_Qtd']:
                 linha[st_col] = '-'
 
         dados_relatorio.append(linha)
 
+    # Detectar inconsistência G vs N entre itens parecidos (mesma base/família sem cor/tamanho ou mesmo NCM)
+    def _chave_familia(desc_txt: str) -> str:
+        norm = _sem_acento(str(desc_txt or '')).upper()
+        tokens = [t for t in _RE_TOKENS.findall(norm) if len(t) >= 3 and not any(ch.isdigit() for ch in t) and t not in _IGNORAR]
+        return ' '.join(tokens[:3])
+
+    grupos_tipo = {}
+    for idx_l, l_item in enumerate(dados_relatorio):
+        if l_item.get('Status_Geral') != 'PAREADO':
+            continue
+        t_calc = str(l_item.get('Tipo_Calculo_WINTHOR', '')).strip().upper()
+        if t_calc not in ('G', 'N'):
+            continue
+        fam = _chave_familia(l_item.get('Descricao_NF') or l_item.get('Descricao_WINTHOR') or '')
+        ncm_k = str(l_item.get('NCM_NF') or l_item.get('NCM_WINTHOR') or '').strip().zfill(8)
+        chave_grp = fam if len(fam) >= 5 else (f"NCM:{ncm_k}" if ncm_k.strip('0') else '')
+        if chave_grp:
+            grupos_tipo.setdefault(chave_grp, []).append((idx_l, t_calc))
+
+    for chave_grp, membros in grupos_tipo.items():
+        qtd_g = sum(1 for _, tc in membros if tc == 'G')
+        qtd_n = sum(1 for _, tc in membros if tc == 'N')
+        if qtd_g > 0 and qtd_n > 0:
+            tipo_min = 'G' if qtd_g < qtd_n else ('N' if qtd_n < qtd_g else None)
+            for idx_l, tc in membros:
+                if tipo_min is None or tc == tipo_min:
+                    rotulo_tc = 'GUIA (G)' if tc == 'G' else 'NOTA FISCAL (N)'
+                    rotulo_outro = 'NOTA FISCAL (N)' if tc == 'G' else 'GUIA (G)'
+                    msg_grupo = (
+                        f"Grupo '{chave_grp}' tem itens em {rotulo_tc} e {rotulo_outro} "
+                        f"({qtd_g} G / {qtd_n} N) — verificar se este item está como {rotulo_tc}."
+                    )
+                    prev = dados_relatorio[idx_l].get('Alerta_Guia_Coerencia', '')
+                    dados_relatorio[idx_l]['Alerta_Guia_Coerencia'] = f"{prev} | {msg_grupo}" if prev else msg_grupo
+
     return dados_relatorio
+
+
+def _gerar_diagnostico_escrito(linha: dict) -> str:
+    """Gera explicação escrita em linguagem direta sobre o erro ou alerta da linha (apenas Excel)."""
+    if linha.get('Status_Geral') == 'SOBRA':
+        origem = 'XML' if linha.get('Linha_NF') != '-' else 'WinThor'
+        return f"Item presente apenas no {origem} (sem correspondência no par)."
+
+    motivos = []
+    st_ean = linha.get('Status_EAN')
+    st_ncm = linha.get('Status_NCM')
+    st_icms = linha.get('Status_ICMS_Aliq')
+    st_red = linha.get('Status_Red_BC')
+    tipo_calc = str(linha.get('Tipo_Calculo_WINTHOR', '')).strip().upper()
+
+    if st_ean == 'DIVERGENTE':
+        motivos.append(f"EAN divergente (NF {linha.get('EAN_NF') or 'vazio'} × WinThor {linha.get('EAN_WINTHOR') or 'vazio'}).")
+    elif linha.get('EAN_Alerta_Vazio'):
+        motivos.append("Sem código de barras no XML e no WinThor — conferir cadastro.")
+
+    if st_ncm == 'DIVERGENTE':
+        motivos.append(f"NCM divergente (NF {linha.get('NCM_NF') or '-'} × WinThor {linha.get('NCM_WINTHOR') or '-'}).")
+
+    if st_icms == 'DIVERGENTE' and st_red == 'DIVERGENTE':
+        i_x = _fmt_num_curto(linha.get('ICMS_NF'))
+        ef_x = _fmt_num_curto(linha.get('ICMS_Efetivo_NF'), max_dec=4)
+        r_w = _fmt_num_curto(linha.get('% ICMS red. Whintor'), max_dec=4)
+        motivos.append(
+            f"Divergência combinada entre ICMS (NF {i_x}%) e Redução de Base (efetivo NF {ef_x}% × WinThor {r_w}%)."
+        )
+    else:
+        if st_icms == 'DIVERGENTE':
+            i_x = _fmt_num_curto(linha.get('ICMS_NF'))
+            if tipo_calc == 'G':
+                i_g = _fmt_num_curto(linha.get('%Alíq.Ext. ST Guia_Whintor'))
+                motivos.append(f"Alíquota de Guia divergente (ICMS NF {i_x}% × Guia WinThor {i_g}%).")
+            else:
+                i_w = _fmt_num_curto(linha.get('ICMS_WINTHOR'))
+                motivos.append(f"Alíquota de ICMS divergente (NF {i_x}% × WinThor {i_w}%).")
+        elif linha.get('ICMS_Alerta_Guia'):
+            i_w = _fmt_num_curto(linha.get('ICMS_WINTHOR'))
+            motivos.append(f"Alíquota Guia confere, mas %ICMS está {i_w}% no WinThor — zerar ICMS.")
+
+        if st_red == 'DIVERGENTE':
+            ef_x = _fmt_num_curto(linha.get('ICMS_Efetivo_NF'), max_dec=4)
+            r_w = _fmt_num_curto(linha.get('% ICMS red. Whintor'), max_dec=4)
+            motivos.append(f"Redução de Base divergente (efetivo NF {ef_x}% × WinThor {r_w}%).")
+
+    if linha.get('Alerta_Origem_Aliq'):
+        motivos.append(linha['Alerta_Origem_Aliq'])
+    if linha.get('Alerta_Guia_Coerencia'):
+        motivos.append(linha['Alerta_Guia_Coerencia'])
+
+    return " ".join(motivos)
 
 
 def preparar_dados_resumo_divergencias(dados_relatorio):
@@ -1412,6 +1006,28 @@ def preparar_dados_resumo_divergencias(dados_relatorio):
                 colunas_encontradas['Base Reduzida'] = True
                 tem_div = True
 
+            # Alertas laranja (Ideia 4 + coerência de Guia)
+            if linha.get('Alerta_Origem_Aliq'):
+                orig_txt = str(linha.get('Orig.') or 'IMP')
+                aliq_txt = _fmt_num_curto(linha.get('ICMS_NF'))
+                if 'ICMS' not in celulas_texto:
+                    celulas_texto['ICMS'] = f'{orig_txt} {aliq_txt}% (validar)'
+                    celulas_html['ICMS'] = f'{html.escape(orig_txt)} {aliq_txt}% <span class="warn-sep">•</span> validar'
+                    celulas_tipo['ICMS'] = 'warn'
+                    colunas_encontradas['ICMS'] = True
+                observacoes.append(linha['Alerta_Origem_Aliq'])
+                tem_warn = True
+
+            if linha.get('Alerta_Guia_Coerencia'):
+                if 'ICMS' not in celulas_texto:
+                    tc_lbl = 'GUIA (G)' if tipo_calc == 'G' else 'NF (N)'
+                    celulas_texto['ICMS'] = f'{tc_lbl} — verificar'
+                    celulas_html['ICMS'] = f'{html.escape(tc_lbl)} <span class="warn-sep">•</span> verificar'
+                    celulas_tipo['ICMS'] = 'warn'
+                    colunas_encontradas['ICMS'] = True
+                observacoes.append(linha['Alerta_Guia_Coerencia'])
+                tem_warn = True
+
         if observacoes:
             txt_obs = ' | '.join(observacoes)
             celulas_texto['Observação'] = txt_obs
@@ -1444,6 +1060,9 @@ def preparar_dados_resumo_divergencias(dados_relatorio):
                 'celulas_texto': celulas_texto,
                 'celulas_html': celulas_html,
                 'celulas_tipo': celulas_tipo,
+                'diagnostico': _gerar_diagnostico_escrito(linha),
+                'tem_div': tem_div,
+                'tem_warn': tem_warn,
             })
 
     ordem_colunas = ['EAN', 'NCM', 'ICMS', 'Base Reduzida', 'Sobra', 'Observação']
@@ -1655,12 +1274,15 @@ def _adicionar_bloco_rodape_excel(ws, start_row: int, total_cols: int, dados_adi
 
 
 def _montar_aba_resumo_excel(workbook, dados_relatorio, numero_nf: str, dados_adicionais: dict | None = None):
-    """Cria a aba 'Resumo_Divergencias' no Excel idêntica ao resumo exibido no front."""
+    """Cria a aba 'Resumo_Divergencias' no Excel com faixa superior, diagnóstico e rodapé."""
     ws = workbook.create_sheet(title='Resumo_Divergencias', index=0)
     ws.sheet_view.showGridLines = False
     ws.sheet_view.zoomScale = 80
 
     registros, colunas_ativas, qtd_div, qtd_warn = preparar_dados_resumo_divergencias(dados_relatorio)
+
+    qtd_tipo_nf = sum(1 for l in dados_relatorio if str(l.get('Tipo_Calculo_WINTHOR', '')).strip().upper() == 'N')
+    qtd_tipo_guia = sum(1 for l in dados_relatorio if str(l.get('Tipo_Calculo_WINTHOR', '')).strip().upper() == 'G')
 
     fill_titulo = PatternFill(start_color="1B2631", end_color="1B2631", fill_type="solid")
     fill_header = PatternFill(start_color="212F3D", end_color="212F3D", fill_type="solid")
@@ -1673,6 +1295,9 @@ def _montar_aba_resumo_excel(workbook, dados_relatorio, numero_nf: str, dados_ad
     fill_obs_impar = PatternFill(start_color="FFFBEB", end_color="FFFBEB", fill_type="solid")
     fill_obs_par = PatternFill(start_color="FEF3C7", end_color="FEF3C7", fill_type="solid")
     fill_ok_box = PatternFill(start_color="DCFCE7", end_color="DCFCE7", fill_type="solid")
+    fill_kpi_bg = PatternFill(start_color="F8FAFC", end_color="F8FAFC", fill_type="solid")
+    fill_kpi_div = PatternFill(start_color="FEE2E2", end_color="FEE2E2", fill_type="solid")
+    fill_kpi_guia = PatternFill(start_color="FEF3C7", end_color="FEF3C7", fill_type="solid")
 
     font_titulo = Font(bold=True, size=11, color="FFFFFF")
     font_header = Font(bold=True, size=10, color="FFFFFF")
@@ -1682,65 +1307,82 @@ def _montar_aba_resumo_excel(workbook, dados_relatorio, numero_nf: str, dados_ad
     font_obs = Font(bold=True, size=9, color="92400E")
     font_ok_dash = Font(bold=False, size=10, color="94A3B8")
     font_ok_box = Font(bold=True, size=11, color="14532D")
+    font_kpi_lbl = Font(bold=True, size=9, color="475569")
+    font_kpi_val = Font(bold=True, size=11, color="1B2631")
+    font_kpi_div_val = Font(bold=True, size=11, color="991B1B")
+    font_kpi_guia_val = Font(bold=True, size=11, color="B45309")
 
     side_cinza = Side(style='thin', color='CBD5E1')
     borda_celula = Border(left=side_cinza, right=side_cinza, top=side_cinza, bottom=side_cinza)
 
-    if not registros:
-        ws.merge_cells('A1:E1')
-        c_tit = ws['A1']
+    def _escrever_faixa_topo(n_cols: int):
+        ws.merge_cells(start_row=1, start_column=1, end_row=1, end_column=n_cols)
+        c_tit = ws.cell(row=1, column=1)
         c_tit.value = f"🔎 Resumo de Divergências — NF {numero_nf} (XML × WinThor)"
         c_tit.font = font_titulo
-        c_tit.fill = fill_titulo
-        c_tit.alignment = Alignment(horizontal='center', vertical='center')
-        for col_i in range(1, 6):
+        c_tit.alignment = Alignment(horizontal='left', vertical='center')
+        for col_i in range(1, n_cols + 1):
             ws.cell(row=1, column=col_i).fill = fill_titulo
         ws.row_dimensions[1].height = 28
 
-        ws.merge_cells('A3:E3')
-        c_ok = ws['A3']
+        kpis = [
+            (f"NF: {numero_nf}", fill_kpi_bg, font_kpi_val),
+            (f"Itens Divergentes: {qtd_div}", fill_kpi_div if qtd_div > 0 else fill_kpi_bg, font_kpi_div_val if qtd_div > 0 else font_kpi_val),
+            (f"Qtd NF: {qtd_tipo_nf}", fill_kpi_bg, font_kpi_val),
+            (f"Qtd GUIA: {qtd_tipo_guia}", fill_kpi_guia if qtd_tipo_guia > 0 else fill_kpi_bg, font_kpi_guia_val if qtd_tipo_guia > 0 else font_kpi_val),
+        ]
+        ws.row_dimensions[2].height = 24
+        for idx_k, (txt_k, fl_k, ft_k) in enumerate(kpis, start=1):
+            col_dest = min(idx_k, n_cols)
+            if idx_k <= n_cols:
+                c_k = ws.cell(row=2, column=col_dest, value=txt_k)
+                c_k.font = ft_k
+                c_k.fill = fl_k
+                c_k.border = borda_celula
+                c_k.alignment = Alignment(horizontal='center', vertical='center')
+        for col_i in range(len(kpis) + 1, n_cols + 1):
+            c_extra = ws.cell(row=2, column=col_i)
+            c_extra.fill = fill_kpi_bg
+            c_extra.border = borda_celula
+        ws.row_dimensions[3].height = 8
+
+    if not registros:
+        _escrever_faixa_topo(5)
+        ws.merge_cells('A4:E4')
+        c_ok = ws['A4']
         c_ok.value = "✅ Nenhuma divergência ou alerta encontrado nesta nota (EAN, NCM, ICMS e Base Reduzida 100% conferidos)."
         c_ok.font = font_ok_box
         c_ok.fill = fill_ok_box
         c_ok.alignment = Alignment(horizontal='center', vertical='center')
         for col_i in range(1, 6):
-            ws.cell(row=3, column=col_i).fill = fill_ok_box
-        ws.row_dimensions[3].height = 30
+            ws.cell(row=4, column=col_i).fill = fill_ok_box
+        ws.row_dimensions[4].height = 30
         for col_i in range(1, 6):
             ws.column_dimensions[get_column_letter(col_i)].width = 24
 
-        _adicionar_bloco_rodape_excel(ws, start_row=5, total_cols=5, dados_adicionais=dados_adicionais)
+        _adicionar_bloco_rodape_excel(ws, start_row=6, total_cols=5, dados_adicionais=dados_adicionais)
         return
 
-    cabecalhos = ['EAN (NF) + Descrição'] + colunas_ativas
+    cabecalhos = ['EAN (NF) + Descrição'] + colunas_ativas + ['Diagnóstico']
     total_cols = len(cabecalhos)
 
-    partes_resumo = []
-    if qtd_div > 0:
-        partes_resumo.append(f"{qtd_div} divergência(s)")
-    if qtd_warn > 0:
-        partes_resumo.append(f"{qtd_warn} alerta(s)")
-    resumo_contagem = "  •  ".join(partes_resumo)
+    _escrever_faixa_topo(total_cols)
 
-    ws.merge_cells(start_row=1, start_column=1, end_row=1, end_column=total_cols)
-    c_tit = ws.cell(row=1, column=1)
-    c_tit.value = f"🔎 Resumo de Divergências e Alertas — NF {numero_nf} (XML × WinThor)  |  {resumo_contagem}"
-    c_tit.font = font_titulo
-    c_tit.alignment = Alignment(horizontal='left', vertical='center')
-    for col_i in range(1, total_cols + 1):
-        ws.cell(row=1, column=col_i).fill = fill_titulo
-    ws.row_dimensions[1].height = 28
-    ws.row_dimensions[2].height = 8
+    hdr_row = 4
+    start_data_row = 5
 
     for col_i, nome_col in enumerate(cabecalhos, start=1):
-        cell = ws.cell(row=3, column=col_i, value=nome_col.upper())
+        cell = ws.cell(row=hdr_row, column=col_i, value=nome_col.upper())
         cell.font = font_header
         cell.fill = fill_header
         cell.border = borda_celula
-        cell.alignment = Alignment(horizontal='left' if col_i in (1,) or nome_col == 'Observação' else 'center', vertical='center')
-    ws.row_dimensions[3].height = 24
+        cell.alignment = Alignment(
+            horizontal='left' if col_i == 1 or nome_col in ('Observação', 'Diagnóstico') else 'center',
+            vertical='center'
+        )
+    ws.row_dimensions[hdr_row].height = 24
 
-    for idx_reg, reg in enumerate(registros, start=4):
+    for idx_reg, reg in enumerate(registros, start=start_data_row):
         eh_par = (idx_reg % 2 == 0)
         fill_linha = fill_zebra_par if eh_par else fill_zebra_impar
         fill_div = fill_div_par if eh_par else fill_div_impar
@@ -1781,23 +1423,41 @@ def _montar_aba_resumo_excel(workbook, dados_relatorio, numero_nf: str, dados_ad
                 cell.fill = fill_linha
                 cell.alignment = Alignment(horizontal='center', vertical='center')
 
-        ws.row_dimensions[idx_reg].height = 22
+        c_diag = ws.cell(row=idx_reg, column=total_cols, value=reg.get('diagnostico', ''))
+        c_diag.border = borda_celula
+        c_diag.number_format = '@'
+        if reg.get('tem_div'):
+            c_diag.font = font_div
+            c_diag.fill = fill_div
+        elif reg.get('tem_warn'):
+            c_diag.font = font_warn
+            c_diag.fill = fill_warn
+        else:
+            c_diag.font = font_prod
+            c_diag.fill = fill_linha
+        c_diag.alignment = Alignment(horizontal='left', vertical='center', wrap_text=True)
 
-    ws.freeze_panes = 'A4'
-    ws.auto_filter.ref = f"A3:{get_column_letter(total_cols)}{len(registros) + 3}"
+        ws.row_dimensions[idx_reg].height = 24
+
+    last_data_row = start_data_row + len(registros) - 1
+    ws.freeze_panes = f'A{start_data_row}'
+    ws.auto_filter.ref = f"A{hdr_row}:{get_column_letter(total_cols)}{last_data_row}"
 
     for col_i in range(1, total_cols + 1):
         col_letter = get_column_letter(col_i)
         max_len = len(cabecalhos[col_i - 1])
-        for row_i in range(4, len(registros) + 4):
+        for row_i in range(start_data_row, last_data_row + 1):
             val = ws.cell(row=row_i, column=col_i).value
             if val is not None:
                 max_len = max(max_len, len(str(val)))
-        ws.column_dimensions[col_letter].width = min(max(max_len + 5, 16), 65)
+        if cabecalhos[col_i - 1] == 'Diagnóstico':
+            ws.column_dimensions[col_letter].width = min(max(max_len + 6, 36), 80)
+        else:
+            ws.column_dimensions[col_letter].width = min(max(max_len + 5, 16), 65)
 
     _adicionar_bloco_rodape_excel(
         ws,
-        start_row=len(registros) + 6,
+        start_row=last_data_row + 2,
         total_cols=total_cols,
         dados_adicionais=dados_adicionais
     )
@@ -2054,7 +1714,6 @@ def gerar_excel_auditoria_cached(
                         or (col_status == 'Status_ICMS_Aliq' and linha_dict.get('ICMS_Alerta_Guia'))
                     )
 
-                    # Reset padrão para garantir que colunas fora do erro fiquem em preto normal
                     for col_afetada in colunas_dados:
                         if col_afetada in headers:
                             worksheet.cell(row=row, column=headers.index(col_afetada) + 1).font = font_normal
