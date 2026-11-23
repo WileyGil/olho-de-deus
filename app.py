@@ -106,9 +106,10 @@ st.markdown("""
         font-weight: 700;
     }
 
-    /* Uploaders claros e compactos */
+    /* Uploaders claros e compactos (remove fundo preto do cartão do CSV) */
     [data-testid="stFileUploader"],
     [data-testid="stFileUploader"] > div,
+    [data-testid="stFileUploader"] section,
     [data-testid="stFileUploaderDropzone"] {
         background-color: #FFFFFF !important;
         color: #0F172A !important;
@@ -137,82 +138,58 @@ st.markdown("""
         border-radius: 6px !important;
     }
 
-    /* Lista de arquivos e cartão de upload do CSV/XLSX sempre claros */
+    /* Lista de arquivos e cartão de arquivo enviado sempre claros */
     [data-testid="stFileUploaderDropzone"] > div:last-child,
-    [data-testid="stFileUploaderDropzone"] ul {
+    [data-testid="stFileUploaderDropzone"] ul,
+    [data-testid="stFileUploader"] ul {
         width: 100% !important;
         max-width: 100% !important;
         max-height: 145px !important;
         overflow-y: auto !important;
         flex: 1 1 100% !important;
+        background-color: transparent !important;
     }
+    [data-testid="stFileUploader"] li,
     [data-testid="stFileUploaderFile"],
     [data-testid="stUploadedFile"],
-    [data-testid="stUploadedFile"] > div,
-    [data-testid="stUploadedFile"] > div > div,
-    [data-testid="stUploadedFile"] > div > div > div,
-    [data-testid="stUploadedFile"] > div > div > div > div,
-    [data-testid="stFileUploaderFile"] > div,
-    [data-testid="stFileUploaderFile"] > div > div {
+    [data-testid="stFileUploaderFileData"],
+    [data-testid="stFileUploader"] [role="listitem"] {
         background-color: #EEF2F6 !important;
         color: #0F172A !important;
-    }
-    [data-testid="stFileUploaderFile"],
-    [data-testid="stUploadedFile"] {
         border: 1px solid #CBD5E1 !important;
         border-radius: 8px !important;
-        width: 100% !important;
-        max-width: 100% !important;
-        padding: 7px 10px !important;
+        padding: 6px 10px !important;
         margin-bottom: 4px !important;
-        display: flex !important;
-        align-items: center !important;
     }
-    [data-testid="stFileUploaderFile"] > div,
-    [data-testid="stUploadedFile"] > div {
+    [data-testid="stFileUploader"] li *,
+    [data-testid="stFileUploaderFile"] *,
+    [data-testid="stUploadedFile"] *,
+    [data-testid="stFileUploaderFileData"] * {
         background-color: transparent !important;
-        border: none !important;
-        max-width: 100% !important;
-        width: 100% !important;
-        flex: 1 1 auto !important;
-        overflow: visible !important;
-        text-overflow: unset !important;
+        color: #0F172A !important;
+        -webkit-text-fill-color: #0F172A !important;
     }
     [data-testid="stFileUploaderFileName"],
     [data-testid="stFileUploaderFile"] span,
-    [data-testid="stFileUploaderFile"] div,
-    [data-testid="stFileUploaderFile"] a,
-    [data-testid="stUploadedFile"] span,
-    [data-testid="stUploadedFile"] div,
-    [data-testid="stUploadedFile"] a {
-        color: #0F172A !important;
-        -webkit-text-fill-color: #0F172A !important;
-        max-width: none !important;
-        width: auto !important;
-        white-space: normal !important;
-        overflow-wrap: anywhere !important;
-        word-break: break-all !important;
-        overflow: visible !important;
-        text-overflow: unset !important;
+    [data-testid="stUploadedFile"] span {
         font-weight: 700 !important;
         font-size: 0.82rem !important;
         line-height: 1.3 !important;
     }
     [data-testid="stFileUploaderFile"] small,
-    [data-testid="stUploadedFile"] small {
-        color: #334155 !important;
-        -webkit-text-fill-color: #334155 !important;
+    [data-testid="stUploadedFile"] small,
+    [data-testid="stFileUploader"] li small {
+        color: #475569 !important;
+        -webkit-text-fill-color: #475569 !important;
         font-size: 0.74rem !important;
-        display: block !important;
-        margin-top: 2px !important;
     }
     [data-testid="stFileUploaderFile"] svg,
     [data-testid="stUploadedFile"] svg,
     [data-testid="stFileUploaderDeleteBtn"] button,
     [data-testid="stFileUploaderFile"] button,
     [data-testid="stUploadedFile"] button {
-        color: #0F172A !important;
-        fill: #0F172A !important;
+        color: #1B2631 !important;
+        fill: #1B2631 !important;
         background-color: transparent !important;
         border: none !important;
         flex-shrink: 0 !important;
@@ -290,31 +267,33 @@ st.markdown("""
         -webkit-text-fill-color: #0F172A !important;
     }
 
-    /* Flags (checkboxes do relatório): caixa e rótulo sempre claros e legíveis */
-    div[data-testid="stCheckbox"],
-    div[data-testid="stCheckbox"] > label,
-    div[data-testid="stCheckbox"] > label > div,
-    div[data-testid="stCheckbox"] label span,
-    div[data-testid="stCheckbox"] label p,
-    div[data-testid="stCheckbox"] label * {
+    /* Flags (checkboxes do relatório): caixinha desmarcada sempre branca com borda cinza */
+    div[data-testid="stCheckbox"] {
         margin-bottom: 4px;
+    }
+    div[data-testid="stCheckbox"] label,
+    div[data-testid="stCheckbox"] label p,
+    div[data-testid="stCheckbox"] label div {
         color: #0F172A !important;
         -webkit-text-fill-color: #0F172A !important;
         font-size: 0.88rem !important;
         font-weight: 600 !important;
         opacity: 1 !important;
     }
-    div[data-testid="stCheckbox"] input[type="checkbox"] {
-        accent-color: #1B2631 !important;
-    }
-    div[data-testid="stCheckbox"] [data-baseweb="checkbox"] > div:first-child {
+    label[data-baseweb="checkbox"] > span:first-child,
+    div[data-testid="stCheckbox"] label[data-baseweb="checkbox"] > span:first-of-type {
         background-color: #FFFFFF !important;
-        border-color: #64748B !important;
+        border: 1.5px solid #94A3B8 !important;
+        box-shadow: none !important;
     }
-    div[data-testid="stCheckbox"] input:checked + div,
-    div[data-testid="stCheckbox"] [data-baseweb="checkbox"] input:checked ~ div:first-child {
-        background-color: #1B2631 !important;
-        border-color: #1B2631 !important;
+    label[data-baseweb="checkbox"]:has(input:checked) > span:first-child,
+    div[data-testid="stCheckbox"] label[data-baseweb="checkbox"]:has(input:checked) > span:first-of-type {
+        background-color: #DC2626 !important;
+        border-color: #DC2626 !important;
+    }
+    label[data-baseweb="checkbox"]:has(input:checked) > span:first-child svg {
+        fill: #FFFFFF !important;
+        color: #FFFFFF !important;
     }
 
     /* Barra do lote */
@@ -406,7 +385,7 @@ st.markdown("""
         border-color: #0E3E22 !important;
     }
 
-    /* Resumo de Divergências em Formato de Planilha Moderna */
+    /* Resumo de Divergências em 1 linha, rolagem horizontal e EAN congelado */
     .div-panel {
         background-color: #FFFFFF;
         border: 1px solid #CBD5E1;
@@ -452,10 +431,29 @@ st.markdown("""
         overflow-x: auto;
         border: 1px solid #CBD5E1;
         border-radius: 8px;
+        position: relative;
+        scrollbar-width: thin;
+        scrollbar-color: #94A3B8 #F1F5F9;
+    }
+    .div-table-wrap::-webkit-scrollbar {
+        height: 10px;
+    }
+    .div-table-wrap::-webkit-scrollbar-track {
+        background: #F1F5F9;
+        border-radius: 0 0 8px 8px;
+    }
+    .div-table-wrap::-webkit-scrollbar-thumb {
+        background: #94A3B8;
+        border-radius: 6px;
+    }
+    .div-table-wrap::-webkit-scrollbar-thumb:hover {
+        background: #64748B;
     }
     .div-table {
-        width: 100%;
-        border-collapse: collapse;
+        width: max-content;
+        min-width: 100%;
+        border-collapse: separate;
+        border-spacing: 0;
         font-size: 0.84rem;
         background-color: #FFFFFF;
     }
@@ -464,7 +462,7 @@ st.markdown("""
         color: #FFFFFF;
         font-weight: 700;
         text-align: center;
-        padding: 10px 12px;
+        padding: 10px 14px;
         border-right: 1px solid #334155;
         letter-spacing: 0.03em;
         text-transform: uppercase;
@@ -473,6 +471,11 @@ st.markdown("""
     }
     .div-table thead th:first-child {
         text-align: left;
+        position: sticky;
+        left: 0;
+        z-index: 3;
+        background-color: #1B2631;
+        box-shadow: 2px 0 6px rgba(15, 23, 42, 0.16);
     }
     .div-table thead th:last-child {
         border-right: none;
@@ -488,11 +491,11 @@ st.markdown("""
         background-color: #DBEAFE;
     }
     .div-table tbody td {
-        padding: 9px 12px;
+        padding: 9px 14px;
         border-top: 1px solid #CBD5E1;
         border-right: 1px solid #CBD5E1;
         text-align: center;
-        white-space: nowrap;
+        white-space: nowrap !important;
     }
     .div-table tbody td:last-child {
         border-right: none;
@@ -501,7 +504,17 @@ st.markdown("""
         text-align: left;
         font-weight: 700;
         color: #1B2631;
-        min-width: 145px;
+        position: sticky;
+        left: 0;
+        z-index: 2;
+        background-color: #FFFFFF;
+        box-shadow: 2px 0 6px rgba(15, 23, 42, 0.08);
+    }
+    .div-table tbody tr:nth-child(even) td.cell-prod {
+        background-color: #E8EFF7;
+    }
+    .div-table tbody tr:hover td.cell-prod {
+        background-color: #DBEAFE;
     }
     .div-table tbody td.cell-prod .cell-desc {
         font-weight: 500;
@@ -535,8 +548,7 @@ st.markdown("""
     }
     .div-table tbody td.cell-obs {
         text-align: left;
-        white-space: normal;
-        min-width: 220px;
+        white-space: nowrap !important;
         font-size: 0.79rem;
         color: #92400E;
         background-color: #FFFBEB;
@@ -560,11 +572,11 @@ st.markdown("""
         margin: 0 3px;
     }
     .red-detail {
-        display: block;
-        font-size: 0.73rem;
+        display: inline;
+        font-size: 0.76rem;
         font-weight: 500;
         color: #7F1D1D;
-        margin-top: 2px;
+        margin-left: 6px;
     }
     .div-ok-box {
         text-align: center;
@@ -1394,7 +1406,7 @@ def preparar_dados_resumo_divergencias(dados_relatorio):
                 celulas_texto['Base Reduzida'] = f'{ef_x}% × {r_w}% (ICMS {icms_x}% | Red. {pred_x}%)'
                 celulas_html['Base Reduzida'] = (
                     f'{ef_x}%<span class="div-sep">×</span>{r_w}%'
-                    f'<span class="red-detail">ICMS {icms_x}% | Red. {pred_x}%</span>'
+                    f'<span class="red-detail">(ICMS {icms_x}% | Red. {pred_x}%)</span>'
                 )
                 celulas_tipo['Base Reduzida'] = 'div'
                 colunas_encontradas['Base Reduzida'] = True
@@ -2277,7 +2289,7 @@ with st.container(border=True):
 
     st.markdown("<hr style='margin: 6px 0 10px 0; border-color: #EEF2F6;'>", unsafe_allow_html=True)
 
-    b_col1, b_col2, b_col3, b_col4 = st.columns(4, gap="medium")
+    _, b_col1, b_col2, b_col3, b_col4, _ = st.columns([0.4, 1.1, 1.1, 1.1, 1.1, 0.4], gap="medium")
     with b_col1:
         inc_ident = st.checkbox("Identificação", key="flag_ident")
         inc_qtd = st.checkbox("Quantidades", key="flag_qtd")
