@@ -799,7 +799,7 @@ def cruzar_itens_auditoria(itens_xml, itens_csv):
             v_st_item = converte_float_br(item_x.get('_vICMSST_NF', 0.0))
             origem = str(item_x.get('Orig.', 'NAC')).strip().upper()
 
-            # Ideia 4: Alerta de coerência Origem x Alíquota (operação interestadual idDest == '2')
+            # Alerta de coerência Origem x Alíquota (operação interestadual idDest == '2')
             if id_dest_item == '2' and icms_xml > 0.0:
                 if origem == 'IMP' and icms_xml != 4.0:
                     linha['Alerta_Origem_Aliq'] = (
@@ -829,11 +829,14 @@ def cruzar_itens_auditoria(itens_xml, itens_csv):
 
         dados_relatorio.append(linha)
 
-    # Detectar inconsistência G vs N entre itens parecidos (mesma base/família sem cor/tamanho ou mesmo NCM)
+    # Detectar inconsistência G vs N no mesmo grupo (NCM + família de descrição)
     def _chave_familia(desc_txt: str) -> str:
         norm = _sem_acento(str(desc_txt or '')).upper()
-        tokens = [t for t in _RE_TOKENS.findall(norm) if len(t) >= 3 and not any(ch.isdigit() for ch in t) and t not in _IGNORAR]
-        return ' '.join(tokens[:3])
+        tokens = [
+            t for t in _RE_TOKENS.findall(norm)
+            if len(t) >= 3 and not any(ch.isdigit() for ch in t) and t not in _IGNORAR
+        ]
+        return ' '.join(tokens[:2])
 
     grupos_tipo = {}
     for idx_l, l_item in enumerate(dados_relatorio):
@@ -843,8 +846,16 @@ def cruzar_itens_auditoria(itens_xml, itens_csv):
         if t_calc not in ('G', 'N'):
             continue
         fam = _chave_familia(l_item.get('Descricao_NF') or l_item.get('Descricao_WINTHOR') or '')
-        ncm_k = str(l_item.get('NCM_NF') or l_item.get('NCM_WINTHOR') or '').strip().zfill(8)
-        chave_grp = fam if len(fam) >= 5 else (f"NCM:{ncm_k}" if ncm_k.strip('0') else '')
+        ncm_raw = str(l_item.get('NCM_NF') or l_item.get('NCM_WINTHOR') or '').strip()
+        ncm_k = ncm_raw.zfill(8) if ncm_raw and ncm_raw.strip('0') else ''
+        if ncm_k and fam:
+            chave_grp = f"NCM {ncm_k} • {fam}"
+        elif ncm_k:
+            chave_grp = f"NCM {ncm_k}"
+        elif len(fam) >= 5:
+            chave_grp = fam
+        else:
+            chave_grp = ''
         if chave_grp:
             grupos_tipo.setdefault(chave_grp, []).append((idx_l, t_calc))
 
@@ -856,10 +867,9 @@ def cruzar_itens_auditoria(itens_xml, itens_csv):
             for idx_l, tc in membros:
                 if tipo_min is None or tc == tipo_min:
                     rotulo_tc = 'GUIA (G)' if tc == 'G' else 'NOTA FISCAL (N)'
-                    rotulo_outro = 'NOTA FISCAL (N)' if tc == 'G' else 'GUIA (G)'
                     msg_grupo = (
-                        f"Grupo '{chave_grp}' tem itens em {rotulo_tc} e {rotulo_outro} "
-                        f"({qtd_g} G / {qtd_n} N) — verificar se este item está como {rotulo_tc}."
+                        f"Grupo '{chave_grp}' mistura GUIA e NOTA ({qtd_g} G / {qtd_n} N) "
+                        f"— este item está como {rotulo_tc}, verificar."
                     )
                     prev = dados_relatorio[idx_l].get('Alerta_Guia_Coerencia', '')
                     dados_relatorio[idx_l]['Alerta_Guia_Coerencia'] = f"{prev} | {msg_grupo}" if prev else msg_grupo
@@ -929,6 +939,7 @@ def preparar_dados_resumo_divergencias(dados_relatorio):
         'NCM': False,
         'ICMS': False,
         'Base Reduzida': False,
+        'Tipo Cálculo': False,
         'Sobra': False,
         'Observação': False,
     }
@@ -1028,12 +1039,11 @@ def preparar_dados_resumo_divergencias(dados_relatorio):
                 tem_warn = True
 
             if linha.get('Alerta_Guia_Coerencia'):
-                if 'ICMS' not in celulas_texto:
-                    tc_lbl = 'GUIA (G)' if tipo_calc == 'G' else 'NF (N)'
-                    celulas_texto['ICMS'] = f'{tc_lbl} — verificar'
-                    celulas_html['ICMS'] = f'{html.escape(tc_lbl)} <span class="warn-sep">•</span> verificar'
-                    celulas_tipo['ICMS'] = 'warn'
-                    colunas_encontradas['ICMS'] = True
+                tc_lbl = 'GUIA (G)' if tipo_calc == 'G' else 'NOTA FISCAL (N)'
+                celulas_texto['Tipo Cálculo'] = f'{tc_lbl} — verificar'
+                celulas_html['Tipo Cálculo'] = f'{html.escape(tc_lbl)} <span class="warn-sep">•</span> verificar'
+                celulas_tipo['Tipo Cálculo'] = 'warn'
+                colunas_encontradas['Tipo Cálculo'] = True
                 observacoes.append(linha['Alerta_Guia_Coerencia'])
                 tem_warn = True
 
@@ -1050,6 +1060,9 @@ def preparar_dados_resumo_divergencias(dados_relatorio):
             elif tem_warn:
                 qtd_alertas += 1
 
+            cod_prod = str(linha.get('Cod_Produto_WINTHOR') or '').strip()
+            cod_prod = cod_prod if cod_prod and cod_prod != '-' else '-'
+
             ean_nf = str(linha.get('EAN_NF') or '').strip()
             if ean_nf and ean_nf not in ('-', 'SEM EAN'):
                 rotulo_ean = ean_nf
@@ -1062,6 +1075,7 @@ def preparar_dados_resumo_divergencias(dados_relatorio):
             desc_html = f'<span class="cell-desc">— {html.escape(desc_resumida)}</span>' if desc_resumida else ''
 
             registros.append({
+                'cod_produto': cod_prod,
                 'ean': html.escape(rotulo_ean),
                 'desc_html': desc_html,
                 'texto_ean_desc': texto_ean_desc,
@@ -1074,7 +1088,7 @@ def preparar_dados_resumo_divergencias(dados_relatorio):
                 'tem_warn': tem_warn,
             })
 
-    ordem_colunas = ['EAN', 'NCM', 'ICMS', 'Base Reduzida', 'Sobra', 'Observação']
+    ordem_colunas = ['EAN', 'NCM', 'ICMS', 'Base Reduzida', 'Tipo Cálculo', 'Sobra', 'Observação']
     colunas_ativas = [c for c in ordem_colunas if colunas_encontradas[c]]
     return registros, colunas_ativas, qtd_divergencias, qtd_alertas
 
@@ -1370,7 +1384,7 @@ def _montar_aba_resumo_excel(workbook, dados_relatorio, numero_nf: str, dados_ad
         _adicionar_bloco_rodape_excel(ws, start_row=6, total_cols=5, dados_adicionais=dados_adicionais)
         return
 
-    cabecalhos = ['EAN (NF) + Descrição'] + colunas_ativas + ['Diagnóstico']
+    cabecalhos = ['Cód. Produto', 'EAN (NF) + Descrição'] + colunas_ativas + ['Diagnóstico']
     total_cols = len(cabecalhos)
 
     _escrever_faixa_topo(total_cols)
@@ -1384,7 +1398,7 @@ def _montar_aba_resumo_excel(workbook, dados_relatorio, numero_nf: str, dados_ad
         cell.fill = fill_header
         cell.border = borda_celula
         cell.alignment = Alignment(
-            horizontal='left' if col_i == 1 or nome_col in ('Observação', 'Diagnóstico') else 'center',
+            horizontal='left' if nome_col in ('EAN (NF) + Descrição', 'Observação', 'Diagnóstico') else 'center',
             vertical='center'
         )
     ws.row_dimensions[hdr_row].height = 24
@@ -1396,14 +1410,31 @@ def _montar_aba_resumo_excel(workbook, dados_relatorio, numero_nf: str, dados_ad
         fill_warn = fill_warn_par if eh_par else fill_warn_impar
         fill_obs = fill_obs_par if eh_par else fill_obs_impar
 
-        c_prod = ws.cell(row=idx_reg, column=1, value=reg['texto_ean_desc'])
+        cod_prod_val = reg.get('cod_produto', '-')
+        c_cod = ws.cell(row=idx_reg, column=1)
+        if cod_prod_val not in ('', '-'):
+            try:
+                c_cod.value = int(float(cod_prod_val))
+                c_cod.number_format = '0'
+            except ValueError:
+                c_cod.value = cod_prod_val
+                c_cod.number_format = '@'
+        else:
+            c_cod.value = '-'
+            c_cod.number_format = '@'
+        c_cod.font = font_prod
+        c_cod.fill = fill_linha
+        c_cod.border = borda_celula
+        c_cod.alignment = Alignment(horizontal='center', vertical='center')
+
+        c_prod = ws.cell(row=idx_reg, column=2, value=reg['texto_ean_desc'])
         c_prod.font = font_prod
         c_prod.fill = fill_linha
         c_prod.border = borda_celula
         c_prod.alignment = Alignment(horizontal='left', vertical='center')
         c_prod.number_format = '@'
 
-        for offset, col_nome in enumerate(colunas_ativas, start=2):
+        for offset, col_nome in enumerate(colunas_ativas, start=3):
             val = reg['celulas_texto'].get(col_nome)
             cell = ws.cell(row=idx_reg, column=offset)
             cell.border = borda_celula
@@ -1457,7 +1488,9 @@ def _montar_aba_resumo_excel(workbook, dados_relatorio, numero_nf: str, dados_ad
             val = ws.cell(row=row_i, column=col_i).value
             if val is not None:
                 max_len = max(max_len, len(str(val)))
-        if cabecalhos[col_i - 1] == 'Diagnóstico':
+        if cabecalhos[col_i - 1] == 'Cód. Produto':
+            ws.column_dimensions[col_letter].width = min(max(max_len + 4, 14), 22)
+        elif cabecalhos[col_i - 1] == 'Diagnóstico':
             ws.column_dimensions[col_letter].width = min(max(max_len + 6, 36), 80)
         else:
             ws.column_dimensions[col_letter].width = min(max(max_len + 5, 16), 65)
@@ -1707,6 +1740,10 @@ def gerar_excel_auditoria_cached(
                 for col_idx in range(1, len(headers) + 1):
                     worksheet.cell(row=row, column=col_idx).fill = fill_cinza_sobra
                 continue
+
+            if 'Tipo_Calculo_ST' in headers:
+                cell_tipo_st = worksheet.cell(row=row, column=headers.index('Tipo_Calculo_ST') + 1)
+                cell_tipo_st.font = font_alerta if linha_dict.get('Alerta_Guia_Coerencia') else font_normal
 
             tipo_calc_linha = str(linha_dict.get('Tipo_Calculo_WINTHOR', '')).strip().upper()
             for col_status, colunas_dados in status_dependents.items():
