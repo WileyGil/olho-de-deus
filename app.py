@@ -1006,7 +1006,6 @@ def preparar_dados_resumo_divergencias(dados_relatorio):
                 colunas_encontradas['Base Reduzida'] = True
                 tem_div = True
 
-            # Alertas laranja (Ideia 4 + coerência de Guia)
             if linha.get('Alerta_Origem_Aliq'):
                 orig_txt = str(linha.get('Orig.') or 'IMP')
                 aliq_txt = _fmt_num_curto(linha.get('ICMS_NF'))
@@ -1307,7 +1306,6 @@ def _montar_aba_resumo_excel(workbook, dados_relatorio, numero_nf: str, dados_ad
     font_obs = Font(bold=True, size=9, color="92400E")
     font_ok_dash = Font(bold=False, size=10, color="94A3B8")
     font_ok_box = Font(bold=True, size=11, color="14532D")
-    font_kpi_lbl = Font(bold=True, size=9, color="475569")
     font_kpi_val = Font(bold=True, size=11, color="1B2631")
     font_kpi_div_val = Font(bold=True, size=11, color="991B1B")
     font_kpi_guia_val = Font(bold=True, size=11, color="B45309")
@@ -1333,9 +1331,8 @@ def _montar_aba_resumo_excel(workbook, dados_relatorio, numero_nf: str, dados_ad
         ]
         ws.row_dimensions[2].height = 24
         for idx_k, (txt_k, fl_k, ft_k) in enumerate(kpis, start=1):
-            col_dest = min(idx_k, n_cols)
             if idx_k <= n_cols:
-                c_k = ws.cell(row=2, column=col_dest, value=txt_k)
+                c_k = ws.cell(row=2, column=idx_k, value=txt_k)
                 c_k.font = ft_k
                 c_k.fill = fl_k
                 c_k.border = borda_celula
