@@ -271,6 +271,14 @@ def _achar_coluna_tipo_calculo(colunas):
     return None
 
 
+def _achar_coluna_aliq_guia(colunas):
+    for c in colunas:
+        norm = _RE_ALPHA.sub('', _sem_acento(c).lower())
+        if 'aliq' in norm and 'guia' in norm:
+            return c
+    return None
+
+
 def _detectar_separador_csv(texto: str) -> str:
     """Detecta automaticamente se o CSV usa ';' ou ',' (prioriza ';' quando presente)."""
     for linha in texto.splitlines():
@@ -293,9 +301,10 @@ def _validar_colunas_winthor(colunas) -> list[str]:
         'NCM',
         '%ICMS',
         '% ICMS red.',
-        '%Alíq.Ext. ST Guia',
     ]
     faltantes = [c for c in obrigatorias if c not in col_set]
+    if _achar_coluna_aliq_guia(colunas) is None:
+        faltantes.append('%Alíq.Ext.ST Guia')
     if _achar_coluna_tipo_calculo(colunas) is None:
         faltantes.append('Tipo cálculo ST')
     return faltantes
@@ -347,6 +356,7 @@ def ler_csv_winthor_cached(bruto: bytes, nome_arquivo: str):
 
 def montar_itens_csv(df):
     col_tipo = _achar_coluna_tipo_calculo(df.columns)
+    col_guia = _achar_coluna_aliq_guia(df.columns)
 
     itens = []
     for _, row in df.iterrows():
@@ -362,7 +372,7 @@ def montar_itens_csv(df):
             'NCM_WINTHOR': limpar_numero(row.get('NCM', '')),
             'ICMS_WINTHOR': converte_float_br(row.get('%ICMS', 0.0)),
             '% ICMS red. Whintor': converte_float_br(row.get('% ICMS red.', 0.0)),
-            '%Alíq.Ext. ST Guia_Whintor': converte_float_br(row.get('%Alíq.Ext.ST Guia', 0.0)),
+            '%Alíq.Ext. ST Guia_Whintor': converte_float_br(row.get(col_guia, 0.0)) if col_guia else 0.0,
             'Tipo_Calculo_WINTHOR': str(row.get(col_tipo, '')).strip() if col_tipo else '',
         })
     return itens
