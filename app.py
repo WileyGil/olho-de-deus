@@ -958,10 +958,9 @@ def _diagnostico_ncm(linha: dict) -> str:
     return ""
 
 
-def _diagnostico_icms_basered(linha: dict) -> list[str]:
+def _diagnostico_icms_aliq(linha: dict) -> list[str]:
     motivos = []
     st_icms = linha.get('Status_ICMS_Aliq')
-    st_red = linha.get('Status_Red_BC')
     tipo_calc = str(linha.get('Tipo_Calculo_WINTHOR', '')).strip().upper()
     orig_desc = _descricao_origem(linha.get('Orig.', ''))
     orig_par = f" ({orig_desc})" if orig_desc else ""
@@ -969,16 +968,10 @@ def _diagnostico_icms_basered(linha: dict) -> list[str]:
     i_x_val = converte_float_br(linha.get('ICMS_NF', 0.0))
     i_w_val = converte_float_br(linha.get('ICMS_WINTHOR', 0.0))
     i_g_val = converte_float_br(linha.get('%Alíq.Ext. ST Guia_Whintor', 0.0))
-    pred_x_val = converte_float_br(linha.get('pRedBC_NF', 0.0))
-    ef_x_val = converte_float_br(linha.get('ICMS_Efetivo_NF', 0.0))
-    r_w_val = converte_float_br(linha.get('% ICMS red. Whintor', 0.0))
 
     i_x = _fmt_num_br(i_x_val, max_dec=2)
     i_w = _fmt_num_br(i_w_val, max_dec=2)
     i_g = _fmt_num_br(i_g_val, max_dec=2)
-    pred_x = _fmt_num_br(pred_x_val, max_dec=2)
-    ef_x = _fmt_num_br(ef_x_val, max_dec=2)
-    r_w = _fmt_num_br(r_w_val, max_dec=2)
 
     if st_icms == 'DIVERGENTE':
         if tipo_calc == 'G':
@@ -1005,33 +998,57 @@ def _diagnostico_icms_basered(linha: dict) -> list[str]:
             f"Ação: zerar '%ICMS' no WinThor para evitar crédito indevido junto com cálculo de guia."
         )
 
-    if st_red == 'DIVERGENTE':
-        if pred_x_val > 0.0:
-            motivos.append(
-                f"Redução de Base divergente: NF tem ICMS {i_x}% com redução de {pred_x}% "
-                f"(carga efetiva = {ef_x}%), mas WinThor está com {r_w}%. "
-                f"Ação: ajustar '% ICMS red.' para {ef_x}%."
-            )
-        else:
-            motivos.append(
-                f"Redução de Base divergente: NF tem ICMS {i_x}% sem redução "
-                f"(carga efetiva = {ef_x}%), mas WinThor está com {r_w}%. "
-                f"Ação: ajustar '% ICMS red.' para {ef_x}%."
-            )
-
     if linha.get('Alerta_Origem_Aliq'):
         motivos.append(
             f"Alerta de Origem × Alíquota: {linha['Alerta_Origem_Aliq']} "
             f"Ação: confirmar a origem da mercadoria e a alíquota interestadual com o setor tributário."
         )
 
-    if linha.get('Alerta_Guia_Coerencia'):
-        motivos.append(
-            f"Alerta de Tipo Cálculo ST: {linha['Alerta_Guia_Coerencia']} "
-            f"Ação: confirmar com o fiscal se o item deve entrar como GUIA (G) ou NOTA FISCAL (N)."
-        )
-
     return motivos
+
+
+def _diagnostico_red_bc(linha: dict) -> list[str]:
+    if linha.get('Status_Red_BC') != 'DIVERGENTE':
+        return []
+
+    i_x_val = converte_float_br(linha.get('ICMS_NF', 0.0))
+    pred_x_val = converte_float_br(linha.get('pRedBC_NF', 0.0))
+    ef_x_val = converte_float_br(linha.get('ICMS_Efetivo_NF', 0.0))
+    r_w_val = converte_float_br(linha.get('% ICMS red. Whintor', 0.0))
+
+    i_x = _fmt_num_br(i_x_val, max_dec=2)
+    pred_x = _fmt_num_br(pred_x_val, max_dec=2)
+    ef_x = _fmt_num_br(ef_x_val, max_dec=2)
+    r_w = _fmt_num_br(r_w_val, max_dec=2)
+
+    if pred_x_val > 0.0:
+        return [
+            f"Redução de Base divergente: NF tem ICMS {i_x}% com redução de {pred_x}% "
+            f"(carga efetiva = {ef_x}%), mas WinThor está com {r_w}%. "
+            f"Ação: ajustar '% ICMS red.' para {ef_x}%."
+        ]
+    return [
+        f"Redução de Base divergente: NF tem ICMS {i_x}% sem redução "
+        f"(carga efetiva = {ef_x}%), mas WinThor está com {r_w}%. "
+        f"Ação: ajustar '% ICMS red.' para {ef_x}%."
+    ]
+
+
+def _diagnostico_st_coerencia(linha: dict) -> list[str]:
+    if not linha.get('Alerta_Guia_Coerencia'):
+        return []
+    return [
+        f"Alerta de Tipo Cálculo ST: {linha['Alerta_Guia_Coerencia']} "
+        f"Ação: confirmar com o fiscal se o item deve entrar como GUIA (G) ou NOTA FISCAL (N)."
+    ]
+
+
+def _diagnostico_icms_basered(linha: dict) -> list[str]:
+    return (
+        _diagnostico_icms_aliq(linha)
+        + _diagnostico_red_bc(linha)
+        + _diagnostico_st_coerencia(linha)
+    )
 
 
 def _gerar_diagnostico_escrito(linha: dict) -> str:
@@ -1362,10 +1379,13 @@ def renderizar_resumo_divergencias(dados_relatorio, dados_adicionais: dict | Non
 # 4. HELPERS DE ESTILIZAÇÃO EXCEL (PADRONIZAÇÃO GLOBAL)
 # ==========================================
 def _obter_origem_coluna(col_name: str) -> str:
-    """Classifica a coluna para cor do cabeçalho: 'status', 'winthor', 'sintese' ou 'xml'."""
+    """Classifica a coluna para cor do cabeçalho: 'status', 'sintese', 'winthor' ou 'xml'."""
     if col_name.startswith('Status'):
         return 'status'
-    if col_name in ('Diagnóstico e Ação', 'Origem', 'EAN', 'NCM', 'ICMS', 'Base Reduzida', 'Tipo Cálculo', 'Sobra'):
+    if (
+        col_name.startswith('Diagnóstico e Ação')
+        or col_name in ('Origem', 'EAN', 'NCM', 'ICMS', 'Base Reduzida', 'Tipo Cálculo', 'Sobra')
+    ):
         return 'sintese'
     if (
         'WINTHOR' in col_name
@@ -1403,7 +1423,7 @@ def _estilizar_cabecalhos_padrao(
     fill_st_warn = PatternFill(start_color=COLOR_STATUS_WARN, end_color=COLOR_STATUS_WARN, fill_type="solid")
     fill_st_ok = PatternFill(start_color=COLOR_STATUS_OK, end_color=COLOR_STATUS_OK, fill_type="solid")
 
-    font_super = Font(bold=True, size=10, color="FFFFFF")
+    font_super = Font(bold=True, size=11 if super_start_row != super_end_row else 10, color="FFFFFF")
     font_sub = Font(bold=True, size=10, color="FFFFFF")
 
     side_branco_fino = Side(style='thin', color='FFFFFF')
@@ -1798,7 +1818,7 @@ def _montar_aba_grupo_excel(
     colunas_num_2dec: set[str] | None = None,
     colunas_num_4dec: set[str] | None = None,
 ):
-    """Helper reutilizável para montar abas individuais com cabeçalho padronizado e destaque cirúrgico."""
+    """Helper reutilizável para montar abas individuais (Div_EAN, Div_NCM, Div_Sobra) com cabeçalho padronizado."""
     if not linhas_dados:
         return
 
@@ -1843,7 +1863,6 @@ def _montar_aba_grupo_excel(
     side_bloco = Side(style='medium', color=COLOR_BLOCO_DARK)
     borda_celula = Border(left=side_cinza, right=side_cinza, top=side_cinza, bottom=side_cinza)
 
-    # Linha 1: Banner
     ws.merge_cells(start_row=1, start_column=1, end_row=1, end_column=total_cols)
     c_tit = ws.cell(row=1, column=1, value=titulo_banner)
     c_tit.font = font_titulo
@@ -1852,7 +1871,6 @@ def _montar_aba_grupo_excel(
         ws.cell(row=1, column=ci).fill = fill_titulo
     ws.row_dimensions[1].height = 28
 
-    # Linha 2: KPIs rápidos
     kpis = [
         (f"Ocorrências: {len(linhas_dados)}", fill_kpi_bg, font_kpi_val),
         (f"Divergências: {qtd_div}", fill_kpi_div if qtd_div > 0 else fill_kpi_bg, font_kpi_div_val if qtd_div > 0 else font_kpi_val),
@@ -1872,7 +1890,6 @@ def _montar_aba_grupo_excel(
         c_ex.border = borda_celula
     ws.row_dimensions[3].height = 8
 
-    # Linhas 4 e 5: Cabeçalho padrão (Super-bloco + Colunas XML/Sistema/Status + linhas brancas)
     super_row = 4
     hdr_row = 5
     start_data_row = 6
@@ -1903,7 +1920,6 @@ def _montar_aba_grupo_excel(
                 else borda_celula
             )
 
-            # Tipagem e formatação numérica idêntica ao Comparativo
             if nome_col in colunas_num_int and str(val).strip() not in ('', '-'):
                 try:
                     cell.value = int(float(val))
@@ -1928,7 +1944,6 @@ def _montar_aba_grupo_excel(
                 cell.value = val
                 cell.number_format = '@'
 
-            # Cores e fontes (cirúrgico por célula)
             if nome_col == 'Diagnóstico e Ação':
                 if reg['severidade'] == 'div':
                     cell.fill = fill_diag_div_par if eh_par else fill_diag_div_impar
@@ -2006,11 +2021,259 @@ def _montar_aba_grupo_excel(
         )
 
 
+def _montar_aba_div_icms_basered_comparativo(workbook, linhas_icms_raw: list[dict]):
+    """
+    Monta 'Div_ICMS_BaseRed' com estrutura e formatação 100% idênticas à aba 'Comparativo',
+    adicionando 'Diagnóstico e Ação' imediatamente após cada coluna de Status.
+    """
+    if not linhas_icms_raw:
+        return
+
+    ws = workbook.create_sheet(title='Div_ICMS_BaseRed')
+    ws.sheet_view.showGridLines = False
+    ws.sheet_view.zoomScale = 80
+
+    tem_alerta_st = any(bool(l.get('Alerta_Guia_Coerencia')) for l in linhas_icms_raw)
+
+    super_grupos = [
+        ("IDENTIFICAÇÃO", ['Linha_NF', 'Cod_Produto_WINTHOR', 'EAN_NF', 'Descricao_NF']),
+        (
+            "ALÍQUOTAS DE ICMS",
+            ['Orig.', 'ICMS_NF', 'ICMS_WINTHOR', '%Alíq.Ext. ST Guia_Whintor', 'Status_ICMS_Aliq', 'Diagnóstico e Ação (ICMS)']
+        ),
+        (
+            "REDUÇÃO DE BASE",
+            ['pRedBC_NF', 'ICMS_Efetivo_NF', '% ICMS red. Whintor', 'Status_Red_BC', 'Diagnóstico e Ação (Red. BC)']
+        ),
+        (
+            "TIPO CÁLCULO ST",
+            ['Tipo_Calculo_ST', 'Diagnóstico e Ação (ST)'] if tem_alerta_st else ['Tipo_Calculo_ST']
+        ),
+    ]
+    headers = [col for _, cols in super_grupos for col in cols]
+    total_cols = len(headers)
+
+    st_icms_sev = (
+        'div' if any(l.get('Status_ICMS_Aliq') == 'DIVERGENTE' for l in linhas_icms_raw)
+        else ('warn' if any(l.get('ICMS_Alerta_Guia') or l.get('Alerta_Origem_Aliq') for l in linhas_icms_raw) else 'ok')
+    )
+    st_red_sev = 'div' if any(l.get('Status_Red_BC') == 'DIVERGENTE' for l in linhas_icms_raw) else 'ok'
+
+    fins_bloco = _estilizar_cabecalhos_padrao(
+        ws=ws,
+        super_grupos=super_grupos,
+        headers=headers,
+        super_start_row=1,
+        super_end_row=2,
+        sub_row=3,
+        status_severidade={'Status_ICMS_Aliq': st_icms_sev, 'Status_Red_BC': st_red_sev},
+    )
+
+    fill_zebrado = PatternFill(start_color="F2F4F4", end_color="F2F4F4", fill_type="solid")
+    fill_cel_divergente = PatternFill(start_color="FADBD8", end_color="FADBD8", fill_type="solid")
+    fill_cel_alerta = PatternFill(start_color="FDE68A", end_color="FDE68A", fill_type="solid")
+    fill_cel_alerta_dado = PatternFill(start_color="FEF3C7", end_color="FEF3C7", fill_type="solid")
+    fill_cel_convergente = PatternFill(start_color="D4EFDF", end_color="D4EFDF", fill_type="solid")
+
+    font_divergente = Font(color="9C0006", bold=True)
+    font_alerta = Font(color="B45309", bold=True)
+    font_normal = Font(color="000000", bold=False)
+
+    borda_padrao = Border(left=Side(style=None), right=Side(style=None), top=Side(style=None), bottom=Side(style=None))
+    borda_fim_bloco = Border(left=Side(style=None), right=Side(style='medium', color=COLOR_BLOCO_DARK), top=Side(style=None), bottom=Side(style=None))
+
+    align_center_cols = {
+        'Linha_NF', 'EAN_NF', 'Orig.', 'ICMS_NF', 'ICMS_WINTHOR', '%Alíq.Ext. ST Guia_Whintor',
+        'pRedBC_NF', 'ICMS_Efetivo_NF', '% ICMS red. Whintor', 'Tipo_Calculo_ST',
+        'Status_ICMS_Aliq', 'Status_Red_BC'
+    }
+
+    for row_idx, linha_dict in enumerate(linhas_icms_raw, start=4):
+        eh_par = (row_idx % 2 == 0)
+        diag_icms = "\n".join(_diagnostico_icms_aliq(linha_dict))
+        diag_red = "\n".join(_diagnostico_red_bc(linha_dict))
+        diag_st = "\n".join(_diagnostico_st_coerencia(linha_dict))
+
+        mapa_valores = {
+            'Linha_NF': linha_dict.get('Linha_NF', '-'),
+            'Cod_Produto_WINTHOR': linha_dict.get('Cod_Produto_WINTHOR', '-'),
+            'EAN_NF': linha_dict.get('EAN_NF', '-'),
+            'Descricao_NF': linha_dict.get('Descricao_NF', '-'),
+            'Orig.': linha_dict.get('Orig.', '-'),
+            'ICMS_NF': linha_dict.get('ICMS_NF', 0.0),
+            'ICMS_WINTHOR': linha_dict.get('ICMS_WINTHOR', 0.0),
+            '%Alíq.Ext. ST Guia_Whintor': linha_dict.get('%Alíq.Ext. ST Guia_Whintor', 0.0),
+            'Status_ICMS_Aliq': linha_dict.get('Status_ICMS_Aliq', '-'),
+            'Diagnóstico e Ação (ICMS)': diag_icms,
+            'pRedBC_NF': linha_dict.get('pRedBC_NF', 0.0),
+            'ICMS_Efetivo_NF': linha_dict.get('ICMS_Efetivo_NF', 0.0),
+            '% ICMS red. Whintor': linha_dict.get('% ICMS red. Whintor', 0.0),
+            'Status_Red_BC': linha_dict.get('Status_Red_BC', '-'),
+            'Diagnóstico e Ação (Red. BC)': diag_red,
+            'Tipo_Calculo_ST': linha_dict.get('Tipo_Calculo_ST', '-'),
+            'Diagnóstico e Ação (ST)': diag_st,
+        }
+
+        for col_idx, col_name in enumerate(headers, start=1):
+            cell = ws.cell(row=row_idx, column=col_idx)
+            cell.value = mapa_valores.get(col_name, '')
+            cell.border = borda_fim_bloco if col_idx in fins_bloco else borda_padrao
+            cell.font = font_normal
+
+            if col_name == 'Cod_Produto_WINTHOR' and str(cell.value).strip() not in ('', '-'):
+                try:
+                    cell.value = int(float(cell.value))
+                    cell.number_format = '0'
+                except ValueError:
+                    pass
+            elif col_name == 'Linha_NF' and str(cell.value).strip() not in ('', '-'):
+                try:
+                    cell.value = int(float(cell.value))
+                    cell.number_format = '0'
+                except ValueError:
+                    pass
+            elif col_name == 'EAN_NF' and str(cell.value).strip() not in ('', '-'):
+                cell.value = str(cell.value).strip()
+                cell.number_format = '@'
+            elif isinstance(cell.value, (int, float)) and cell.value != '-':
+                if 'pRedBC' in col_name or 'ICMS_Efetivo' in col_name or 'red. Whintor' in col_name:
+                    cell.number_format = '#,##0.0000'
+                elif 'ICMS' in col_name or 'Whintor' in col_name:
+                    cell.number_format = '#,##0.00'
+
+            if col_name == 'Cod_Produto_WINTHOR':
+                cell.alignment = Alignment(horizontal='right', vertical='center')
+            elif col_name in align_center_cols:
+                cell.alignment = Alignment(horizontal='center', vertical='center')
+            elif col_name.startswith('Diagnóstico e Ação'):
+                cell.alignment = Alignment(horizontal='left', vertical='center', wrap_text=True)
+                cell.number_format = '@'
+            else:
+                cell.alignment = Alignment(horizontal='left', vertical='center')
+
+        # Destaque cirúrgico idêntico ao Comparativo
+        tipo_calc_linha = str(linha_dict.get('Tipo_Calculo_WINTHOR', '')).strip().upper()
+
+        # Bloco ICMS
+        st_icms = linha_dict.get('Status_ICMS_Aliq')
+        cell_st_icms = ws.cell(row=row_idx, column=headers.index('Status_ICMS_Aliq') + 1)
+        cell_diag_icms = ws.cell(row=row_idx, column=headers.index('Diagnóstico e Ação (ICMS)') + 1)
+        eh_alerta_icms = (st_icms == 'ALERTA' or linha_dict.get('ICMS_Alerta_Guia'))
+
+        if st_icms == 'DIVERGENTE':
+            cell_st_icms.fill = fill_cel_divergente
+            cell_st_icms.font = font_divergente
+            cols_erro = ['ICMS_NF', '%Alíq.Ext. ST Guia_Whintor'] if tipo_calc_linha == 'G' else ['ICMS_NF', 'ICMS_WINTHOR']
+            if tipo_calc_linha == 'G' and round(converte_float_br(linha_dict.get('ICMS_WINTHOR', 0.0)), 2) != 0.0:
+                cols_erro.append('ICMS_WINTHOR')
+            for c_err in cols_erro:
+                ws.cell(row=row_idx, column=headers.index(c_err) + 1).font = font_divergente
+            if diag_icms:
+                cell_diag_icms.fill = fill_cel_divergente
+                cell_diag_icms.font = font_divergente
+        elif eh_alerta_icms:
+            cell_st_icms.fill = fill_cel_alerta
+            cell_st_icms.font = font_alerta
+            c_win = ws.cell(row=row_idx, column=headers.index('ICMS_WINTHOR') + 1)
+            c_win.font = font_alerta
+            c_win.fill = fill_cel_alerta_dado
+            if diag_icms:
+                cell_diag_icms.fill = fill_cel_alerta_dado
+                cell_diag_icms.font = font_alerta
+        elif st_icms == 'OK':
+            cell_st_icms.fill = fill_cel_convergente
+            if diag_icms:
+                # Caso de Alerta de Origem x Alíquota com Status_ICMS_Aliq OK
+                cell_diag_icms.fill = fill_cel_alerta_dado
+                cell_diag_icms.font = font_alerta
+            elif eh_par:
+                cell_diag_icms.fill = fill_zebrado
+
+        if linha_dict.get('Alerta_Origem_Aliq'):
+            c_orig = ws.cell(row=row_idx, column=headers.index('Orig.') + 1)
+            c_orig.font = font_alerta
+            c_orig.fill = fill_cel_alerta_dado
+
+        # Bloco Redução de Base
+        st_red = linha_dict.get('Status_Red_BC')
+        cell_st_red = ws.cell(row=row_idx, column=headers.index('Status_Red_BC') + 1)
+        cell_diag_red = ws.cell(row=row_idx, column=headers.index('Diagnóstico e Ação (Red. BC)') + 1)
+
+        if st_red == 'DIVERGENTE':
+            cell_st_red.fill = fill_cel_divergente
+            cell_st_red.font = font_divergente
+            for c_err in ('ICMS_Efetivo_NF', '% ICMS red. Whintor'):
+                ws.cell(row=row_idx, column=headers.index(c_err) + 1).font = font_divergente
+            if diag_red:
+                cell_diag_red.fill = fill_cel_divergente
+                cell_diag_red.font = font_divergente
+        elif st_red == 'OK':
+            cell_st_red.fill = fill_cel_convergente
+            if eh_par:
+                cell_diag_red.fill = fill_zebrado
+
+        # Bloco Tipo Cálculo ST
+        c_st = ws.cell(row=row_idx, column=headers.index('Tipo_Calculo_ST') + 1)
+        if linha_dict.get('Alerta_Guia_Coerencia'):
+            c_st.font = font_alerta
+        if tem_alerta_st:
+            c_diag_st = ws.cell(row=row_idx, column=headers.index('Diagnóstico e Ação (ST)') + 1)
+            if diag_st:
+                c_diag_st.fill = fill_cel_alerta_dado
+                c_diag_st.font = font_alerta
+            elif eh_par:
+                c_diag_st.fill = fill_zebrado
+
+    last_data_row = 3 + len(linhas_icms_raw)
+    ws.freeze_panes = 'A4'
+    ws.auto_filter.ref = f"A3:{get_column_letter(total_cols)}{last_data_row}"
+
+    # Zebrado condicional igual ao Comparativo nas colunas que não são Status nem Diagnóstico
+    letras_zebrado = [
+        get_column_letter(idx)
+        for idx, col_name in enumerate(headers, start=1)
+        if not col_name.startswith('Status') and not col_name.startswith('Diagnóstico e Ação')
+    ]
+    for l_col in letras_zebrado:
+        rule = FormulaRule(formula=['MOD(ROW(),2)=0'], stopIfTrue=True, fill=fill_zebrado)
+        ws.conditional_formatting.add(f'{l_col}4:{l_col}{last_data_row}', rule)
+
+    # Largura das colunas igual ao Comparativo + limite confortável para Diagnóstico e Ação
+    larguras_col = {}
+    for idx, col_name in enumerate(headers, start=1):
+        col_letter = get_column_letter(idx)
+        if col_name == 'Orig.':
+            larg = 7
+        elif col_name.startswith('Diagnóstico e Ação'):
+            max_len = len(col_name)
+            for ri in range(4, last_data_row + 1):
+                v = ws.cell(row=ri, column=idx).value
+                if v:
+                    for p in str(v).splitlines():
+                        max_len = max(max_len, len(p))
+            larg = min(max(max_len + 4, 46), 72)
+        else:
+            max_len = len(col_name)
+            for ri in range(4, last_data_row + 1):
+                v = ws.cell(row=ri, column=idx).value
+                if v is not None:
+                    max_len = max(max_len, len(str(v)))
+            larg = max(max_len + 4, 12)
+        ws.column_dimensions[col_letter].width = larg
+        larguras_col[idx] = larg
+
+    # Altura dinâmica considerando todas as colunas de Diagnóstico e Ação da linha
+    indices_diag = [i for i, c in enumerate(headers, start=1) if c.startswith('Diagnóstico e Ação')]
+    for ri in range(4, last_data_row + 1):
+        pares_txt = [(str(ws.cell(row=ri, column=ci).value or ''), larguras_col[ci]) for ci in indices_diag]
+        ws.row_dimensions[ri].height = _calcular_altura_linha(pares_txt, altura_min=22)
+
+
 def _montar_abas_individuais_excel(workbook, dados_relatorio, numero_nf: str):
     """Gera abas individuais (Div_EAN, Div_NCM, Div_ICMS_BaseRed, Div_Sobra) apenas se houver ocorrências."""
     linhas_ean = []
     linhas_ncm = []
-    linhas_icms = []
+    linhas_icms_raw = []
     linhas_sobra = []
 
     for linha in dados_relatorio:
@@ -2078,66 +2341,11 @@ def _montar_abas_individuais_excel(workbook, dados_relatorio, numero_nf: str):
                 ],
             })
 
-        # 3. Grupo ICMS + Base Reduzida (espelhando colunas e destaque cirúrgico do Comparativo)
-        diags_icms = _diagnostico_icms_basered(linha)
-        if diags_icms:
-            tipo_calc = str(linha.get('Tipo_Calculo_WINTHOR', '')).strip().upper()
-            st_icms = linha.get('Status_ICMS_Aliq', '-')
-            st_red = linha.get('Status_Red_BC', '-')
-            eh_div_icms = (st_icms == 'DIVERGENTE' or st_red == 'DIVERGENTE')
+        # 3. Grupo ICMS + Base Reduzida
+        if _diagnostico_icms_basered(linha):
+            linhas_icms_raw.append(linha)
 
-            cols_div = set()
-            cols_warn = set()
-
-            if st_icms == 'DIVERGENTE':
-                if tipo_calc == 'G':
-                    cols_div.update({'ICMS_NF', '%Alíq.Ext. ST Guia_Whintor'})
-                    if round(converte_float_br(linha.get('ICMS_WINTHOR', 0.0)), 2) != 0.0:
-                        cols_div.add('ICMS_WINTHOR')
-                else:
-                    cols_div.update({'ICMS_NF', 'ICMS_WINTHOR'})
-            elif linha.get('ICMS_Alerta_Guia'):
-                cols_warn.add('ICMS_WINTHOR')
-
-            if st_red == 'DIVERGENTE':
-                cols_div.update({'ICMS_Efetivo_NF', '% ICMS red. Whintor'})
-
-            if linha.get('Alerta_Origem_Aliq'):
-                cols_warn.update({'Orig.', 'ICMS_NF'})
-
-            if linha.get('Alerta_Guia_Coerencia'):
-                cols_warn.add('Tipo_Calculo_ST')
-
-            linhas_icms.append({
-                'severidade': 'div' if eh_div_icms else 'warn',
-                'cols_div': cols_div,
-                'cols_warn': cols_warn,
-                'valores': [
-                    item_nf,
-                    cod_prod,
-                    ean_nf,
-                    desc_nf,
-                    linha.get('Orig.', '-'),
-                    linha.get('ICMS_NF', 0.0),
-                    linha.get('ICMS_WINTHOR', 0.0),
-                    linha.get('%Alíq.Ext. ST Guia_Whintor', 0.0),
-                    st_icms,
-                    linha.get('pRedBC_NF', 0.0),
-                    linha.get('ICMS_Efetivo_NF', 0.0),
-                    linha.get('% ICMS red. Whintor', 0.0),
-                    st_red,
-                    linha.get('Tipo_Calculo_ST', '-'),
-                    "\n".join(diags_icms),
-                ],
-            })
-
-    # Severidade de cabeçalho para Status das abas individuais
     st_ean_sev = 'div' if any(r['valores'][5] == 'DIVERGENTE' for r in linhas_ean) else 'warn'
-    st_icms_sev = (
-        'div' if any(r['valores'][8] == 'DIVERGENTE' for r in linhas_icms)
-        else ('warn' if any(r['valores'][8] == 'ALERTA' for r in linhas_icms) else 'ok')
-    )
-    st_red_sev = 'div' if any(r['valores'][12] == 'DIVERGENTE' for r in linhas_icms) else 'ok'
 
     _montar_aba_grupo_excel(
         workbook=workbook,
@@ -2172,30 +2380,7 @@ def _montar_abas_individuais_excel(workbook, dados_relatorio, numero_nf: str):
         colunas_num_int={'Linha_NF', 'Cod_Produto_WINTHOR'},
     )
 
-    _montar_aba_grupo_excel(
-        workbook=workbook,
-        titulo_aba='Div_ICMS_BaseRed',
-        titulo_banner=f"💰 Divergências e Alertas de ICMS / Base Reduzida — NF {numero_nf}",
-        super_grupos=[
-            ("IDENTIFICAÇÃO", ['Linha_NF', 'Cod_Produto_WINTHOR', 'EAN_NF', 'Descricao_NF']),
-            ("ALÍQUOTAS DE ICMS", ['Orig.', 'ICMS_NF', 'ICMS_WINTHOR', '%Alíq.Ext. ST Guia_Whintor', 'Status_ICMS_Aliq']),
-            ("REDUÇÃO DE BASE", ['pRedBC_NF', 'ICMS_Efetivo_NF', '% ICMS red. Whintor', 'Status_Red_BC']),
-            ("TIPO CÁLCULO ST", ['Tipo_Calculo_ST']),
-            ("AÇÃO", ['Diagnóstico e Ação']),
-        ],
-        cabecalhos=[
-            'Linha_NF', 'Cod_Produto_WINTHOR', 'EAN_NF', 'Descricao_NF',
-            'Orig.', 'ICMS_NF', 'ICMS_WINTHOR', '%Alíq.Ext. ST Guia_Whintor', 'Status_ICMS_Aliq',
-            'pRedBC_NF', 'ICMS_Efetivo_NF', '% ICMS red. Whintor', 'Status_Red_BC',
-            'Tipo_Calculo_ST', 'Diagnóstico e Ação'
-        ],
-        linhas_dados=linhas_icms,
-        status_severidade={'Status_ICMS_Aliq': st_icms_sev, 'Status_Red_BC': st_red_sev},
-        colunas_esquerda={'Descricao_NF', 'Diagnóstico e Ação'},
-        colunas_num_int={'Linha_NF', 'Cod_Produto_WINTHOR'},
-        colunas_num_2dec={'ICMS_NF', 'ICMS_WINTHOR', '%Alíq.Ext. ST Guia_Whintor'},
-        colunas_num_4dec={'pRedBC_NF', 'ICMS_Efetivo_NF', '% ICMS red. Whintor'},
-    )
+    _montar_aba_div_icms_basered_comparativo(workbook, linhas_icms_raw)
 
     _montar_aba_grupo_excel(
         workbook=workbook,
