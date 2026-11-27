@@ -22,90 +22,108 @@ st.set_page_config(page_title="Auditoria de Notas | Dashboard", page_icon="📊"
 
 st.markdown("""
 <style>
-    :root { color-scheme: light !important; --primary-color: #1B2631 !important; --background-color: #F4F6F9 !important; --secondary-background-color: #FFFFFF !important; --text-color: #1B2631 !important; }
-    html, body, [data-testid="stAppViewContainer"], [data-testid="stHeader"], .stApp { background-color: #F4F6F9 !important; color: #1B2631 !important; }
-    .block-container { padding-top: 2rem !important; padding-bottom: 2rem; max-width: 1180px; }
-    .dashboard-header { background: linear-gradient(135deg, #16202A 0%, #243447 100%); border: 1px solid #1B2631; border-left: 5px solid #27AE60; padding: 16px 22px; border-radius: 10px; margin-bottom: 18px; box-shadow: 0 4px 12px rgba(22, 32, 42, 0.14); display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 12px; }
-    .header-left { display: flex; flex-direction: column; gap: 3px; }
-    .dashboard-title { font-size: 1.38rem; font-weight: 700; margin: 0; color: #FFFFFF !important; letter-spacing: -0.01em; }
-    .dashboard-subtitle { font-size: 0.86rem; color: #CBD5E1 !important; margin: 0; }
-    .header-pill { background-color: rgba(255, 255, 255, 0.12); color: #FFFFFF !important; border: 1px solid rgba(255, 255, 255, 0.25); font-size: 0.72rem; font-weight: 700; padding: 5px 12px; border-radius: 20px; letter-spacing: 0.05em; text-transform: uppercase; }
-    .section-label { font-size: 0.92rem; font-weight: 600; color: #1B2631; margin-bottom: 6px; display: flex; align-items: center; gap: 8px; }
-    .step-num { display: inline-flex; align-items: center; justify-content: center; width: 22px; height: 22px; border-radius: 50%; background-color: #1B2631; color: #FFFFFF; font-size: 0.75rem; font-weight: 700; }
-    [data-testid="stFileUploader"], [data-testid="stFileUploader"] > div, [data-testid="stFileUploader"] section, [data-testid="stFileUploaderDropzone"] { background-color: #FFFFFF !important; color: #0F172A !important; }
-    [data-testid="stFileUploaderDropzone"] { border: 1.5px dashed #CBD5E1 !important; border-radius: 8px !important; padding: 12px 14px !important; transition: border-color 0.2s ease, background-color 0.2s ease; }
-    [data-testid="stFileUploaderDropzone"]:hover { border-color: #2C3E50 !important; background-color: #F8FAFC !important; }
-    [data-testid="stFileUploaderDropzone"] div, [data-testid="stFileUploaderDropzone"] span, [data-testid="stFileUploaderDropzone"] small, [data-testid="stFileUploaderDropzone"] p { color: #1E293B !important; }
-    [data-testid="stFileUploaderDropzone"] button { background-color: #EFF6FF !important; color: #1D4ED8 !important; border: 1px solid #BFDBFE !important; font-weight: 600 !important; border-radius: 6px !important; }
-    [data-testid="stFileUploaderDropzone"] > div:last-child, [data-testid="stFileUploaderDropzone"] ul, [data-testid="stFileUploader"] ul { width: 100% !important; max-width: 100% !important; max-height: 145px !important; overflow-y: auto !important; flex: 1 1 100% !important; background-color: transparent !important; }
-    [data-testid="stFileUploader"] li, [data-testid="stFileUploaderFile"], [data-testid="stUploadedFile"], [data-testid="stFileUploaderFileData"], [data-testid="stFileUploader"] [role="listitem"] { background-color: #EEF2F6 !important; color: #0F172A !important; border: 1px solid #CBD5E1 !important; border-radius: 8px !important; padding: 6px 10px !important; margin-bottom: 4px !important; }
-    [data-testid="stFileUploader"] li *, [data-testid="stFileUploaderFile"] *, [data-testid="stUploadedFile"] *, [data-testid="stFileUploaderFileData"] * { background-color: transparent !important; color: #0F172A !important; -webkit-text-fill-color: #0F172A !important; }
-    [data-testid="stFileUploaderFileName"], [data-testid="stFileUploaderFile"] span, [data-testid="stUploadedFile"] span { font-weight: 700 !important; font-size: 0.82rem !important; line-height: 1.3 !important; }
-    [data-testid="stFileUploaderFile"] small, [data-testid="stUploadedFile"] small, [data-testid="stFileUploader"] li small { color: #475569 !important; -webkit-text-fill-color: #475569 !important; font-size: 0.74rem !important; }
-    [data-testid="stFileUploaderFile"] svg, [data-testid="stUploadedFile"] svg, [data-testid="stFileUploaderDeleteBtn"] button, [data-testid="stFileUploaderFile"] button, [data-testid="stUploadedFile"] button { color: #1B2631 !important; fill: #1B2631 !important; background-color: transparent !important; border: none !important; flex-shrink: 0 !important; }
-    [data-testid="stVerticalBlockBorderWrapper"], [data-testid="stVerticalBlockBorderWrapper"] > div, [data-testid="stVerticalBlockBorderWrapper"] > div > div { background-color: #FFFFFF !important; border-color: #E2E8F0 !important; border-radius: 8px !important; color: #0F172A !important; }
-    [data-testid="stSelectbox"], [data-testid="stSelectbox"] > div, [data-testid="stSelectbox"] > div > div, [data-testid="stSelectbox"] [data-baseweb="select"], [data-testid="stSelectbox"] [data-baseweb="select"] > div, [data-testid="stSelectbox"] [data-baseweb="select"] > div > div, [data-baseweb="popover"], [data-baseweb="popover"] > div, [data-baseweb="popover"] ul, [data-baseweb="popover"] li, [role="listbox"], [role="option"] { background-color: #FFFFFF !important; color: #0F172A !important; border-color: #CBD5E1 !important; }
-    [data-testid="stSelectbox"] span, [data-testid="stSelectbox"] div, [data-testid="stSelectbox"] [data-baseweb="select"] *, [role="option"] span, [role="option"] div, [role="option"] * { color: #0F172A !important; -webkit-text-fill-color: #0F172A !important; opacity: 1 !important; font-weight: 700 !important; }
-    [role="option"]:hover, [role="option"][aria-selected="true"] { background-color: #E8EFF7 !important; color: #0F172A !important; }
-    [data-testid="stSelectbox"] svg { color: #0F172A !important; fill: #0F172A !important; }
-    div[data-testid="stButton"] > button, div[data-testid="stButton"] > button[kind="secondary"], button[kind="secondary"] { background-color: #FFFFFF !important; color: #0F172A !important; border: 1px solid #CBD5E1 !important; font-weight: 600 !important; border-radius: 8px !important; }
-    div[data-testid="stButton"] > button:hover, div[data-testid="stButton"] > button[kind="secondary"]:hover, button[kind="secondary"]:hover { background-color: #F1F5F9 !important; color: #0F172A !important; border-color: #94A3B8 !important; }
-    div[data-testid="stButton"] > button span, div[data-testid="stButton"] > button div, div[data-testid="stButton"] > button p { color: #0F172A !important; -webkit-text-fill-color: #0F172A !important; }
-    div[data-testid="stCheckbox"] { margin-bottom: 4px; }
-    div[data-testid="stCheckbox"] label, div[data-testid="stCheckbox"] label p, div[data-testid="stCheckbox"] label div { color: #0F172A !important; -webkit-text-fill-color: #0F172A !important; font-size: 0.88rem !important; font-weight: 600 !important; opacity: 1 !important; }
-    label[data-baseweb="checkbox"] > span:first-child, div[data-testid="stCheckbox"] label[data-baseweb="checkbox"] > span:first-of-type { background-color: #FFFFFF !important; border: 1.5px solid #94A3B8 !important; box-shadow: none !important; }
-    label[data-baseweb="checkbox"]:has(input:checked) > span:first-child, div[data-testid="stCheckbox"] label[data-baseweb="checkbox"]:has(input:checked) > span:first-of-type { background-color: #DC2626 !important; border-color: #DC2626 !important; }
-    label[data-baseweb="checkbox"]:has(input:checked) > span:first-child svg { fill: #FFFFFF !important; color: #FFFFFF !important; }
-    .lote-pill { display: inline-flex; align-items: center; gap: 6px; background-color: #EEF2F6; color: #0F172A; border: 1px solid #CBD5E1; padding: 5px 12px; border-radius: 20px; font-size: 0.82rem; font-weight: 700; }
-    .temp-notice-wrap { display: flex; justify-content: center; align-items: center; width: 100%; margin-top: 8px; margin-bottom: 16px; }
-    .temp-notice { display: inline-flex; align-items: center; justify-content: center; gap: 8px; background-color: #EAFAF1; color: #145A32; border: 1px solid #A9DFBF; padding: 8px 22px; border-radius: 8px; font-size: 0.88rem; font-weight: 600; box-shadow: 0 1px 4px rgba(25, 111, 61, 0.08); }
-    .empty-hint { text-align: center; color: #475569; font-size: 0.86rem; padding: 12px; background-color: #FFFFFF; border: 1px dashed #CBD5E1; border-radius: 8px; margin-top: 6px; }
-    .v-badge { display: flex; align-items: center; gap: 6px; font-size: 0.84rem; font-weight: 500; padding: 8px 14px; border-radius: 6px; margin-bottom: 8px; }
-    .v-badge.warn { background-color: #FEF9E7; color: #7D6608; border: 1px solid #F9E79F; }
-    .v-badge.err { background-color: #FADBD8; color: #78281F; border: 1px solid #F5B7B1; }
-    div[data-testid="stDownloadButton"] > button { background-color: #196F3D !important; color: #FFFFFF !important; -webkit-text-fill-color: #FFFFFF !important; border: 1px solid #145A32 !important; font-weight: 600 !important; font-size: 0.95rem !important; padding: 10px 24px !important; border-radius: 8px !important; box-shadow: 0 3px 8px rgba(25, 111, 61, 0.22) !important; }
-    div[data-testid="stDownloadButton"] > button:hover { background-color: #145A32 !important; border-color: #0E3E22 !important; }
-    .div-panel { background-color: #FFFFFF; border: 1px solid #CBD5E1; border-radius: 10px; padding: 14px 16px 16px 16px; margin-top: 20px; box-shadow: 0 3px 10px rgba(15, 23, 42, 0.06); }
-    .div-panel-header { display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 8px; margin-bottom: 12px; font-size: 0.90rem; font-weight: 700; color: #1B2631; }
-    .div-badges-wrap { display: flex; align-items: center; gap: 6px; }
-    .div-count-badge { background-color: #DC2626; color: #FFFFFF; font-size: 0.76rem; font-weight: 700; padding: 3px 11px; border-radius: 14px; }
-    .div-warn-badge { background-color: #D97706; color: #FFFFFF; font-size: 0.76rem; font-weight: 700; padding: 3px 11px; border-radius: 14px; }
-    .div-table-wrap { width: 100%; overflow-x: auto; border: 1px solid #CBD5E1; border-radius: 8px; position: relative; scrollbar-width: thin; scrollbar-color: #94A3B8 #F1F5F9; }
-    .div-table-wrap::-webkit-scrollbar { height: 10px; }
-    .div-table-wrap::-webkit-scrollbar-track { background: #F1F5F9; border-radius: 0 0 8px 8px; }
-    .div-table-wrap::-webkit-scrollbar-thumb { background: #94A3B8; border-radius: 6px; }
-    .div-table-wrap::-webkit-scrollbar-thumb:hover { background: #64748B; }
-    .div-table { width: max-content; min-width: 100%; border-collapse: separate; border-spacing: 0; font-size: 0.84rem; background-color: #FFFFFF; }
-    .div-table thead th { background-color: #1B2631; color: #FFFFFF; font-weight: 700; text-align: center; padding: 10px 14px; border-right: 1px solid #334155; letter-spacing: 0.03em; text-transform: uppercase; font-size: 0.76rem; white-space: nowrap; }
-    .div-table thead th:first-child { text-align: left; position: sticky; left: 0; z-index: 3; background-color: #1B2631; box-shadow: 2px 0 6px rgba(15, 23, 42, 0.16); }
-    .div-table thead th:last-child { border-right: none; }
-    .div-table tbody tr { background-color: #FFFFFF; transition: background-color 0.15s ease; }
-    .div-table tbody tr:nth-child(even) { background-color: #E8EFF7; }
-    .div-table tbody tr:hover { background-color: #DBEAFE; }
-    .div-table tbody td { padding: 9px 14px; border-top: 1px solid #CBD5E1; border-right: 1px solid #CBD5E1; text-align: center; white-space: nowrap !important; }
-    .div-table tbody td:last-child { border-right: none; }
-    .div-table tbody td.cell-prod { text-align: left; font-weight: 700; color: #1B2631; position: sticky; left: 0; z-index: 2; background-color: #FFFFFF; box-shadow: 2px 0 6px rgba(15, 23, 42, 0.08); }
-    .div-table tbody tr:nth-child(even) td.cell-prod { background-color: #E8EFF7; }
-    .div-table tbody tr:hover td.cell-prod { background-color: #DBEAFE; }
-    .div-table tbody td.cell-prod .cell-desc { font-weight: 500; color: #475569; font-size: 0.78rem; margin-left: 6px; }
-    .div-table tbody td.cell-div { background-color: #FEE2E2; color: #991B1B; font-weight: 700; }
-    .div-table tbody tr:nth-child(even) td.cell-div { background-color: #FECACA; }
-    .div-table tbody tr:hover td.cell-div { background-color: #FCA5A5; color: #7F1D1D; }
-    .div-table tbody td.cell-warn { background-color: #FEF3C7; color: #B45309; font-weight: 700; }
-    .div-table tbody tr:nth-child(even) td.cell-warn { background-color: #FDE68A; }
-    .div-table tbody tr:hover td.cell-warn { background-color: #FCD34D; color: #78350F; }
-    .div-table tbody td.cell-obs { text-align: left; white-space: nowrap !important; font-size: 0.79rem; color: #92400E; background-color: #FFFBEB; font-weight: 600; }
-    .div-table tbody tr:nth-child(even) td.cell-obs { background-color: #FEF3C7; }
-    .div-table tbody td.cell-ok { color: #94A3B8; font-weight: 500; }
-    .div-sep { color: #DC2626; font-weight: 800; margin: 0 3px; }
-    .warn-sep { color: #D97706; font-weight: 800; margin: 0 3px; }
-    .red-detail { display: inline; font-size: 0.76rem; font-weight: 500; color: #7F1D1D; margin-left: 6px; }
-    .div-ok-box { text-align: center; background-color: #DCFCE7; border: 1px solid #86EFAC; color: #14532D; border-radius: 8px; padding: 11px 14px; margin-top: 20px; font-size: 0.87rem; font-weight: 700; }
-    .rodape-panel { background-color: #FFFFFF; border: 1px solid #CBD5E1; border-left: 4px solid #1B2631; border-radius: 10px; padding: 14px 16px; margin-top: 16px; box-shadow: 0 2px 8px rgba(15, 23, 42, 0.05); }
-    .rodape-header { font-size: 0.90rem; font-weight: 700; color: #1B2631; margin-bottom: 10px; display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 8px; }
-    .rodape-highlight { background-color: #FDE047; color: #78350F; font-weight: 700; padding: 1px 4px; border-radius: 3px; border-bottom: 2px solid #D97706; }
-    .rodape-sec-title { font-size: 0.76rem; font-weight: 700; text-transform: uppercase; letter-spacing: 0.04em; color: #475569; margin: 6px 0 4px 0; }
-    .rodape-text { background-color: #F8FAFC; border: 1px solid #E2E8F0; border-radius: 6px; padding: 10px 12px; font-size: 0.82rem; line-height: 1.5; color: #1E293B; white-space: pre-wrap; word-break: break-word; }
+    .block-container { padding-top: 1.5rem; padding-bottom: 2rem; }
+    .hero-header {
+        background: linear-gradient(135deg, #1B2631 0%, #2C3E50 100%);
+        color: #FFFFFF; padding: 1.15rem 1.5rem; border-radius: 12px;
+        margin-bottom: 1.25rem; box-shadow: 0 2px 8px rgba(15, 23, 42, 0.08);
+    }
+    .hero-header h1 { margin: 0; font-size: 1.45rem; font-weight: 700; color: #FFFFFF; }
+    .hero-header p { margin: 0.25rem 0 0 0; font-size: 0.9rem; color: #CBD5E1; }
+    .section-label {
+        font-size: 0.95rem; font-weight: 700; color: #1E293B; margin-bottom: 0.4rem;
+        display: flex; align-items: center; gap: 0.45rem;
+    }
+    .step-num {
+        display: inline-flex; align-items: center; justify-content: center;
+        width: 22px; height: 22px; border-radius: 50%;
+        background: #1B2631; color: #FFFFFF; font-size: 0.78rem; font-weight: 700;
+    }
+    .lote-pill {
+        display: inline-block; background: #EFF6FF; color: #1D4ED8;
+        border: 1px solid #BFDBFE; border-radius: 999px;
+        padding: 0.3rem 0.85rem; font-size: 0.84rem; font-weight: 600;
+    }
+    .v-badge {
+        padding: 0.65rem 0.95rem; border-radius: 8px; margin: 0.35rem 0;
+        font-size: 0.88rem; font-weight: 500;
+    }
+    .v-badge.err { background: #FEE2E2; color: #991B1B; border: 1px solid #FCA5A5; }
+    .v-badge.warn { background: #FEF3C7; color: #92400E; border: 1px solid #FCD34D; }
+    .temp-notice-wrap { display: flex; justify-content: center; margin: 0.75rem 0 0.5rem 0; }
+    .temp-notice {
+        background: #DCFCE7; color: #14532D; border: 1px solid #86EFAC;
+        border-radius: 999px; padding: 0.35rem 1rem; font-size: 0.88rem; font-weight: 600;
+    }
+    .empty-hint {
+        text-align: center; padding: 1.25rem; margin-top: 1rem;
+        background: #F8FAFC; border: 1px dashed #CBD5E1; border-radius: 10px;
+        color: #475569; font-size: 0.92rem;
+    }
+    .div-ok-box {
+        background: #DCFCE7; color: #14532D; border: 1px solid #86EFAC;
+        border-radius: 10px; padding: 0.9rem 1.15rem; margin-top: 1rem;
+        font-weight: 600; font-size: 0.92rem;
+    }
+    .div-panel {
+        margin-top: 1.1rem; border: 1px solid #E2E8F0; border-radius: 10px;
+        overflow: hidden; background: #FFFFFF;
+    }
+    .div-panel-header {
+        background: #1B2631; color: #FFFFFF; padding: 0.7rem 1rem;
+        display: flex; align-items: center; justify-content: space-between;
+        font-weight: 700; font-size: 0.92rem;
+    }
+    .div-badges-wrap { display: flex; gap: 0.45rem; }
+    .div-count-badge {
+        background: #DC2626; color: #FFFFFF; border-radius: 999px;
+        padding: 0.18rem 0.65rem; font-size: 0.78rem; font-weight: 700;
+    }
+    .div-warn-badge {
+        background: #D97706; color: #FFFFFF; border-radius: 999px;
+        padding: 0.18rem 0.65rem; font-size: 0.78rem; font-weight: 700;
+    }
+    .div-table-wrap { overflow-x: auto; }
+    .div-table { width: 100%; border-collapse: collapse; font-size: 0.84rem; }
+    .div-table th {
+        background: #212F3D; color: #FFFFFF; padding: 0.55rem 0.75rem;
+        text-align: center; font-weight: 600; white-space: nowrap;
+    }
+    .div-table th:first-child { text-align: left; }
+    .div-table td {
+        padding: 0.5rem 0.75rem; border-bottom: 1px solid #E2E8F0;
+        text-align: center; vertical-align: middle;
+    }
+    .div-table tbody tr:nth-child(even) { background: #F8FAFC; }
+    .cell-prod { text-align: left !important; font-weight: 600; color: #1B2631; white-space: nowrap; }
+    .cell-desc { font-weight: 400; color: #475569; margin-left: 4px; }
+    .cell-div { background: #FEE2E2; color: #991B1B; font-weight: 700; }
+    .cell-warn { background: #FEF3C7; color: #B45309; font-weight: 700; }
+    .cell-obs { background: #FFFBEB; color: #92400E; text-align: left !important; font-size: 0.8rem; }
+    .cell-ok { color: #94A3B8; }
+    .div-sep { color: #DC2626; margin: 0 5px; font-weight: 800; }
+    .warn-sep { color: #D97706; margin: 0 5px; font-weight: 800; }
+    .red-detail { display: block; font-size: 0.75rem; font-weight: 500; color: #7F1D1D; }
+    .rodape-panel {
+        margin-top: 1rem; border: 1px solid #CBD5E1; border-radius: 10px;
+        overflow: hidden; background: #FFFFFF;
+    }
+    .rodape-header {
+        background: #1B2631; color: #FFFFFF; padding: 0.65rem 1rem;
+        font-weight: 700; font-size: 0.9rem;
+    }
+    .rodape-sec-title {
+        background: #E2E8F0; color: #334155; padding: 0.4rem 0.9rem;
+        font-size: 0.78rem; font-weight: 700; text-transform: uppercase;
+    }
+    .rodape-text {
+        padding: 0.75rem 0.9rem; font-size: 0.84rem; color: #1E293B;
+        white-space: pre-wrap; line-height: 1.5; background: #F8FAFC;
+    }
+    .rodape-highlight {
+        background: #FDE047; color: #713F12; padding: 1px 3px;
+        border-radius: 3px; font-weight: 600;
+    }
 </style>
 """, unsafe_allow_html=True)
 
@@ -126,9 +144,9 @@ _RE_EMB = re.compile(r'\b(?:CX|DP|FD|PCT|EMB|PC|UN)X?(\d+)\b', re.IGNORECASE)
 _IGNORAR = {'COM', 'PARA', 'DOS', 'DAS', 'UNID', 'UND', 'CX', 'KIT', 'PCT', 'FR', 'REF', 'ESC', 'ATIV'}
 
 _PONTOS_IMPORTANTES_PADROES = [
-    ("ICMS-ST / ST", re.compile(r'\b(?:icms[\s-]*st|st|b\.?calc\.?st)\b|substituicao\s+tributaria', re.IGNORECASE)),
+    ("ICMS-ST / ST", re.compile(r'\b(?:icms[\s-]*st|st|b.?calc.?st)\b|substituicao\s+tributaria', re.IGNORECASE)),
     ("GNRE", re.compile(r'\bgnre\b|guia\s+nacional', re.IGNORECASE)),
-    ("Redução de Base", re.compile(r'reducao\s+(?:de\s+|da\s+)?base|\bred\.?\s*bc\b|base\s+de\s+calculo\s+reduzida', re.IGNORECASE)),
+    ("Redução de Base", re.compile(r'reducao\s+(?:de\s+|da\s+)?base|\bred.?\s*bc\b|base\s+de\s+calculo\s+reduzida', re.IGNORECASE)),
     ("Decreto / Convênio / Protocolo", re.compile(r'\b(?:decreto|convenio|protocolo|lei)\b', re.IGNORECASE)),
     ("FCP / FECP", re.compile(r'\b(?:fcp|fecp)\b', re.IGNORECASE)),
     ("DIFAL", re.compile(r'\bdifal\b|diferencial\s+de\s+aliquota', re.IGNORECASE)),
@@ -679,6 +697,19 @@ def _fmt_num_curto(valor, max_dec: int = 2) -> str:
         return str(valor)
 
 
+def _fmt_num_br(valor, max_dec: int = 2) -> str:
+    return _fmt_num_curto(valor, max_dec=max_dec).replace('.', ',')
+
+
+def _descricao_origem(orig_sigla: str) -> str:
+    sigla = str(orig_sigla or '').strip().upper()
+    if sigla == 'NAC':
+        return 'origem nacional'
+    if sigla == 'IMP':
+        return 'origem importada'
+    return ''
+
+
 def cruzar_itens_auditoria(itens_xml, itens_csv):
     """Realiza o cruzamento linha a linha entre XML e WinThor (fonte única para tela e Excel)."""
     dados_relatorio = []
@@ -749,7 +780,7 @@ def cruzar_itens_auditoria(itens_xml, itens_csv):
                     linha['Status_ICMS_Aliq'] = 'ALERTA'
                     linha['ICMS_Alerta_Guia'] = True
                     linha['ICMS_Obs'] = (
-                        f"Item Guia (G) com %ICMS preenchido ({_fmt_num_curto(icms_csv)}%) "
+                        f"Item Guia (G) com %ICMS preenchido ({_fmt_num_br(icms_csv)}%) "
                         f"no WinThor — zerar ICMS."
                     )
             else:
@@ -803,7 +834,7 @@ def cruzar_itens_auditoria(itens_xml, itens_csv):
             if id_dest_item == '2' and icms_xml > 0.0:
                 if origem == 'IMP' and icms_xml != 4.0:
                     linha['Alerta_Origem_Aliq'] = (
-                        f"Item IMP em operação interestadual com ICMS {_fmt_num_curto(icms_xml)}% "
+                        f"Item IMP em operação interestadual com ICMS {_fmt_num_br(icms_xml)}% "
                         f"(esperado 4% — validar com tributário)."
                     )
                 elif origem == 'NAC' and icms_xml == 4.0:
@@ -877,58 +908,167 @@ def cruzar_itens_auditoria(itens_xml, itens_csv):
     return dados_relatorio
 
 
-def _gerar_diagnostico_escrito(linha: dict) -> str:
-    """Gera explicação escrita em linguagem direta sobre o erro ou alerta da linha (apenas Excel)."""
-    if linha.get('Status_Geral') == 'SOBRA':
-        origem = 'XML' if linha.get('Linha_NF') != '-' else 'WinThor'
-        return f"Item presente apenas no {origem} (sem correspondência no par)."
+def _diagnostico_sobra(linha: dict) -> str:
+    if linha.get('Linha_NF') != '-':
+        return (
+            "Item presente apenas no XML (sem correspondência no WinThor). "
+            "Ação: verificar se faltou incluir o item na pré-entrada ou se houve erro de sequência."
+        )
+    return (
+        "Item presente apenas no WinThor (sem correspondência no XML). "
+        "Ação: verificar se o item foi lançado indevidamente na pré-entrada."
+    )
 
-    motivos = []
+
+def _diagnostico_ean(linha: dict) -> str:
     st_ean = linha.get('Status_EAN')
-    st_ncm = linha.get('Status_NCM')
+    if st_ean == 'DIVERGENTE':
+        ean_x = linha.get('EAN_NF') or 'vazio'
+        ean_w = linha.get('EAN_WINTHOR') or 'vazio'
+        return (
+            f"Divergência de EAN: NF veio com '{ean_x}', mas WinThor está com '{ean_w}'. "
+            f"Ação: conferir o código de barras físico do produto e atualizar 'Cód. barra' no WinThor."
+        )
+    if linha.get('EAN_Alerta_Vazio'):
+        return (
+            "Produto sem código de barras no XML e no WinThor. "
+            "Ação: validar se o item não possui GTIN ou preencher 'Cód. barra' no cadastro do WinThor."
+        )
+    return ""
+
+
+def _diagnostico_ncm(linha: dict) -> str:
+    if linha.get('Status_NCM') == 'DIVERGENTE':
+        ncm_x = str(linha.get('NCM_NF') or '').strip()
+        ncm_w = str(linha.get('NCM_WINTHOR') or '').strip()
+        ncm_x_fmt = ncm_x.zfill(8) if ncm_x else '-'
+        ncm_w_fmt = ncm_w.zfill(8) if ncm_w else '-'
+        return (
+            f"Divergência de NCM: NF veio com {ncm_x_fmt}, mas WinThor está com {ncm_w_fmt}. "
+            f"Ação: validar a classificação fiscal correta com o setor tributário e ajustar o NCM no WinThor."
+        )
+    return ""
+
+
+def _diagnostico_icms_basered(linha: dict) -> list[str]:
+    motivos = []
     st_icms = linha.get('Status_ICMS_Aliq')
     st_red = linha.get('Status_Red_BC')
     tipo_calc = str(linha.get('Tipo_Calculo_WINTHOR', '')).strip().upper()
+    orig_desc = _descricao_origem(linha.get('Orig.', ''))
+    orig_par = f" ({orig_desc})" if orig_desc else ""
 
-    if st_ean == 'DIVERGENTE':
-        motivos.append(f"EAN divergente (NF {linha.get('EAN_NF') or 'vazio'} × WinThor {linha.get('EAN_WINTHOR') or 'vazio'}).")
-    elif linha.get('EAN_Alerta_Vazio'):
-        motivos.append("Sem código de barras no XML e no WinThor — conferir cadastro.")
+    i_x_val = converte_float_br(linha.get('ICMS_NF', 0.0))
+    i_w_val = converte_float_br(linha.get('ICMS_WINTHOR', 0.0))
+    i_g_val = converte_float_br(linha.get('%Alíq.Ext. ST Guia_Whintor', 0.0))
+    pred_x_val = converte_float_br(linha.get('pRedBC_NF', 0.0))
+    ef_x_val = converte_float_br(linha.get('ICMS_Efetivo_NF', 0.0))
+    r_w_val = converte_float_br(linha.get('% ICMS red. Whintor', 0.0))
 
-    if st_ncm == 'DIVERGENTE':
-        motivos.append(f"NCM divergente (NF {linha.get('NCM_NF') or '-'} × WinThor {linha.get('NCM_WINTHOR') or '-'}).")
+    i_x = _fmt_num_br(i_x_val, max_dec=2)
+    i_w = _fmt_num_br(i_w_val, max_dec=2)
+    i_g = _fmt_num_br(i_g_val, max_dec=2)
+    pred_x = _fmt_num_br(pred_x_val, max_dec=2)
+    ef_x = _fmt_num_br(ef_x_val, max_dec=2)
+    r_w = _fmt_num_br(r_w_val, max_dec=2)
 
-    if st_icms == 'DIVERGENTE' and st_red == 'DIVERGENTE':
-        i_x = _fmt_num_curto(linha.get('ICMS_NF'))
-        ef_x = _fmt_num_curto(linha.get('ICMS_Efetivo_NF'), max_dec=4)
-        r_w = _fmt_num_curto(linha.get('% ICMS red. Whintor'), max_dec=4)
+    if st_icms == 'DIVERGENTE':
+        if tipo_calc == 'G':
+            efeito_guia = (
+                "para não subestimar a guia" if i_x_val > i_g_val else "para não superestimar a guia"
+            )
+            motivos.append(
+                f"Divergência de Alíquota Guia: NF veio com {i_x}%{orig_par}, mas WinThor está com {i_g}%. "
+                f"Ação: ajustar '%Alíq.Ext.ST Guia' para {i_x}% na pré-entrada {efeito_guia}."
+            )
+            if round(i_w_val, 2) != 0.0:
+                motivos.append(
+                    f"Item marcado como GUIA (G) com %ICMS preenchido ({i_w}%). "
+                    f"Ação: zerar '%ICMS' no WinThor para evitar crédito indevido junto com cálculo de guia."
+                )
+        else:
+            motivos.append(
+                f"Divergência de Alíquota de ICMS: NF veio com {i_x}%{orig_par}, mas WinThor está com {i_w}%. "
+                f"Ação: ajustar '%ICMS' para {i_x}% na pré-entrada para refletir corretamente o crédito da nota."
+            )
+    elif linha.get('ICMS_Alerta_Guia'):
         motivos.append(
-            f"Divergência combinada entre ICMS (NF {i_x}%) e Redução de Base (efetivo NF {ef_x}% × WinThor {r_w}%)."
+            f"Item marcado como GUIA (G) com %ICMS preenchido ({i_w}%). "
+            f"Ação: zerar '%ICMS' no WinThor para evitar crédito indevido junto com cálculo de guia."
         )
-    else:
-        if st_icms == 'DIVERGENTE':
-            i_x = _fmt_num_curto(linha.get('ICMS_NF'))
-            if tipo_calc == 'G':
-                i_g = _fmt_num_curto(linha.get('%Alíq.Ext. ST Guia_Whintor'))
-                motivos.append(f"Alíquota de Guia divergente (ICMS NF {i_x}% × Guia WinThor {i_g}%).")
-            else:
-                i_w = _fmt_num_curto(linha.get('ICMS_WINTHOR'))
-                motivos.append(f"Alíquota de ICMS divergente (NF {i_x}% × WinThor {i_w}%).")
-        elif linha.get('ICMS_Alerta_Guia'):
-            i_w = _fmt_num_curto(linha.get('ICMS_WINTHOR'))
-            motivos.append(f"Alíquota Guia confere, mas %ICMS está {i_w}% no WinThor — zerar ICMS.")
 
-        if st_red == 'DIVERGENTE':
-            ef_x = _fmt_num_curto(linha.get('ICMS_Efetivo_NF'), max_dec=4)
-            r_w = _fmt_num_curto(linha.get('% ICMS red. Whintor'), max_dec=4)
-            motivos.append(f"Redução de Base divergente (efetivo NF {ef_x}% × WinThor {r_w}%).")
+    if st_red == 'DIVERGENTE':
+        if pred_x_val > 0.0:
+            motivos.append(
+                f"Redução de Base divergente: NF tem ICMS {i_x}% com redução de {pred_x}% "
+                f"(carga efetiva = {ef_x}%), mas WinThor está com {r_w}%. "
+                f"Ação: ajustar '% ICMS red.' para {ef_x}%."
+            )
+        else:
+            motivos.append(
+                f"Redução de Base divergente: NF tem ICMS {i_x}% sem redução "
+                f"(carga efetiva = {ef_x}%), mas WinThor está com {r_w}%. "
+                f"Ação: ajustar '% ICMS red.' para {ef_x}%."
+            )
 
     if linha.get('Alerta_Origem_Aliq'):
-        motivos.append(linha['Alerta_Origem_Aliq'])
-    if linha.get('Alerta_Guia_Coerencia'):
-        motivos.append(linha['Alerta_Guia_Coerencia'])
+        motivos.append(
+            f"Alerta de Origem × Alíquota: {linha['Alerta_Origem_Aliq']} "
+            f"Ação: confirmar a origem da mercadoria e a alíquota interestadual com o setor tributário."
+        )
 
-    return " ".join(motivos)
+    if linha.get('Alerta_Guia_Coerencia'):
+        motivos.append(
+            f"Alerta de Tipo Cálculo ST: {linha['Alerta_Guia_Coerencia']} "
+            f"Ação: confirmar com o fiscal se o item deve entrar como GUIA (G) ou NOTA FISCAL (N)."
+        )
+
+    return motivos
+
+
+def _gerar_diagnostico_escrito(linha: dict) -> str:
+    """Gera explicação consolidada no formato Causa + Ação para o Excel."""
+    if linha.get('Status_Geral') == 'SOBRA':
+        return _diagnostico_sobra(linha)
+
+    motivos = []
+    d_ean = _diagnostico_ean(linha)
+    if d_ean:
+        motivos.append(d_ean)
+
+    d_ncm = _diagnostico_ncm(linha)
+    if d_ncm:
+        motivos.append(d_ncm)
+
+    motivos.extend(_diagnostico_icms_basered(linha))
+    return "\n".join(motivos)
+
+
+def _calcular_altura_linha(textos_e_larguras: list[tuple[str, float]], altura_min: int = 24) -> int:
+    """Calcula a altura ideal da linha no Excel com base nos textos com wrap_text."""
+    max_linhas = 1
+    for txt, largura in textos_e_larguras:
+        if not txt:
+            continue
+        chars_linha = max(int(largura) - 3, 18)
+        linhas_txt = 0
+        for paragrafo in str(txt).splitlines():
+            linhas_txt += max(1, math.ceil(len(paragrafo) / chars_linha))
+        max_linhas = max(max_linhas, linhas_txt)
+    return max(altura_min, min(max_linhas * 15 + 10, 260))
+
+
+def _rotulo_ean_desc(linha: dict, max_desc: int = 38) -> tuple[str, str, str]:
+    ean_nf = str(linha.get('EAN_NF') or '').strip()
+    if ean_nf and ean_nf not in ('-', 'SEM EAN'):
+        rotulo_ean = ean_nf
+    else:
+        rotulo_ean = f"Sem EAN (Item {linha.get('Linha_NF', '-')})"
+
+    desc_completa = str(linha.get('Descricao_NF') or linha.get('Descricao_WINTHOR') or '').strip()
+    desc_resumida = (desc_completa[:max_desc].rstrip() + '…') if len(desc_completa) > max_desc else desc_completa
+    texto_ean_desc = f"{rotulo_ean} — {desc_resumida}" if desc_resumida else rotulo_ean
+    return rotulo_ean, desc_resumida, texto_ean_desc
 
 
 def preparar_dados_resumo_divergencias(dados_relatorio):
@@ -1063,15 +1203,8 @@ def preparar_dados_resumo_divergencias(dados_relatorio):
             cod_prod = str(linha.get('Cod_Produto_WINTHOR') or '').strip()
             cod_prod = cod_prod if cod_prod and cod_prod != '-' else '-'
 
-            ean_nf = str(linha.get('EAN_NF') or '').strip()
-            if ean_nf and ean_nf not in ('-', 'SEM EAN'):
-                rotulo_ean = ean_nf
-            else:
-                rotulo_ean = f"Sem EAN (Item {linha.get('Linha_NF', '-')})"
-
+            rotulo_ean, desc_resumida, texto_ean_desc = _rotulo_ean_desc(linha)
             desc_completa = str(linha.get('Descricao_NF') or linha.get('Descricao_WINTHOR') or '').strip()
-            desc_resumida = (desc_completa[:38].rstrip() + '…') if len(desc_completa) > 38 else desc_completa
-            texto_ean_desc = f"{rotulo_ean} — {desc_resumida}" if desc_resumida else rotulo_ean
             desc_html = f'<span class="cell-desc">— {html.escape(desc_resumida)}</span>' if desc_resumida else ''
 
             registros.append({
@@ -1297,12 +1430,13 @@ def _adicionar_bloco_rodape_excel(ws, start_row: int, total_cols: int, dados_adi
 
 
 def _montar_aba_resumo_excel(workbook, dados_relatorio, numero_nf: str, dados_adicionais: dict | None = None):
-    """Cria a aba 'Resumo_Divergencias' no Excel com faixa superior, diagnóstico e rodapé."""
+    """Cria a aba 'Resumo_Divergencias' no Excel com faixa superior, Diagnóstico e Ação e rodapé."""
     ws = workbook.create_sheet(title='Resumo_Divergencias', index=0)
     ws.sheet_view.showGridLines = False
     ws.sheet_view.zoomScale = 80
 
     registros, colunas_ativas, qtd_div, qtd_warn = preparar_dados_resumo_divergencias(dados_relatorio)
+    colunas_excel = [c for c in colunas_ativas if c != 'Observação']
 
     qtd_tipo_nf = sum(1 for l in dados_relatorio if str(l.get('Tipo_Calculo_WINTHOR', '')).strip().upper() == 'N')
     qtd_tipo_guia = sum(1 for l in dados_relatorio if str(l.get('Tipo_Calculo_WINTHOR', '')).strip().upper() == 'G')
@@ -1315,8 +1449,6 @@ def _montar_aba_resumo_excel(workbook, dados_relatorio, numero_nf: str, dados_ad
     fill_div_par = PatternFill(start_color="FECACA", end_color="FECACA", fill_type="solid")
     fill_warn_impar = PatternFill(start_color="FEF3C7", end_color="FEF3C7", fill_type="solid")
     fill_warn_par = PatternFill(start_color="FDE68A", end_color="FDE68A", fill_type="solid")
-    fill_obs_impar = PatternFill(start_color="FFFBEB", end_color="FFFBEB", fill_type="solid")
-    fill_obs_par = PatternFill(start_color="FEF3C7", end_color="FEF3C7", fill_type="solid")
     fill_ok_box = PatternFill(start_color="DCFCE7", end_color="DCFCE7", fill_type="solid")
     fill_kpi_bg = PatternFill(start_color="F8FAFC", end_color="F8FAFC", fill_type="solid")
     fill_kpi_div = PatternFill(start_color="FEE2E2", end_color="FEE2E2", fill_type="solid")
@@ -1327,7 +1459,6 @@ def _montar_aba_resumo_excel(workbook, dados_relatorio, numero_nf: str, dados_ad
     font_prod = Font(bold=True, size=10, color="1B2631")
     font_div = Font(bold=True, size=10, color="991B1B")
     font_warn = Font(bold=True, size=10, color="B45309")
-    font_obs = Font(bold=True, size=9, color="92400E")
     font_ok_dash = Font(bold=False, size=10, color="94A3B8")
     font_ok_box = Font(bold=True, size=11, color="14532D")
     font_kpi_val = Font(bold=True, size=11, color="1B2631")
@@ -1350,8 +1481,8 @@ def _montar_aba_resumo_excel(workbook, dados_relatorio, numero_nf: str, dados_ad
         kpis = [
             (f"NF: {numero_nf}", fill_kpi_bg, font_kpi_val),
             (f"Itens Divergentes: {qtd_div}", fill_kpi_div if qtd_div > 0 else fill_kpi_bg, font_kpi_div_val if qtd_div > 0 else font_kpi_val),
-            (f"Qtd NF: {qtd_tipo_nf}", fill_kpi_bg, font_kpi_val),
-            (f"Qtd GUIA: {qtd_tipo_guia}", fill_kpi_guia if qtd_tipo_guia > 0 else fill_kpi_bg, font_kpi_guia_val if qtd_tipo_guia > 0 else font_kpi_val),
+            (f"Alertas: {qtd_warn}", fill_kpi_guia if qtd_warn > 0 else fill_kpi_bg, font_kpi_guia_val if qtd_warn > 0 else font_kpi_val),
+            (f"Qtd NF: {qtd_tipo_nf}  |  Qtd GUIA: {qtd_tipo_guia}", fill_kpi_guia if qtd_tipo_guia > 0 else fill_kpi_bg, font_kpi_guia_val if qtd_tipo_guia > 0 else font_kpi_val),
         ]
         ws.row_dimensions[2].height = 24
         for idx_k, (txt_k, fl_k, ft_k) in enumerate(kpis, start=1):
@@ -1384,7 +1515,7 @@ def _montar_aba_resumo_excel(workbook, dados_relatorio, numero_nf: str, dados_ad
         _adicionar_bloco_rodape_excel(ws, start_row=6, total_cols=5, dados_adicionais=dados_adicionais)
         return
 
-    cabecalhos = ['Cód. Produto', 'EAN (NF) + Descrição'] + colunas_ativas + ['Diagnóstico']
+    cabecalhos = ['Cód. Produto', 'EAN (NF) + Descrição'] + colunas_excel + ['Diagnóstico e Ação']
     total_cols = len(cabecalhos)
 
     _escrever_faixa_topo(total_cols)
@@ -1398,7 +1529,7 @@ def _montar_aba_resumo_excel(workbook, dados_relatorio, numero_nf: str, dados_ad
         cell.fill = fill_header
         cell.border = borda_celula
         cell.alignment = Alignment(
-            horizontal='left' if nome_col in ('EAN (NF) + Descrição', 'Observação', 'Diagnóstico') else 'center',
+            horizontal='left' if nome_col in ('EAN (NF) + Descrição', 'Diagnóstico e Ação') else 'center',
             vertical='center'
         )
     ws.row_dimensions[hdr_row].height = 24
@@ -1408,7 +1539,6 @@ def _montar_aba_resumo_excel(workbook, dados_relatorio, numero_nf: str, dados_ad
         fill_linha = fill_zebra_par if eh_par else fill_zebra_impar
         fill_div = fill_div_par if eh_par else fill_div_impar
         fill_warn = fill_warn_par if eh_par else fill_warn_impar
-        fill_obs = fill_obs_par if eh_par else fill_obs_impar
 
         cod_prod_val = reg.get('cod_produto', '-')
         c_cod = ws.cell(row=idx_reg, column=1)
@@ -1434,7 +1564,7 @@ def _montar_aba_resumo_excel(workbook, dados_relatorio, numero_nf: str, dados_ad
         c_prod.alignment = Alignment(horizontal='left', vertical='center')
         c_prod.number_format = '@'
 
-        for offset, col_nome in enumerate(colunas_ativas, start=3):
+        for offset, col_nome in enumerate(colunas_excel, start=3):
             val = reg['celulas_texto'].get(col_nome)
             cell = ws.cell(row=idx_reg, column=offset)
             cell.border = borda_celula
@@ -1447,10 +1577,6 @@ def _montar_aba_resumo_excel(workbook, dados_relatorio, numero_nf: str, dados_ad
                     cell.font = font_warn
                     cell.fill = fill_warn
                     cell.alignment = Alignment(horizontal='center', vertical='center')
-                elif tipo_cel == 'obs':
-                    cell.font = font_obs
-                    cell.fill = fill_obs
-                    cell.alignment = Alignment(horizontal='left', vertical='center', wrap_text=True)
                 else:
                     cell.font = font_div
                     cell.fill = fill_div
@@ -1475,25 +1601,36 @@ def _montar_aba_resumo_excel(workbook, dados_relatorio, numero_nf: str, dados_ad
             c_diag.fill = fill_linha
         c_diag.alignment = Alignment(horizontal='left', vertical='center', wrap_text=True)
 
-        ws.row_dimensions[idx_reg].height = 24
-
     last_data_row = start_data_row + len(registros) - 1
     ws.freeze_panes = f'A{start_data_row}'
     ws.auto_filter.ref = f"A{hdr_row}:{get_column_letter(total_cols)}{last_data_row}"
 
+    larguras_col = {}
     for col_i in range(1, total_cols + 1):
         col_letter = get_column_letter(col_i)
-        max_len = len(cabecalhos[col_i - 1])
+        nome_col = cabecalhos[col_i - 1]
+        max_len = len(nome_col)
         for row_i in range(start_data_row, last_data_row + 1):
             val = ws.cell(row=row_i, column=col_i).value
             if val is not None:
-                max_len = max(max_len, len(str(val)))
-        if cabecalhos[col_i - 1] == 'Cód. Produto':
-            ws.column_dimensions[col_letter].width = min(max(max_len + 4, 14), 22)
-        elif cabecalhos[col_i - 1] == 'Diagnóstico':
-            ws.column_dimensions[col_letter].width = min(max(max_len + 6, 36), 80)
+                for p in str(val).splitlines():
+                    max_len = max(max_len, len(p))
+        if nome_col == 'Cód. Produto':
+            larg = min(max(max_len + 4, 14), 22)
+        elif nome_col == 'Diagnóstico e Ação':
+            larg = min(max(max_len + 4, 58), 88)
         else:
-            ws.column_dimensions[col_letter].width = min(max(max_len + 5, 16), 65)
+            larg = min(max(max_len + 5, 16), 55)
+        ws.column_dimensions[col_letter].width = larg
+        larguras_col[col_i] = larg
+
+    # Altura dinâmica das linhas com base no Diagnóstico e Ação
+    for row_i in range(start_data_row, last_data_row + 1):
+        val_diag = ws.cell(row=row_i, column=total_cols).value
+        ws.row_dimensions[row_i].height = _calcular_altura_linha(
+            [(str(val_diag or ''), larguras_col[total_cols])],
+            altura_min=24
+        )
 
     _adicionar_bloco_rodape_excel(
         ws,
@@ -1503,12 +1640,319 @@ def _montar_aba_resumo_excel(workbook, dados_relatorio, numero_nf: str, dados_ad
     )
 
 
+def _montar_aba_grupo_excel(
+    workbook,
+    titulo_aba: str,
+    titulo_banner: str,
+    cabecalhos: list[str],
+    linhas_dados: list[dict],
+    colunas_destaque_idx: set[int],
+    colunas_esquerda: set[str],
+    colunas_ncm: set[str] | None = None,
+    colunas_num_int: set[str] | None = None,
+):
+    """Helper reutilizável para montar abas individuais de divergências com Causa + Ação."""
+    if not linhas_dados:
+        return
+
+    colunas_ncm = colunas_ncm or set()
+    colunas_num_int = colunas_num_int or set()
+
+    ws = workbook.create_sheet(title=titulo_aba)
+    ws.sheet_view.showGridLines = False
+    ws.sheet_view.zoomScale = 80
+
+    total_cols = len(cabecalhos)
+    qtd_div = sum(1 for r in linhas_dados if r['severidade'] == 'div')
+    qtd_warn = sum(1 for r in linhas_dados if r['severidade'] == 'warn')
+
+    fill_titulo = PatternFill(start_color="1B2631", end_color="1B2631", fill_type="solid")
+    fill_header = PatternFill(start_color="212F3D", end_color="212F3D", fill_type="solid")
+    fill_zebra_par = PatternFill(start_color="E8EFF7", end_color="E8EFF7", fill_type="solid")
+    fill_zebra_impar = PatternFill(start_color="FFFFFF", end_color="FFFFFF", fill_type="solid")
+    fill_div_impar = PatternFill(start_color="FEE2E2", end_color="FEE2E2", fill_type="solid")
+    fill_div_par = PatternFill(start_color="FECACA", end_color="FECACA", fill_type="solid")
+    fill_warn_impar = PatternFill(start_color="FEF3C7", end_color="FEF3C7", fill_type="solid")
+    fill_warn_par = PatternFill(start_color="FDE68A", end_color="FDE68A", fill_type="solid")
+    fill_kpi_bg = PatternFill(start_color="F8FAFC", end_color="F8FAFC", fill_type="solid")
+    fill_kpi_div = PatternFill(start_color="FEE2E2", end_color="FEE2E2", fill_type="solid")
+    fill_kpi_warn = PatternFill(start_color="FEF3C7", end_color="FEF3C7", fill_type="solid")
+
+    font_titulo = Font(bold=True, size=11, color="FFFFFF")
+    font_header = Font(bold=True, size=10, color="FFFFFF")
+    font_normal = Font(bold=False, size=10, color="1B2631")
+    font_prod = Font(bold=True, size=10, color="1B2631")
+    font_div = Font(bold=True, size=10, color="991B1B")
+    font_warn = Font(bold=True, size=10, color="B45309")
+    font_kpi_val = Font(bold=True, size=10, color="1B2631")
+    font_kpi_div_val = Font(bold=True, size=10, color="991B1B")
+    font_kpi_warn_val = Font(bold=True, size=10, color="B45309")
+
+    side_cinza = Side(style='thin', color='CBD5E1')
+    borda_celula = Border(left=side_cinza, right=side_cinza, top=side_cinza, bottom=side_cinza)
+
+    # Linha 1: Banner
+    ws.merge_cells(start_row=1, start_column=1, end_row=1, end_column=total_cols)
+    c_tit = ws.cell(row=1, column=1, value=titulo_banner)
+    c_tit.font = font_titulo
+    c_tit.alignment = Alignment(horizontal='left', vertical='center')
+    for ci in range(1, total_cols + 1):
+        ws.cell(row=1, column=ci).fill = fill_titulo
+    ws.row_dimensions[1].height = 28
+
+    # Linha 2: KPIs rápidos do grupo
+    kpis = [
+        (f"Ocorrências: {len(linhas_dados)}", fill_kpi_bg, font_kpi_val),
+        (f"Divergências: {qtd_div}", fill_kpi_div if qtd_div > 0 else fill_kpi_bg, font_kpi_div_val if qtd_div > 0 else font_kpi_val),
+        (f"Alertas: {qtd_warn}", fill_kpi_warn if qtd_warn > 0 else fill_kpi_bg, font_kpi_warn_val if qtd_warn > 0 else font_kpi_val),
+    ]
+    ws.row_dimensions[2].height = 22
+    for idx_k, (txt_k, fl_k, ft_k) in enumerate(kpis, start=1):
+        if idx_k <= total_cols:
+            c_k = ws.cell(row=2, column=idx_k, value=txt_k)
+            c_k.font = ft_k
+            c_k.fill = fl_k
+            c_k.border = borda_celula
+            c_k.alignment = Alignment(horizontal='center', vertical='center')
+    for ci in range(len(kpis) + 1, total_cols + 1):
+        c_ex = ws.cell(row=2, column=ci)
+        c_ex.fill = fill_kpi_bg
+        c_ex.border = borda_celula
+    ws.row_dimensions[3].height = 8
+
+    # Linha 4: Cabeçalho
+    hdr_row = 4
+    start_data_row = 5
+    for ci, nome_col in enumerate(cabecalhos, start=1):
+        cell = ws.cell(row=hdr_row, column=ci, value=nome_col.upper())
+        cell.font = font_header
+        cell.fill = fill_header
+        cell.border = borda_celula
+        cell.alignment = Alignment(
+            horizontal='left' if nome_col in colunas_esquerda else 'center',
+            vertical='center',
+            wrap_text=True
+        )
+    ws.row_dimensions[hdr_row].height = 24
+
+    # Dados
+    for idx_r, reg in enumerate(linhas_dados, start=start_data_row):
+        eh_par = (idx_r % 2 == 0)
+        fill_linha = fill_zebra_par if eh_par else fill_zebra_impar
+        fill_sev = (
+            (fill_div_par if eh_par else fill_div_impar)
+            if reg['severidade'] == 'div'
+            else (fill_warn_par if eh_par else fill_warn_impar)
+        )
+        font_sev = font_div if reg['severidade'] == 'div' else font_warn
+
+        for ci, val in enumerate(reg['valores'], start=1):
+            nome_col = cabecalhos[ci - 1]
+            cell = ws.cell(row=idx_r, column=ci)
+            cell.border = borda_celula
+
+            if nome_col in colunas_num_int and str(val).strip() not in ('', '-'):
+                try:
+                    cell.value = int(float(val))
+                    cell.number_format = '0'
+                except ValueError:
+                    cell.value = str(val)
+                    cell.number_format = '@'
+            elif nome_col in colunas_ncm and str(val).strip() not in ('', '-'):
+                try:
+                    cell.value = int(float(val))
+                    cell.number_format = '00000000'
+                except ValueError:
+                    cell.value = str(val)
+                    cell.number_format = '@'
+            else:
+                cell.value = val
+                cell.number_format = '@'
+
+            destaque = (ci in colunas_destaque_idx) or (ci == total_cols)
+            if destaque:
+                cell.fill = fill_sev
+                cell.font = font_sev
+            else:
+                cell.fill = fill_linha
+                cell.font = font_prod if ci <= 3 else font_normal
+
+            cell.alignment = Alignment(
+                horizontal='left' if nome_col in colunas_esquerda else 'center',
+                vertical='center',
+                wrap_text=(nome_col == 'Diagnóstico e Ação')
+            )
+
+    last_data_row = start_data_row + len(linhas_dados) - 1
+    ws.freeze_panes = f'A{start_data_row}'
+    ws.auto_filter.ref = f"A{hdr_row}:{get_column_letter(total_cols)}{last_data_row}"
+
+    larguras_col = {}
+    for ci in range(1, total_cols + 1):
+        col_letter = get_column_letter(ci)
+        nome_col = cabecalhos[ci - 1]
+        max_len = len(nome_col)
+        for ri in range(start_data_row, last_data_row + 1):
+            val = ws.cell(row=ri, column=ci).value
+            if val is not None:
+                for p in str(val).splitlines():
+                    max_len = max(max_len, len(p))
+        if nome_col == 'Diagnóstico e Ação':
+            larg = min(max(max_len + 4, 60), 90)
+        elif nome_col in ('Cód. Produto', 'Item NF', 'Item WinThor', 'Orig.'):
+            larg = min(max(max_len + 4, 11), 18)
+        else:
+            larg = min(max(max_len + 5, 14), 48)
+        ws.column_dimensions[col_letter].width = larg
+        larguras_col[ci] = larg
+
+    for ri in range(start_data_row, last_data_row + 1):
+        val_diag = ws.cell(row=ri, column=total_cols).value
+        ws.row_dimensions[ri].height = _calcular_altura_linha(
+            [(str(val_diag or ''), larguras_col[total_cols])],
+            altura_min=24
+        )
+
+
+def _montar_abas_individuais_excel(workbook, dados_relatorio, numero_nf: str):
+    """Gera abas individuais (Div_EAN, Div_NCM, Div_ICMS_BaseRed, Div_Sobra) apenas se houver ocorrências."""
+    linhas_ean = []
+    linhas_ncm = []
+    linhas_icms = []
+    linhas_sobra = []
+
+    for linha in dados_relatorio:
+        cod_prod = str(linha.get('Cod_Produto_WINTHOR') or '').strip()
+        cod_prod = cod_prod if cod_prod and cod_prod != '-' else '-'
+        item_nf = linha.get('Linha_NF', '-')
+        _, desc_res, texto_ean_desc = _rotulo_ean_desc(linha)
+
+        if linha.get('Status_Geral') == 'SOBRA':
+            origem_sobra = 'XML' if item_nf != '-' else 'WinThor'
+            ean_s = linha.get('EAN_NF') if item_nf != '-' else linha.get('EAN_WINTHOR')
+            desc_s = linha.get('Descricao_NF') if item_nf != '-' else linha.get('Descricao_WINTHOR')
+            linhas_sobra.append({
+                'severidade': 'div',
+                'valores': [
+                    origem_sobra,
+                    item_nf,
+                    linha.get('Linha_WINTHOR', '-'),
+                    cod_prod,
+                    ean_s or '-',
+                    desc_s or '-',
+                    _diagnostico_sobra(linha),
+                ],
+            })
+            continue
+
+        # 1. Grupo EAN
+        if linha.get('Status_EAN') == 'DIVERGENTE' or linha.get('EAN_Alerta_Vazio'):
+            sev = 'div' if linha.get('Status_EAN') == 'DIVERGENTE' else 'warn'
+            linhas_ean.append({
+                'severidade': sev,
+                'valores': [
+                    cod_prod,
+                    item_nf,
+                    desc_res or '-',
+                    linha.get('EAN_NF') or 'vazio',
+                    linha.get('EAN_WINTHOR') or 'vazio',
+                    linha.get('Status_EAN', '-'),
+                    _diagnostico_ean(linha),
+                ],
+            })
+
+        # 2. Grupo NCM
+        if linha.get('Status_NCM') == 'DIVERGENTE':
+            linhas_ncm.append({
+                'severidade': 'div',
+                'valores': [
+                    cod_prod,
+                    item_nf,
+                    texto_ean_desc,
+                    linha.get('NCM_NF') or '-',
+                    linha.get('NCM_WINTHOR') or '-',
+                    _diagnostico_ncm(linha),
+                ],
+            })
+
+        # 3. Grupo ICMS + Base Reduzida + Coerência Tributária
+        diags_icms = _diagnostico_icms_basered(linha)
+        if diags_icms:
+            eh_div_icms = (
+                linha.get('Status_ICMS_Aliq') == 'DIVERGENTE'
+                or linha.get('Status_Red_BC') == 'DIVERGENTE'
+            )
+            linhas_icms.append({
+                'severidade': 'div' if eh_div_icms else 'warn',
+                'valores': [
+                    cod_prod,
+                    item_nf,
+                    texto_ean_desc,
+                    linha.get('Orig.', '-'),
+                    linha.get('Tipo_Calculo_ST', '-'),
+                    f"{_fmt_num_br(linha.get('ICMS_NF', 0.0))}%",
+                    f"{_fmt_num_br(linha.get('ICMS_WINTHOR', 0.0))}%",
+                    f"{_fmt_num_br(linha.get('%Alíq.Ext. ST Guia_Whintor', 0.0))}%",
+                    f"{_fmt_num_br(linha.get('pRedBC_NF', 0.0))}%",
+                    f"{_fmt_num_br(linha.get('ICMS_Efetivo_NF', 0.0))}%",
+                    f"{_fmt_num_br(linha.get('% ICMS red. Whintor', 0.0))}%",
+                    "\n".join(diags_icms),
+                ],
+            })
+
+    _montar_aba_grupo_excel(
+        workbook=workbook,
+        titulo_aba='Div_EAN',
+        titulo_banner=f"🏷️ Divergências e Alertas de EAN — NF {numero_nf}",
+        cabecalhos=['Cód. Produto', 'Item NF', 'Descrição', 'EAN NF', 'EAN WinThor', 'Status', 'Diagnóstico e Ação'],
+        linhas_dados=linhas_ean,
+        colunas_destaque_idx={4, 5, 6},
+        colunas_esquerda={'Descrição', 'Diagnóstico e Ação'},
+        colunas_num_int={'Cód. Produto', 'Item NF'},
+    )
+
+    _montar_aba_grupo_excel(
+        workbook=workbook,
+        titulo_aba='Div_NCM',
+        titulo_banner=f"📑 Divergências de NCM — NF {numero_nf}",
+        cabecalhos=['Cód. Produto', 'Item NF', 'EAN (NF) + Descrição', 'NCM NF', 'NCM WinThor', 'Diagnóstico e Ação'],
+        linhas_dados=linhas_ncm,
+        colunas_destaque_idx={4, 5},
+        colunas_esquerda={'EAN (NF) + Descrição', 'Diagnóstico e Ação'},
+        colunas_ncm={'NCM NF', 'NCM WinThor'},
+        colunas_num_int={'Cód. Produto', 'Item NF'},
+    )
+
+    _montar_aba_grupo_excel(
+        workbook=workbook,
+        titulo_aba='Div_ICMS_BaseRed',
+        titulo_banner=f"💰 Divergências e Alertas de ICMS / Base Reduzida — NF {numero_nf}",
+        cabecalhos=[
+            'Cód. Produto', 'Item NF', 'EAN (NF) + Descrição', 'Orig.', 'Tipo Cálculo',
+            'ICMS NF', 'ICMS WinThor', 'Guia WinThor', 'Red. BC NF',
+            'ICMS Efetivo NF', '% ICMS red. WinThor', 'Diagnóstico e Ação'
+        ],
+        linhas_dados=linhas_icms,
+        colunas_destaque_idx={6, 7, 8, 10, 11},
+        colunas_esquerda={'EAN (NF) + Descrição', 'Diagnóstico e Ação'},
+        colunas_num_int={'Cód. Produto', 'Item NF'},
+    )
+
+    _montar_aba_grupo_excel(
+        workbook=workbook,
+        titulo_aba='Div_Sobra',
+        titulo_banner=f"⚠️ Itens sem Correspondência (Sobra) — NF {numero_nf}",
+        cabecalhos=['Origem', 'Item NF', 'Item WinThor', 'Cód. Produto', 'EAN', 'Descrição', 'Diagnóstico e Ação'],
+        linhas_dados=linhas_sobra,
+        colunas_destaque_idx={1},
+        colunas_esquerda={'Descrição', 'Diagnóstico e Ação'},
+        colunas_num_int={'Cód. Produto', 'Item NF', 'Item WinThor'},
+    )
+
+
 @st.cache_data(show_spinner=False)
 def gerar_excel_auditoria_cached(
-    itens_xml_tuple,
-    itens_csv_tuple,
-    numero_nf: str,
-    dados_adicionais_tuple,
+    itens_xml_tuple, itens_csv_tuple, numero_nf: str, dados_adicionais_tuple,
     inc_ident: bool, inc_ean: bool, inc_desc: bool, inc_qtd: bool,
     inc_ncm: bool, inc_icms: bool, inc_red: bool, inc_st: bool
 ):
@@ -1549,12 +1993,14 @@ def gerar_excel_auditoria_cached(
 
     excel_buffer = io.BytesIO()
     with pd.ExcelWriter(excel_buffer, engine='openpyxl') as writer:
-        df_final.to_excel(writer, sheet_name='Comparativo_ICMS_e_EAN', index=False, startrow=2)
+        df_final.to_excel(writer, sheet_name='Comparativo', index=False, startrow=2)
 
         workbook = writer.book
-        worksheet = workbook['Comparativo_ICMS_e_EAN']
+        worksheet = workbook['Comparativo']
 
+        # Ordem das abas: 1) Resumo_Divergencias | 2) Comparativo | 3+) Abas individuais por grupo
         _montar_aba_resumo_excel(workbook, dados_relatorio, numero_nf, dados_adicionais)
+        _montar_abas_individuais_excel(workbook, dados_relatorio, numero_nf)
 
         worksheet.sheet_view.showGridLines = False
         worksheet.sheet_view.zoomScale = 80
@@ -1843,11 +2289,11 @@ def _remover_nf_ativa():
     chave = st.session_state.get("sb_nf_ativa")
     if chave and chave in st.session_state["xml_lote"]:
         st.session_state["xml_lote"].pop(chave, None)
-        restantes = list(st.session_state["xml_lote"].keys())
-        if restantes:
-            st.session_state["sb_nf_ativa"] = restantes[0]
-        else:
-            st.session_state.pop("sb_nf_ativa", None)
+    restantes = list(st.session_state["xml_lote"].keys())
+    if restantes:
+        st.session_state["sb_nf_ativa"] = restantes[0]
+    else:
+        st.session_state.pop("sb_nf_ativa", None)
 
 
 def _limpar_lote():
@@ -1860,12 +2306,9 @@ def _limpar_lote():
 # 4. INTERFACE STREAMLIT (UI/UX OTIMIZADA)
 # ==========================================
 st.markdown("""
-<div class="dashboard-header">
-    <div class="header-left">
-        <p class="dashboard-title">📊 Auditoria de Notas Fiscais</p>
-        <p class="dashboard-subtitle">Conferência automatizada entre XML da NF-e e Pré-Entrada WinThor</p>
-    </div>
-    <span class="header-pill">Fiscal • XML × WinThor</span>
+<div class="hero-header">
+    <h1>📊 Auditoria Fiscal de Pré-Entrada (XML × WinThor)</h1>
+    <p>Cruzamento automatizado de EAN, NCM, ICMS, Redução de Base e Tipo de Cálculo ST com diagnóstico orientado à ação.</p>
 </div>
 """, unsafe_allow_html=True)
 
