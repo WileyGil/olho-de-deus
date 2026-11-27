@@ -170,6 +170,14 @@ _PONTOS_IMPORTANTES_PADROES = [
     ),
 ]
 
+# Paleta padrão dos cabeçalhos Excel (XML x Sistema + linhas brancas)
+COLOR_BLOCO_DARK = "1B2631"
+COLOR_XML_SOLID = "212F3D"
+COLOR_WIN_SOFT = "7F8C8D"
+COLOR_STATUS_DIV = "9C0006"
+COLOR_STATUS_WARN = "D97706"
+COLOR_STATUS_OK = "196F3D"
+
 
 # ==========================================
 # 1. FUNÇÕES DE SANEAMENTO, EAN E LEITURA
@@ -592,7 +600,7 @@ def analisar_rodape_nfe(dados_adicionais: dict | None) -> dict:
 
 
 # ==========================================
-# 2. VALIDAÇÃO, CRUZAMENTO E RELATÓRIOS
+# 2. VALIDAÇÃO, CRUZAMENTO E DIAGNÓSTICOS
 # ==========================================
 def _tokens(desc):
     t = _RE_TOKENS.findall(_sem_acento(desc).upper())
@@ -1226,6 +1234,9 @@ def preparar_dados_resumo_divergencias(dados_relatorio):
     return registros, colunas_ativas, qtd_divergencias, qtd_alertas
 
 
+# ==========================================
+# 3. RENDERIZAÇÃO EM TELA (STREAMLIT)
+# ==========================================
 def _alternar_ponto_rodape(ponto_rotulo: str):
     atual = st.session_state.get("ponto_rodape_ativo")
     st.session_state["ponto_rodape_ativo"] = None if atual == ponto_rotulo else ponto_rotulo
@@ -1347,6 +1358,131 @@ def renderizar_resumo_divergencias(dados_relatorio, dados_adicionais: dict | Non
     renderizar_rodape_nfe(dados_adicionais)
 
 
+# ==========================================
+# 4. HELPERS DE ESTILIZAÇÃO EXCEL (PADRONIZAÇÃO GLOBAL)
+# ==========================================
+def _obter_origem_coluna(col_name: str) -> str:
+    """Classifica a coluna para cor do cabeçalho: 'status', 'winthor', 'sintese' ou 'xml'."""
+    if col_name.startswith('Status'):
+        return 'status'
+    if col_name in ('Diagnóstico e Ação', 'Origem', 'EAN', 'NCM', 'ICMS', 'Base Reduzida', 'Tipo Cálculo', 'Sobra'):
+        return 'sintese'
+    if (
+        'WINTHOR' in col_name
+        or 'Whintor' in col_name
+        or col_name in ('Tipo_Calculo_ST', 'Cód. Produto')
+    ):
+        return 'winthor'
+    return 'xml'
+
+
+def _estilizar_cabecalhos_padrao(
+    ws,
+    super_grupos: list[tuple[str, list[str]]],
+    headers: list[str],
+    super_start_row: int,
+    super_end_row: int,
+    sub_row: int,
+    status_severidade: dict[str, str] | None = None,
+    colunas_esquerda: set[str] | None = None,
+):
+    """
+    Aplica o cabeçalho padrão em qualquer aba do Excel:
+    - Super-cabeçalhos de bloco em #1B2631 com divisórias brancas
+    - Sub-cabeçalho: XML (#212F3D), Sistema/WinThor (#7F8C8D), Síntese (#1B2631), Status (semântico)
+    - Linhas brancas finas entre células e divisória branca média entre blocos
+    Retorna o conjunto de índices (1-based) que fecham cada bloco.
+    """
+    status_severidade = status_severidade or {}
+    colunas_esquerda = colunas_esquerda or set()
+
+    fill_bloco = PatternFill(start_color=COLOR_BLOCO_DARK, end_color=COLOR_BLOCO_DARK, fill_type="solid")
+    fill_xml = PatternFill(start_color=COLOR_XML_SOLID, end_color=COLOR_XML_SOLID, fill_type="solid")
+    fill_win = PatternFill(start_color=COLOR_WIN_SOFT, end_color=COLOR_WIN_SOFT, fill_type="solid")
+    fill_st_div = PatternFill(start_color=COLOR_STATUS_DIV, end_color=COLOR_STATUS_DIV, fill_type="solid")
+    fill_st_warn = PatternFill(start_color=COLOR_STATUS_WARN, end_color=COLOR_STATUS_WARN, fill_type="solid")
+    fill_st_ok = PatternFill(start_color=COLOR_STATUS_OK, end_color=COLOR_STATUS_OK, fill_type="solid")
+
+    font_super = Font(bold=True, size=10, color="FFFFFF")
+    font_sub = Font(bold=True, size=10, color="FFFFFF")
+
+    side_branco_fino = Side(style='thin', color='FFFFFF')
+    side_branco_medio = Side(style='medium', color='FFFFFF')
+
+    fins_de_bloco = set()
+    curr_col = 1
+    total_cols = len(headers)
+
+    for label, cols in super_grupos:
+        cols_in = [c for c in cols if c in headers]
+        if not cols_in:
+            continue
+        start_c = curr_col
+        end_c = curr_col + len(cols_in) - 1
+        curr_col += len(cols_in)
+        fins_de_bloco.add(end_c)
+
+        if super_start_row != super_end_row or start_c != end_c:
+            ws.merge_cells(
+                start_row=super_start_row, start_column=start_c,
+                end_row=super_end_row, end_column=end_c
+            )
+        c_sup = ws.cell(row=super_start_row, column=start_c, value=label)
+        c_sup.font = font_super
+        c_sup.alignment = Alignment(horizontal='center', vertical='center', wrap_text=True)
+
+        for r in range(super_start_row, super_end_row + 1):
+            for ci in range(start_c, end_c + 1):
+                cell_t = ws.cell(row=r, column=ci)
+                cell_t.fill = fill_bloco
+                cell_t.border = Border(
+                    left=side_branco_medio if ci == start_c and start_c > 1 else side_branco_fino,
+                    right=side_branco_medio if ci == end_c and end_c < total_cols else side_branco_fino,
+                    top=side_branco_fino,
+                    bottom=side_branco_fino,
+                )
+
+    for r in range(super_start_row, super_end_row + 1):
+        ws.row_dimensions[r].height = 20 if super_start_row == super_end_row else 18
+
+    for idx, col_name in enumerate(headers, start=1):
+        cell = ws.cell(row=sub_row, column=idx, value=col_name)
+        cell.font = font_sub
+        cell.alignment = Alignment(
+            horizontal='left' if col_name in colunas_esquerda else 'center',
+            vertical='center',
+            wrap_text=True
+        )
+
+        origem = _obter_origem_coluna(col_name)
+        if origem == 'status':
+            sev = status_severidade.get(col_name, 'ok')
+            if sev == 'div':
+                cell.fill = fill_st_div
+            elif sev == 'warn':
+                cell.fill = fill_st_warn
+            else:
+                cell.fill = fill_st_ok
+        elif origem == 'winthor':
+            cell.fill = fill_win
+        elif origem == 'sintese':
+            cell.fill = fill_bloco
+        else:
+            cell.fill = fill_xml
+
+        eh_fim = idx in fins_de_bloco and idx < total_cols
+        eh_inicio_bloco = (idx - 1) in fins_de_bloco
+        cell.border = Border(
+            left=side_branco_medio if eh_inicio_bloco else side_branco_fino,
+            right=side_branco_medio if eh_fim else side_branco_fino,
+            top=side_branco_fino,
+            bottom=side_branco_fino,
+        )
+
+    ws.row_dimensions[sub_row].height = 25
+    return fins_de_bloco
+
+
 def _adicionar_bloco_rodape_excel(ws, start_row: int, total_cols: int, dados_adicionais: dict | None):
     """Escreve o bloco de Dados Adicionais / Rodapé da NF-e na aba Resumo_Divergencias."""
     info = analisar_rodape_nfe(dados_adicionais)
@@ -1354,7 +1490,7 @@ def _adicionar_bloco_rodape_excel(ws, start_row: int, total_cols: int, dados_adi
         return
 
     end_col = max(total_cols, 5)
-    fill_rodape_hdr = PatternFill(start_color="1B2631", end_color="1B2631", fill_type="solid")
+    fill_rodape_hdr = PatternFill(start_color=COLOR_BLOCO_DARK, end_color=COLOR_BLOCO_DARK, fill_type="solid")
     fill_rodape_alerta = PatternFill(start_color="FEF3C7", end_color="FEF3C7", fill_type="solid")
     fill_rodape_sec = PatternFill(start_color="E2E8F0", end_color="E2E8F0", fill_type="solid")
     fill_rodape_txt = PatternFill(start_color="F8FAFC", end_color="F8FAFC", fill_type="solid")
@@ -1430,7 +1566,7 @@ def _adicionar_bloco_rodape_excel(ws, start_row: int, total_cols: int, dados_adi
 
 
 def _montar_aba_resumo_excel(workbook, dados_relatorio, numero_nf: str, dados_adicionais: dict | None = None):
-    """Cria a aba 'Resumo_Divergencias' no Excel com faixa superior, Diagnóstico e Ação e rodapé."""
+    """Cria a aba 'Resumo_Divergencias' no Excel com cabeçalho padronizado, Diagnóstico e Ação e rodapé."""
     ws = workbook.create_sheet(title='Resumo_Divergencias', index=0)
     ws.sheet_view.showGridLines = False
     ws.sheet_view.zoomScale = 80
@@ -1441,8 +1577,7 @@ def _montar_aba_resumo_excel(workbook, dados_relatorio, numero_nf: str, dados_ad
     qtd_tipo_nf = sum(1 for l in dados_relatorio if str(l.get('Tipo_Calculo_WINTHOR', '')).strip().upper() == 'N')
     qtd_tipo_guia = sum(1 for l in dados_relatorio if str(l.get('Tipo_Calculo_WINTHOR', '')).strip().upper() == 'G')
 
-    fill_titulo = PatternFill(start_color="1B2631", end_color="1B2631", fill_type="solid")
-    fill_header = PatternFill(start_color="212F3D", end_color="212F3D", fill_type="solid")
+    fill_titulo = PatternFill(start_color=COLOR_BLOCO_DARK, end_color=COLOR_BLOCO_DARK, fill_type="solid")
     fill_zebra_par = PatternFill(start_color="E8EFF7", end_color="E8EFF7", fill_type="solid")
     fill_zebra_impar = PatternFill(start_color="FFFFFF", end_color="FFFFFF", fill_type="solid")
     fill_div_impar = PatternFill(start_color="FEE2E2", end_color="FEE2E2", fill_type="solid")
@@ -1455,7 +1590,6 @@ def _montar_aba_resumo_excel(workbook, dados_relatorio, numero_nf: str, dados_ad
     fill_kpi_guia = PatternFill(start_color="FEF3C7", end_color="FEF3C7", fill_type="solid")
 
     font_titulo = Font(bold=True, size=11, color="FFFFFF")
-    font_header = Font(bold=True, size=10, color="FFFFFF")
     font_prod = Font(bold=True, size=10, color="1B2631")
     font_div = Font(bold=True, size=10, color="991B1B")
     font_warn = Font(bold=True, size=10, color="B45309")
@@ -1466,6 +1600,7 @@ def _montar_aba_resumo_excel(workbook, dados_relatorio, numero_nf: str, dados_ad
     font_kpi_guia_val = Font(bold=True, size=11, color="B45309")
 
     side_cinza = Side(style='thin', color='CBD5E1')
+    side_bloco = Side(style='medium', color=COLOR_BLOCO_DARK)
     borda_celula = Border(left=side_cinza, right=side_cinza, top=side_cinza, bottom=side_cinza)
 
     def _escrever_faixa_topo(n_cols: int):
@@ -1520,19 +1655,29 @@ def _montar_aba_resumo_excel(workbook, dados_relatorio, numero_nf: str, dados_ad
 
     _escrever_faixa_topo(total_cols)
 
-    hdr_row = 4
-    start_data_row = 5
+    super_grupos = [
+        ("IDENTIFICAÇÃO", ['Cód. Produto', 'EAN (NF) + Descrição']),
+        ("OCORRÊNCIAS (XML × WINTHOR)", colunas_excel),
+        ("AÇÃO", ['Diagnóstico e Ação']),
+    ]
+    super_row = 4
+    hdr_row = 5
+    start_data_row = 6
 
-    for col_i, nome_col in enumerate(cabecalhos, start=1):
-        cell = ws.cell(row=hdr_row, column=col_i, value=nome_col.upper())
-        cell.font = font_header
-        cell.fill = fill_header
-        cell.border = borda_celula
-        cell.alignment = Alignment(
-            horizontal='left' if nome_col in ('EAN (NF) + Descrição', 'Diagnóstico e Ação') else 'center',
-            vertical='center'
-        )
-    ws.row_dimensions[hdr_row].height = 24
+    fins_bloco = _estilizar_cabecalhos_padrao(
+        ws=ws,
+        super_grupos=super_grupos,
+        headers=cabecalhos,
+        super_start_row=super_row,
+        super_end_row=super_row,
+        sub_row=hdr_row,
+        colunas_esquerda={'EAN (NF) + Descrição', 'Diagnóstico e Ação'},
+    )
+
+    def _borda_dado(col_i: int):
+        if col_i in fins_bloco and col_i < total_cols:
+            return Border(left=side_cinza, right=side_bloco, top=side_cinza, bottom=side_cinza)
+        return borda_celula
 
     for idx_reg, reg in enumerate(registros, start=start_data_row):
         eh_par = (idx_reg % 2 == 0)
@@ -1554,20 +1699,20 @@ def _montar_aba_resumo_excel(workbook, dados_relatorio, numero_nf: str, dados_ad
             c_cod.number_format = '@'
         c_cod.font = font_prod
         c_cod.fill = fill_linha
-        c_cod.border = borda_celula
+        c_cod.border = _borda_dado(1)
         c_cod.alignment = Alignment(horizontal='center', vertical='center')
 
         c_prod = ws.cell(row=idx_reg, column=2, value=reg['texto_ean_desc'])
         c_prod.font = font_prod
         c_prod.fill = fill_linha
-        c_prod.border = borda_celula
+        c_prod.border = _borda_dado(2)
         c_prod.alignment = Alignment(horizontal='left', vertical='center')
         c_prod.number_format = '@'
 
         for offset, col_nome in enumerate(colunas_excel, start=3):
             val = reg['celulas_texto'].get(col_nome)
             cell = ws.cell(row=idx_reg, column=offset)
-            cell.border = borda_celula
+            cell.border = _borda_dado(offset)
             cell.number_format = '@'
 
             if val is not None:
@@ -1588,7 +1733,7 @@ def _montar_aba_resumo_excel(workbook, dados_relatorio, numero_nf: str, dados_ad
                 cell.alignment = Alignment(horizontal='center', vertical='center')
 
         c_diag = ws.cell(row=idx_reg, column=total_cols, value=reg.get('diagnostico', ''))
-        c_diag.border = borda_celula
+        c_diag.border = _borda_dado(total_cols)
         c_diag.number_format = '@'
         if reg.get('tem_div'):
             c_diag.font = font_div
@@ -1624,7 +1769,6 @@ def _montar_aba_resumo_excel(workbook, dados_relatorio, numero_nf: str, dados_ad
         ws.column_dimensions[col_letter].width = larg
         larguras_col[col_i] = larg
 
-    # Altura dinâmica das linhas com base no Diagnóstico e Ação
     for row_i in range(start_data_row, last_data_row + 1):
         val_diag = ws.cell(row=row_i, column=total_cols).value
         ws.row_dimensions[row_i].height = _calcular_altura_linha(
@@ -1644,19 +1788,25 @@ def _montar_aba_grupo_excel(
     workbook,
     titulo_aba: str,
     titulo_banner: str,
+    super_grupos: list[tuple[str, list[str]]],
     cabecalhos: list[str],
     linhas_dados: list[dict],
-    colunas_destaque_idx: set[int],
-    colunas_esquerda: set[str],
+    status_severidade: dict[str, str] | None = None,
+    colunas_esquerda: set[str] | None = None,
     colunas_ncm: set[str] | None = None,
     colunas_num_int: set[str] | None = None,
+    colunas_num_2dec: set[str] | None = None,
+    colunas_num_4dec: set[str] | None = None,
 ):
-    """Helper reutilizável para montar abas individuais de divergências com Causa + Ação."""
+    """Helper reutilizável para montar abas individuais com cabeçalho padronizado e destaque cirúrgico."""
     if not linhas_dados:
         return
 
+    colunas_esquerda = colunas_esquerda or set()
     colunas_ncm = colunas_ncm or set()
     colunas_num_int = colunas_num_int or set()
+    colunas_num_2dec = colunas_num_2dec or set()
+    colunas_num_4dec = colunas_num_4dec or set()
 
     ws = workbook.create_sheet(title=titulo_aba)
     ws.sheet_view.showGridLines = False
@@ -1666,29 +1816,31 @@ def _montar_aba_grupo_excel(
     qtd_div = sum(1 for r in linhas_dados if r['severidade'] == 'div')
     qtd_warn = sum(1 for r in linhas_dados if r['severidade'] == 'warn')
 
-    fill_titulo = PatternFill(start_color="1B2631", end_color="1B2631", fill_type="solid")
-    fill_header = PatternFill(start_color="212F3D", end_color="212F3D", fill_type="solid")
-    fill_zebra_par = PatternFill(start_color="E8EFF7", end_color="E8EFF7", fill_type="solid")
+    fill_titulo = PatternFill(start_color=COLOR_BLOCO_DARK, end_color=COLOR_BLOCO_DARK, fill_type="solid")
+    fill_zebra_par = PatternFill(start_color="F2F4F4", end_color="F2F4F4", fill_type="solid")
     fill_zebra_impar = PatternFill(start_color="FFFFFF", end_color="FFFFFF", fill_type="solid")
-    fill_div_impar = PatternFill(start_color="FEE2E2", end_color="FEE2E2", fill_type="solid")
-    fill_div_par = PatternFill(start_color="FECACA", end_color="FECACA", fill_type="solid")
-    fill_warn_impar = PatternFill(start_color="FEF3C7", end_color="FEF3C7", fill_type="solid")
-    fill_warn_par = PatternFill(start_color="FDE68A", end_color="FDE68A", fill_type="solid")
+    fill_cel_div = PatternFill(start_color="FADBD8", end_color="FADBD8", fill_type="solid")
+    fill_cel_warn = PatternFill(start_color="FDE68A", end_color="FDE68A", fill_type="solid")
+    fill_cel_warn_dado = PatternFill(start_color="FEF3C7", end_color="FEF3C7", fill_type="solid")
+    fill_cel_ok = PatternFill(start_color="D4EFDF", end_color="D4EFDF", fill_type="solid")
+    fill_diag_div_impar = PatternFill(start_color="FEE2E2", end_color="FEE2E2", fill_type="solid")
+    fill_diag_div_par = PatternFill(start_color="FECACA", end_color="FECACA", fill_type="solid")
+    fill_diag_warn_impar = PatternFill(start_color="FEF3C7", end_color="FEF3C7", fill_type="solid")
+    fill_diag_warn_par = PatternFill(start_color="FDE68A", end_color="FDE68A", fill_type="solid")
     fill_kpi_bg = PatternFill(start_color="F8FAFC", end_color="F8FAFC", fill_type="solid")
     fill_kpi_div = PatternFill(start_color="FEE2E2", end_color="FEE2E2", fill_type="solid")
     fill_kpi_warn = PatternFill(start_color="FEF3C7", end_color="FEF3C7", fill_type="solid")
 
     font_titulo = Font(bold=True, size=11, color="FFFFFF")
-    font_header = Font(bold=True, size=10, color="FFFFFF")
-    font_normal = Font(bold=False, size=10, color="1B2631")
-    font_prod = Font(bold=True, size=10, color="1B2631")
-    font_div = Font(bold=True, size=10, color="991B1B")
+    font_normal = Font(bold=False, size=10, color="000000")
+    font_div = Font(bold=True, size=10, color="9C0006")
     font_warn = Font(bold=True, size=10, color="B45309")
     font_kpi_val = Font(bold=True, size=10, color="1B2631")
     font_kpi_div_val = Font(bold=True, size=10, color="991B1B")
     font_kpi_warn_val = Font(bold=True, size=10, color="B45309")
 
     side_cinza = Side(style='thin', color='CBD5E1')
+    side_bloco = Side(style='medium', color=COLOR_BLOCO_DARK)
     borda_celula = Border(left=side_cinza, right=side_cinza, top=side_cinza, bottom=side_cinza)
 
     # Linha 1: Banner
@@ -1700,7 +1852,7 @@ def _montar_aba_grupo_excel(
         ws.cell(row=1, column=ci).fill = fill_titulo
     ws.row_dimensions[1].height = 28
 
-    # Linha 2: KPIs rápidos do grupo
+    # Linha 2: KPIs rápidos
     kpis = [
         (f"Ocorrências: {len(linhas_dados)}", fill_kpi_bg, font_kpi_val),
         (f"Divergências: {qtd_div}", fill_kpi_div if qtd_div > 0 else fill_kpi_bg, font_kpi_div_val if qtd_div > 0 else font_kpi_val),
@@ -1720,37 +1872,38 @@ def _montar_aba_grupo_excel(
         c_ex.border = borda_celula
     ws.row_dimensions[3].height = 8
 
-    # Linha 4: Cabeçalho
-    hdr_row = 4
-    start_data_row = 5
-    for ci, nome_col in enumerate(cabecalhos, start=1):
-        cell = ws.cell(row=hdr_row, column=ci, value=nome_col.upper())
-        cell.font = font_header
-        cell.fill = fill_header
-        cell.border = borda_celula
-        cell.alignment = Alignment(
-            horizontal='left' if nome_col in colunas_esquerda else 'center',
-            vertical='center',
-            wrap_text=True
-        )
-    ws.row_dimensions[hdr_row].height = 24
+    # Linhas 4 e 5: Cabeçalho padrão (Super-bloco + Colunas XML/Sistema/Status + linhas brancas)
+    super_row = 4
+    hdr_row = 5
+    start_data_row = 6
 
-    # Dados
+    fins_bloco = _estilizar_cabecalhos_padrao(
+        ws=ws,
+        super_grupos=super_grupos,
+        headers=cabecalhos,
+        super_start_row=super_row,
+        super_end_row=super_row,
+        sub_row=hdr_row,
+        status_severidade=status_severidade,
+        colunas_esquerda=colunas_esquerda,
+    )
+
     for idx_r, reg in enumerate(linhas_dados, start=start_data_row):
         eh_par = (idx_r % 2 == 0)
         fill_linha = fill_zebra_par if eh_par else fill_zebra_impar
-        fill_sev = (
-            (fill_div_par if eh_par else fill_div_impar)
-            if reg['severidade'] == 'div'
-            else (fill_warn_par if eh_par else fill_warn_impar)
-        )
-        font_sev = font_div if reg['severidade'] == 'div' else font_warn
+        cols_div_row = reg.get('cols_div', set())
+        cols_warn_row = reg.get('cols_warn', set())
 
         for ci, val in enumerate(reg['valores'], start=1):
             nome_col = cabecalhos[ci - 1]
             cell = ws.cell(row=idx_r, column=ci)
-            cell.border = borda_celula
+            cell.border = (
+                Border(left=side_cinza, right=side_bloco, top=side_cinza, bottom=side_cinza)
+                if (ci in fins_bloco and ci < total_cols)
+                else borda_celula
+            )
 
+            # Tipagem e formatação numérica idêntica ao Comparativo
             if nome_col in colunas_num_int and str(val).strip() not in ('', '-'):
                 try:
                     cell.value = int(float(val))
@@ -1765,20 +1918,56 @@ def _montar_aba_grupo_excel(
                 except ValueError:
                     cell.value = str(val)
                     cell.number_format = '@'
+            elif nome_col in colunas_num_2dec and isinstance(val, (int, float)):
+                cell.value = float(val)
+                cell.number_format = '#,##0.00'
+            elif nome_col in colunas_num_4dec and isinstance(val, (int, float)):
+                cell.value = float(val)
+                cell.number_format = '#,##0.0000'
             else:
                 cell.value = val
                 cell.number_format = '@'
 
-            destaque = (ci in colunas_destaque_idx) or (ci == total_cols)
-            if destaque:
-                cell.fill = fill_sev
-                cell.font = font_sev
+            # Cores e fontes (cirúrgico por célula)
+            if nome_col == 'Diagnóstico e Ação':
+                if reg['severidade'] == 'div':
+                    cell.fill = fill_diag_div_par if eh_par else fill_diag_div_impar
+                    cell.font = font_div
+                else:
+                    cell.fill = fill_diag_warn_par if eh_par else fill_diag_warn_impar
+                    cell.font = font_warn
+            elif nome_col.startswith('Status'):
+                if val == 'DIVERGENTE':
+                    cell.fill = fill_cel_div
+                    cell.font = font_div
+                elif val == 'ALERTA':
+                    cell.fill = fill_cel_warn
+                    cell.font = font_warn
+                elif val == 'OK':
+                    cell.fill = fill_cel_ok
+                    cell.font = font_normal
+                else:
+                    cell.fill = fill_linha
+                    cell.font = font_normal
+            elif nome_col in cols_div_row:
+                cell.fill = fill_linha
+                cell.font = font_div
+            elif nome_col in cols_warn_row:
+                cell.fill = fill_cel_warn_dado
+                cell.font = font_warn
             else:
                 cell.fill = fill_linha
-                cell.font = font_prod if ci <= 3 else font_normal
+                cell.font = font_normal
+
+            if nome_col == 'Cod_Produto_WINTHOR':
+                horiz = 'right'
+            elif nome_col in colunas_esquerda:
+                horiz = 'left'
+            else:
+                horiz = 'center'
 
             cell.alignment = Alignment(
-                horizontal='left' if nome_col in colunas_esquerda else 'center',
+                horizontal=horiz,
                 vertical='center',
                 wrap_text=(nome_col == 'Diagnóstico e Ação')
             )
@@ -1791,18 +1980,21 @@ def _montar_aba_grupo_excel(
     for ci in range(1, total_cols + 1):
         col_letter = get_column_letter(ci)
         nome_col = cabecalhos[ci - 1]
-        max_len = len(nome_col)
-        for ri in range(start_data_row, last_data_row + 1):
-            val = ws.cell(row=ri, column=ci).value
-            if val is not None:
-                for p in str(val).splitlines():
-                    max_len = max(max_len, len(p))
-        if nome_col == 'Diagnóstico e Ação':
-            larg = min(max(max_len + 4, 60), 90)
-        elif nome_col in ('Cód. Produto', 'Item NF', 'Item WinThor', 'Orig.'):
-            larg = min(max(max_len + 4, 11), 18)
+        if nome_col == 'Orig.':
+            larg = 7
         else:
-            larg = min(max(max_len + 5, 14), 48)
+            max_len = len(nome_col)
+            for ri in range(start_data_row, last_data_row + 1):
+                val = ws.cell(row=ri, column=ci).value
+                if val is not None:
+                    for p in str(val).splitlines():
+                        max_len = max(max_len, len(p))
+            if nome_col == 'Diagnóstico e Ação':
+                larg = min(max(max_len + 4, 60), 90)
+            elif nome_col in ('Descricao_NF', 'Descricao_WINTHOR'):
+                larg = min(max(max_len + 4, 24), 48)
+            else:
+                larg = min(max(max_len + 4, 12), 34)
         ws.column_dimensions[col_letter].width = larg
         larguras_col[ci] = larg
 
@@ -1825,21 +2017,26 @@ def _montar_abas_individuais_excel(workbook, dados_relatorio, numero_nf: str):
         cod_prod = str(linha.get('Cod_Produto_WINTHOR') or '').strip()
         cod_prod = cod_prod if cod_prod and cod_prod != '-' else '-'
         item_nf = linha.get('Linha_NF', '-')
-        _, desc_res, texto_ean_desc = _rotulo_ean_desc(linha)
+        desc_nf = str(linha.get('Descricao_NF') or '-').strip()
+        desc_win = str(linha.get('Descricao_WINTHOR') or '-').strip()
+        ean_nf = str(linha.get('EAN_NF') or '-').strip()
+        ean_win = str(linha.get('EAN_WINTHOR') or '-').strip()
 
         if linha.get('Status_Geral') == 'SOBRA':
             origem_sobra = 'XML' if item_nf != '-' else 'WinThor'
-            ean_s = linha.get('EAN_NF') if item_nf != '-' else linha.get('EAN_WINTHOR')
-            desc_s = linha.get('Descricao_NF') if item_nf != '-' else linha.get('Descricao_WINTHOR')
             linhas_sobra.append({
                 'severidade': 'div',
+                'cols_div': {'Origem'},
+                'cols_warn': set(),
                 'valores': [
                     origem_sobra,
                     item_nf,
                     linha.get('Linha_WINTHOR', '-'),
                     cod_prod,
-                    ean_s or '-',
-                    desc_s or '-',
+                    ean_nf,
+                    ean_win,
+                    desc_nf,
+                    desc_win,
                     _diagnostico_sobra(linha),
                 ],
             })
@@ -1847,15 +2044,17 @@ def _montar_abas_individuais_excel(workbook, dados_relatorio, numero_nf: str):
 
         # 1. Grupo EAN
         if linha.get('Status_EAN') == 'DIVERGENTE' or linha.get('EAN_Alerta_Vazio'):
-            sev = 'div' if linha.get('Status_EAN') == 'DIVERGENTE' else 'warn'
+            eh_div = linha.get('Status_EAN') == 'DIVERGENTE'
             linhas_ean.append({
-                'severidade': sev,
+                'severidade': 'div' if eh_div else 'warn',
+                'cols_div': {'EAN_NF', 'EAN_WINTHOR'} if eh_div else set(),
+                'cols_warn': set() if eh_div else {'EAN_NF', 'EAN_WINTHOR'},
                 'valores': [
-                    cod_prod,
                     item_nf,
-                    desc_res or '-',
-                    linha.get('EAN_NF') or 'vazio',
-                    linha.get('EAN_WINTHOR') or 'vazio',
+                    cod_prod,
+                    desc_nf,
+                    ean_nf,
+                    ean_win,
                     linha.get('Status_EAN', '-'),
                     _diagnostico_ean(linha),
                 ],
@@ -1865,88 +2064,156 @@ def _montar_abas_individuais_excel(workbook, dados_relatorio, numero_nf: str):
         if linha.get('Status_NCM') == 'DIVERGENTE':
             linhas_ncm.append({
                 'severidade': 'div',
+                'cols_div': {'NCM_NF', 'NCM_WINTHOR'},
+                'cols_warn': set(),
                 'valores': [
-                    cod_prod,
                     item_nf,
-                    texto_ean_desc,
+                    cod_prod,
+                    ean_nf,
+                    desc_nf,
                     linha.get('NCM_NF') or '-',
                     linha.get('NCM_WINTHOR') or '-',
+                    linha.get('Status_NCM', '-'),
                     _diagnostico_ncm(linha),
                 ],
             })
 
-        # 3. Grupo ICMS + Base Reduzida + Coerência Tributária
+        # 3. Grupo ICMS + Base Reduzida (espelhando colunas e destaque cirúrgico do Comparativo)
         diags_icms = _diagnostico_icms_basered(linha)
         if diags_icms:
-            eh_div_icms = (
-                linha.get('Status_ICMS_Aliq') == 'DIVERGENTE'
-                or linha.get('Status_Red_BC') == 'DIVERGENTE'
-            )
+            tipo_calc = str(linha.get('Tipo_Calculo_WINTHOR', '')).strip().upper()
+            st_icms = linha.get('Status_ICMS_Aliq', '-')
+            st_red = linha.get('Status_Red_BC', '-')
+            eh_div_icms = (st_icms == 'DIVERGENTE' or st_red == 'DIVERGENTE')
+
+            cols_div = set()
+            cols_warn = set()
+
+            if st_icms == 'DIVERGENTE':
+                if tipo_calc == 'G':
+                    cols_div.update({'ICMS_NF', '%Alíq.Ext. ST Guia_Whintor'})
+                    if round(converte_float_br(linha.get('ICMS_WINTHOR', 0.0)), 2) != 0.0:
+                        cols_div.add('ICMS_WINTHOR')
+                else:
+                    cols_div.update({'ICMS_NF', 'ICMS_WINTHOR'})
+            elif linha.get('ICMS_Alerta_Guia'):
+                cols_warn.add('ICMS_WINTHOR')
+
+            if st_red == 'DIVERGENTE':
+                cols_div.update({'ICMS_Efetivo_NF', '% ICMS red. Whintor'})
+
+            if linha.get('Alerta_Origem_Aliq'):
+                cols_warn.update({'Orig.', 'ICMS_NF'})
+
+            if linha.get('Alerta_Guia_Coerencia'):
+                cols_warn.add('Tipo_Calculo_ST')
+
             linhas_icms.append({
                 'severidade': 'div' if eh_div_icms else 'warn',
+                'cols_div': cols_div,
+                'cols_warn': cols_warn,
                 'valores': [
-                    cod_prod,
                     item_nf,
-                    texto_ean_desc,
+                    cod_prod,
+                    ean_nf,
+                    desc_nf,
                     linha.get('Orig.', '-'),
+                    linha.get('ICMS_NF', 0.0),
+                    linha.get('ICMS_WINTHOR', 0.0),
+                    linha.get('%Alíq.Ext. ST Guia_Whintor', 0.0),
+                    st_icms,
+                    linha.get('pRedBC_NF', 0.0),
+                    linha.get('ICMS_Efetivo_NF', 0.0),
+                    linha.get('% ICMS red. Whintor', 0.0),
+                    st_red,
                     linha.get('Tipo_Calculo_ST', '-'),
-                    f"{_fmt_num_br(linha.get('ICMS_NF', 0.0))}%",
-                    f"{_fmt_num_br(linha.get('ICMS_WINTHOR', 0.0))}%",
-                    f"{_fmt_num_br(linha.get('%Alíq.Ext. ST Guia_Whintor', 0.0))}%",
-                    f"{_fmt_num_br(linha.get('pRedBC_NF', 0.0))}%",
-                    f"{_fmt_num_br(linha.get('ICMS_Efetivo_NF', 0.0))}%",
-                    f"{_fmt_num_br(linha.get('% ICMS red. Whintor', 0.0))}%",
                     "\n".join(diags_icms),
                 ],
             })
+
+    # Severidade de cabeçalho para Status das abas individuais
+    st_ean_sev = 'div' if any(r['valores'][5] == 'DIVERGENTE' for r in linhas_ean) else 'warn'
+    st_icms_sev = (
+        'div' if any(r['valores'][8] == 'DIVERGENTE' for r in linhas_icms)
+        else ('warn' if any(r['valores'][8] == 'ALERTA' for r in linhas_icms) else 'ok')
+    )
+    st_red_sev = 'div' if any(r['valores'][12] == 'DIVERGENTE' for r in linhas_icms) else 'ok'
 
     _montar_aba_grupo_excel(
         workbook=workbook,
         titulo_aba='Div_EAN',
         titulo_banner=f"🏷️ Divergências e Alertas de EAN — NF {numero_nf}",
-        cabecalhos=['Cód. Produto', 'Item NF', 'Descrição', 'EAN NF', 'EAN WinThor', 'Status', 'Diagnóstico e Ação'],
+        super_grupos=[
+            ("IDENTIFICAÇÃO", ['Linha_NF', 'Cod_Produto_WINTHOR', 'Descricao_NF']),
+            ("CÓDIGO E EAN", ['EAN_NF', 'EAN_WINTHOR', 'Status_EAN']),
+            ("AÇÃO", ['Diagnóstico e Ação']),
+        ],
+        cabecalhos=['Linha_NF', 'Cod_Produto_WINTHOR', 'Descricao_NF', 'EAN_NF', 'EAN_WINTHOR', 'Status_EAN', 'Diagnóstico e Ação'],
         linhas_dados=linhas_ean,
-        colunas_destaque_idx={4, 5, 6},
-        colunas_esquerda={'Descrição', 'Diagnóstico e Ação'},
-        colunas_num_int={'Cód. Produto', 'Item NF'},
+        status_severidade={'Status_EAN': st_ean_sev},
+        colunas_esquerda={'Descricao_NF', 'Diagnóstico e Ação'},
+        colunas_num_int={'Linha_NF', 'Cod_Produto_WINTHOR'},
     )
 
     _montar_aba_grupo_excel(
         workbook=workbook,
         titulo_aba='Div_NCM',
         titulo_banner=f"📑 Divergências de NCM — NF {numero_nf}",
-        cabecalhos=['Cód. Produto', 'Item NF', 'EAN (NF) + Descrição', 'NCM NF', 'NCM WinThor', 'Diagnóstico e Ação'],
+        super_grupos=[
+            ("IDENTIFICAÇÃO", ['Linha_NF', 'Cod_Produto_WINTHOR', 'EAN_NF', 'Descricao_NF']),
+            ("CLASSIFICAÇÃO FISCAL (NCM)", ['NCM_NF', 'NCM_WINTHOR', 'Status_NCM']),
+            ("AÇÃO", ['Diagnóstico e Ação']),
+        ],
+        cabecalhos=['Linha_NF', 'Cod_Produto_WINTHOR', 'EAN_NF', 'Descricao_NF', 'NCM_NF', 'NCM_WINTHOR', 'Status_NCM', 'Diagnóstico e Ação'],
         linhas_dados=linhas_ncm,
-        colunas_destaque_idx={4, 5},
-        colunas_esquerda={'EAN (NF) + Descrição', 'Diagnóstico e Ação'},
-        colunas_ncm={'NCM NF', 'NCM WinThor'},
-        colunas_num_int={'Cód. Produto', 'Item NF'},
+        status_severidade={'Status_NCM': 'div'},
+        colunas_esquerda={'Descricao_NF', 'Diagnóstico e Ação'},
+        colunas_ncm={'NCM_NF', 'NCM_WINTHOR'},
+        colunas_num_int={'Linha_NF', 'Cod_Produto_WINTHOR'},
     )
 
     _montar_aba_grupo_excel(
         workbook=workbook,
         titulo_aba='Div_ICMS_BaseRed',
         titulo_banner=f"💰 Divergências e Alertas de ICMS / Base Reduzida — NF {numero_nf}",
+        super_grupos=[
+            ("IDENTIFICAÇÃO", ['Linha_NF', 'Cod_Produto_WINTHOR', 'EAN_NF', 'Descricao_NF']),
+            ("ALÍQUOTAS DE ICMS", ['Orig.', 'ICMS_NF', 'ICMS_WINTHOR', '%Alíq.Ext. ST Guia_Whintor', 'Status_ICMS_Aliq']),
+            ("REDUÇÃO DE BASE", ['pRedBC_NF', 'ICMS_Efetivo_NF', '% ICMS red. Whintor', 'Status_Red_BC']),
+            ("TIPO CÁLCULO ST", ['Tipo_Calculo_ST']),
+            ("AÇÃO", ['Diagnóstico e Ação']),
+        ],
         cabecalhos=[
-            'Cód. Produto', 'Item NF', 'EAN (NF) + Descrição', 'Orig.', 'Tipo Cálculo',
-            'ICMS NF', 'ICMS WinThor', 'Guia WinThor', 'Red. BC NF',
-            'ICMS Efetivo NF', '% ICMS red. WinThor', 'Diagnóstico e Ação'
+            'Linha_NF', 'Cod_Produto_WINTHOR', 'EAN_NF', 'Descricao_NF',
+            'Orig.', 'ICMS_NF', 'ICMS_WINTHOR', '%Alíq.Ext. ST Guia_Whintor', 'Status_ICMS_Aliq',
+            'pRedBC_NF', 'ICMS_Efetivo_NF', '% ICMS red. Whintor', 'Status_Red_BC',
+            'Tipo_Calculo_ST', 'Diagnóstico e Ação'
         ],
         linhas_dados=linhas_icms,
-        colunas_destaque_idx={6, 7, 8, 10, 11},
-        colunas_esquerda={'EAN (NF) + Descrição', 'Diagnóstico e Ação'},
-        colunas_num_int={'Cód. Produto', 'Item NF'},
+        status_severidade={'Status_ICMS_Aliq': st_icms_sev, 'Status_Red_BC': st_red_sev},
+        colunas_esquerda={'Descricao_NF', 'Diagnóstico e Ação'},
+        colunas_num_int={'Linha_NF', 'Cod_Produto_WINTHOR'},
+        colunas_num_2dec={'ICMS_NF', 'ICMS_WINTHOR', '%Alíq.Ext. ST Guia_Whintor'},
+        colunas_num_4dec={'pRedBC_NF', 'ICMS_Efetivo_NF', '% ICMS red. Whintor'},
     )
 
     _montar_aba_grupo_excel(
         workbook=workbook,
         titulo_aba='Div_Sobra',
         titulo_banner=f"⚠️ Itens sem Correspondência (Sobra) — NF {numero_nf}",
-        cabecalhos=['Origem', 'Item NF', 'Item WinThor', 'Cód. Produto', 'EAN', 'Descrição', 'Diagnóstico e Ação'],
+        super_grupos=[
+            ("IDENTIFICAÇÃO", ['Origem', 'Linha_NF', 'Linha_WINTHOR', 'Cod_Produto_WINTHOR']),
+            ("PRODUTO", ['EAN_NF', 'EAN_WINTHOR', 'Descricao_NF', 'Descricao_WINTHOR']),
+            ("AÇÃO", ['Diagnóstico e Ação']),
+        ],
+        cabecalhos=[
+            'Origem', 'Linha_NF', 'Linha_WINTHOR', 'Cod_Produto_WINTHOR',
+            'EAN_NF', 'EAN_WINTHOR', 'Descricao_NF', 'Descricao_WINTHOR',
+            'Diagnóstico e Ação'
+        ],
         linhas_dados=linhas_sobra,
-        colunas_destaque_idx={1},
-        colunas_esquerda={'Descrição', 'Diagnóstico e Ação'},
-        colunas_num_int={'Cód. Produto', 'Item NF', 'Item WinThor'},
+        colunas_esquerda={'Descricao_NF', 'Descricao_WINTHOR', 'Diagnóstico e Ação'},
+        colunas_num_int={'Linha_NF', 'Linha_WINTHOR', 'Cod_Produto_WINTHOR'},
     )
 
 
@@ -2008,34 +2275,20 @@ def gerar_excel_auditoria_cached(
         worksheet.freeze_panes = 'A4'
         worksheet.auto_filter.ref = f"A3:{get_column_letter(len(df_final.columns))}{len(df_final) + 3}"
 
-        COLOR_BLOCO_DARK = "1B2631"
-        COLOR_XML_SOLID = "212F3D"
-        COLOR_WIN_SOFT = "7F8C8D"
-
-        fill_bloco = PatternFill(start_color=COLOR_BLOCO_DARK, end_color=COLOR_BLOCO_DARK, fill_type="solid")
-        fill_xml = PatternFill(start_color=COLOR_XML_SOLID, end_color=COLOR_XML_SOLID, fill_type="solid")
-        fill_win = PatternFill(start_color=COLOR_WIN_SOFT, end_color=COLOR_WIN_SOFT, fill_type="solid")
-
         fill_zebrado = PatternFill(start_color="F2F4F4", end_color="F2F4F4", fill_type="solid")
         fill_cinza_sobra = PatternFill(start_color="EAEDED", end_color="EAEDED", fill_type="solid")
 
-        fill_status_divergente = PatternFill(start_color="9C0006", end_color="9C0006", fill_type="solid")
-        fill_status_alerta = PatternFill(start_color="D97706", end_color="D97706", fill_type="solid")
-        fill_status_convergente = PatternFill(start_color="196F3D", end_color="196F3D", fill_type="solid")
         fill_cel_divergente = PatternFill(start_color="FADBD8", end_color="FADBD8", fill_type="solid")
         fill_cel_alerta = PatternFill(start_color="FDE68A", end_color="FDE68A", fill_type="solid")
         fill_cel_alerta_dado = PatternFill(start_color="FEF3C7", end_color="FEF3C7", fill_type="solid")
         fill_cel_convergente = PatternFill(start_color="D4EFDF", end_color="D4EFDF", fill_type="solid")
 
-        font_super_white = Font(bold=True, size=11, color="FFFFFF")
-        font_header_white = Font(bold=True, size=10, color="FFFFFF")
-        font_header_status = Font(bold=True, size=10, color="FFFFFF")
         font_divergente = Font(color="9C0006", bold=True)
         font_alerta = Font(color="B45309", bold=True)
         font_normal = Font(color="000000", bold=False)
 
         borda_padrao = Border(left=Side(style=None), right=Side(style=None), top=Side(style=None), bottom=Side(style=None))
-        borda_fim_bloco = Border(left=Side(style=None), right=Side(style='medium', color='1B2631'), top=Side(style=None), bottom=Side(style=None))
+        borda_fim_bloco = Border(left=Side(style=None), right=Side(style='medium', color=COLOR_BLOCO_DARK), top=Side(style=None), bottom=Side(style=None))
 
         headers = list(df_final.columns)
 
@@ -2049,74 +2302,29 @@ def gerar_excel_auditoria_cached(
         if inc_red: super_grupos_def.append(("REDUÇÃO DE BASE", ['pRedBC_NF', 'ICMS_Efetivo_NF', '% ICMS red. Whintor', 'Status_Red_BC']))
         if inc_st: super_grupos_def.append(("TIPO CÁLCULO ST", ['Tipo_Calculo_ST']))
 
-        curr_col_idx = 1
-        for label, cols in super_grupos_def:
-            cols_in_df = [c for c in cols if c in headers]
-            if not cols_in_df:
-                continue
-            start_c = curr_col_idx
-            end_c = curr_col_idx + len(cols_in_df) - 1
-            curr_col_idx += len(cols_in_df)
-
-            worksheet.merge_cells(start_row=1, start_column=start_c, end_row=2, end_column=end_c)
-            cell = worksheet.cell(row=1, column=start_c)
-            cell.value = label
-            cell.font = font_super_white
-            cell.alignment = Alignment(horizontal='center', vertical='center', wrap_text=True)
-
-            for r in (1, 2):
-                for c in range(start_c, end_c + 1):
-                    cell_target = worksheet.cell(row=r, column=c)
-                    cell_target.fill = fill_bloco
-                    cell_target.border = borda_fim_bloco if c == end_c else borda_padrao
-
-        worksheet.row_dimensions[1].height = 18
-        worksheet.row_dimensions[2].height = 18
-        worksheet.row_dimensions[3].height = 25
-
         status_columns = ['Status_EAN', 'Status_Qtd', 'Status_NCM', 'Status_ICMS_Aliq', 'Status_Red_BC']
-        status_has_divergence = {
-            sc: (df_final[sc] == 'DIVERGENTE').any() if sc in df_final.columns else False
-            for sc in status_columns
-        }
         status_has_warning = {
             'Status_EAN': any(l.get('EAN_Alerta_Vazio') for l in dados_relatorio),
             'Status_ICMS_Aliq': any(l.get('ICMS_Alerta_Guia') for l in dados_relatorio),
         }
-
-        def obter_fill_cabecalho(col_name):
-            if 'WINTHOR' in col_name or 'Whintor' in col_name or 'Status' in col_name:
-                return fill_win
-            return fill_xml
-
-        for idx, col_name in enumerate(headers, 1):
-            cell = worksheet.cell(row=3, column=idx)
-            cell.value = col_name
-            cell.alignment = Alignment(horizontal='center', vertical='center', wrap_text=True)
-
-            is_fim_bloco = False
-            running_c = 0
-            for _, cols in super_grupos_def:
-                c_in = [c for c in cols if c in headers]
-                if c_in:
-                    running_c += len(c_in)
-                    if idx == running_c:
-                        is_fim_bloco = True
-                        break
-
-            cell.border = borda_fim_bloco if is_fim_bloco else borda_padrao
-
-            if col_name in status_has_divergence:
-                if status_has_divergence[col_name]:
-                    cell.fill = fill_status_divergente
-                elif status_has_warning.get(col_name):
-                    cell.fill = fill_status_alerta
-                else:
-                    cell.fill = fill_status_convergente
-                cell.font = font_header_status
+        status_severidade = {}
+        for sc in status_columns:
+            if sc in df_final.columns and (df_final[sc] == 'DIVERGENTE').any():
+                status_severidade[sc] = 'div'
+            elif status_has_warning.get(sc):
+                status_severidade[sc] = 'warn'
             else:
-                cell.fill = obter_fill_cabecalho(col_name)
-                cell.font = font_header_white
+                status_severidade[sc] = 'ok'
+
+        fins_bloco = _estilizar_cabecalhos_padrao(
+            ws=worksheet,
+            super_grupos=super_grupos_def,
+            headers=headers,
+            super_start_row=1,
+            super_end_row=2,
+            sub_row=3,
+            status_severidade=status_severidade,
+        )
 
         align_center_cols = [
             'Linha_NF', 'Linha_WINTHOR', 'EAN_NF', 'EAN_WINTHOR', 'Qtd_NF', 'Qtd_WINTHOR',
@@ -2136,17 +2344,7 @@ def gerar_excel_auditoria_cached(
             linha_dict = dados_relatorio[row - 4]
             for col_idx in range(1, len(headers) + 1):
                 cell = worksheet.cell(row=row, column=col_idx)
-
-                is_fim_bloco = False
-                running_c = 0
-                for _, cols in super_grupos_def:
-                    c_in = [c for c in cols if c in headers]
-                    if c_in:
-                        running_c += len(c_in)
-                        if col_idx == running_c:
-                            is_fim_bloco = True
-                            break
-                cell.border = borda_fim_bloco if is_fim_bloco else borda_padrao
+                cell.border = borda_fim_bloco if col_idx in fins_bloco else borda_padrao
 
                 col_name = headers[col_idx - 1]
                 current_align = cell.alignment or Alignment()
@@ -2283,7 +2481,7 @@ def _freeze_dict(d: dict) -> tuple[tuple[str, object], ...]:
 
 
 # ==========================================
-# 3. CALLBACKS DE GERENCIAMENTO DO LOTE
+# 5. CALLBACKS DE GERENCIAMENTO DO LOTE
 # ==========================================
 def _remover_nf_ativa():
     chave = st.session_state.get("sb_nf_ativa")
@@ -2303,7 +2501,7 @@ def _limpar_lote():
 
 
 # ==========================================
-# 4. INTERFACE STREAMLIT (UI/UX OTIMIZADA)
+# 6. INTERFACE STREAMLIT (UI/UX OTIMIZADA)
 # ==========================================
 st.markdown("""
 <div class="hero-header">
